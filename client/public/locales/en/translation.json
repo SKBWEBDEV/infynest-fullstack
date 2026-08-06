@@ -1,0 +1,14 @@
+{
+  "welcome_back": "Welcome back! Please enter your details.",
+  "sign_in": "Sign In",
+  "create_account": "Create Account",
+  "full_name": "Full Name",
+  "email": "Email",
+  "password": "Password",
+  "remember_me": "Remember me",
+  "forgot_password": "Forgot password?",
+  "or": "or",
+  "sign_in_google": "Sign in with Google",
+  "already_have_account": "Already have an account?",
+  "log_in": "Log in"
+}

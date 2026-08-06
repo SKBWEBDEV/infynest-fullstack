@@ -1,0 +1,14 @@
+{
+  "welcome_back": "স্বাগতম! আপনার বিবরণ লিখুন।",
+  "sign_in": "প্রবেশ করুন",
+  "create_account": "অ্যাকাউন্ট তৈরি করুন",
+  "full_name": "পুরো নাম",
+  "email": "ইমেইল",
+  "password": "পাসওয়ার্ড",
+  "remember_me": "আমাকে মনে রাখুন",
+  "forgot_password": "পাসওয়ার্ড ভুলে গেছেন?",
+  "or": "অথবা",
+  "sign_in_google": "Google দিয়ে প্রবেশ করুন",
+  "already_have_account": "ইতিমধ্যে অ্যাকাউন্ট আছে?",
+  "log_in": "লগ ইন করুন"
+}
