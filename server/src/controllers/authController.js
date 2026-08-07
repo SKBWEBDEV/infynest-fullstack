@@ -15,7 +15,7 @@ const generateToken = (id) => {
 const sendVerificationEmail = async (email, token) => {
   const transporter = nodemailer.createTransport({
     host: process.env.EMAIL_HOST,
-    port: Number(process.env.EMAIL_PORT) || 2525,
+    port: Number(process.env.EMAIL_PORT),
     secure: false,
 
     auth: {
@@ -35,7 +35,9 @@ const sendVerificationEmail = async (email, token) => {
   console.log("📧 SMTP Host:", process.env.EMAIL_HOST);
   console.log("📧 SMTP Port:", process.env.EMAIL_PORT);
 
-  await transporter.sendMail({
+  console.log("📨 Calling Brevo sendMail...");
+
+  const info = await transporter.sendMail({
     from: {
       name: process.env.EMAIL_FROM_NAME || "INFYNEST",
       address: process.env.EMAIL_FROM,
@@ -85,9 +87,10 @@ const sendVerificationEmail = async (email, token) => {
     `,
   });
 
-  console.log("✅ Verification email sent successfully");
-};
+  console.log("✅ Brevo email sent:", info.messageId);
 
+  return info;
+};
 
 
 // পাসওয়ার্ড রিসেট ইমেল পাঠানোর হেলপার ফাংশন
@@ -167,52 +170,57 @@ export const register = async (req, res) => {
     const { name, email, password, phone, secretCode } = req.body;
 
     const userExists = await User.findOne({ email });
+
     if (userExists) {
-      return res.status(400).json({ message: 'User already exists' });
+      return res.status(400).json({
+        message: "User already exists",
+      });
     }
 
-    // ডিফল্ট রোল কাস্টমার থাকবে
-    let role = 'customer';
+    // Default role
+    let role = "customer";
 
-    // .env ফাইল থেকে সিক্রেট কোড চেক করা
-    const ADMIN_SECRET_KEY = process.env.ADMIN_SECRET_KEY || 'shopbd_admin_secret_2026';
+    // Admin secret code
+    const ADMIN_SECRET_KEY =
+      process.env.ADMIN_SECRET_KEY || "shopbd_admin_secret_2026";
 
-    // ইউজার যদি সঠিক সিক্রেট কোড দিয়ে থাকে, তবে রোল admin হয়ে যাবে
     if (secretCode && secretCode === ADMIN_SECRET_KEY) {
-      role = 'admin';
+      role = "admin";
     }
 
-    const verificationToken = crypto.randomBytes(32).toString('hex');
+    // Verification token
+    const verificationToken = crypto.randomBytes(32).toString("hex");
 
+    // Create user
     const user = await User.create({
       name,
       email,
       password,
       phone,
-      role, // এখানে রোল সেট হবে
+      role,
       verificationToken,
       isVerified: false,
     });
 
     console.log("✅ USER CREATED:", user.email);
 
-console.log("📤 Starting verification email...");
+    console.log("📤 Starting verification email...");
 
-await sendVerificationEmail(email, verificationToken);
+    await sendVerificationEmail(email, verificationToken);
 
-console.log("✅ Registration completed");
+    console.log("✅ Registration completed");
 
-    if (user) {
-      await sendVerificationEmail(email, verificationToken);
-
-      res.status(201).json({
-        message: 'Registration successful! Please check your email to verify your account.',
-      });
-    } else {
-      res.status(400).json({ message: 'Invalid user data' });
-    }
+    return res.status(201).json({
+      message:
+        "Registration successful! Please check your email to verify your account.",
+    });
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    console.error("❌ REGISTER ERROR:", error);
+
+    return res.status(500).json({
+      message: "Server error",
+      error: error.message,
+    });
   }
 };
 
