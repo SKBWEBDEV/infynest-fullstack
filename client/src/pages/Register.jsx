@@ -36,27 +36,25 @@ const Register = () => {
   // SLIDER IMAGES
   // ==========================================
 
-  const sliderImages = [
-    "https://images.unsplash.com/photo-1634017839464-5c339ebe3cb4?q=80&w=1920&auto=format&fit=crop",
-
-    "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1920&auto=format&fit=crop",
-
-    "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?q=80&w=1920&auto=format&fit=crop",
-  ];
+const sliderImages = [
+  "https://images.unsplash.com/photo-1634017839464-5c339ebe3cb4?q=80&w=1920&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1920&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?q=80&w=1920&auto=format&fit=crop",
+];
 
   // ==========================================
   // AUTO SLIDE
   // ==========================================
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentImageIndex((prevIndex) => {
-        return (prevIndex + 1) % sliderImages.length;
-      });
-    }, 3500);
+useEffect(() => {
+  const interval = setInterval(() => {
+    setCurrentImageIndex((prevIndex) => {
+      return (prevIndex + 1) % sliderImages.length;
+    });
+  }, 3500);
 
-    return () => clearInterval(interval);
-  }, [sliderImages.length]);
+  return () => clearInterval(interval);
+}, []);
 
   // ==========================================
   // MANUAL SLIDE
@@ -130,8 +128,8 @@ const Register = () => {
         ====================================================== */}
 
 <div
-  className="relative rounded-[28px] overflow-hidden p-6 md:p-8 flex flex-col justify-between text-white bg-cover bg-center mt-3.5
-  bottom-2 left-2.5 sm:right-2.5 h-[480px] lg:h-[640px] transition-all duration-500 border border-white/40"
+  className="relative rounded-[28px] overflow-hidden p-6 md:p-8 flex flex-col justify-between text-white bg-cover bg-center mt-6
+  bottom-2  h-[480px] lg:h-[590px] transition-all duration-500 border border-white/40"
   style={{
     backgroundImage: `linear-gradient(to bottom, rgba(0,0,0,0.15), rgba(0,0,0,0.7)), url('${sliderImages[currentImageIndex]}')`,
   }}>
