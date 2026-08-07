@@ -1,11 +1,13 @@
 // File Path: src/pages/Men.jsx
 
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom'; // 👈 useNavigate ইমপোর্ট করা হলো
 import axios from 'axios';
 import { HiShoppingBag, HiEye, HiHeart } from 'react-icons/hi';
+import toast from 'react-hot-toast'; // 👈 টোস্ট ইমপোর্ট করা হলো
 
 export default function Men() {
+  const navigate = useNavigate(); // 👈 হুক ডিক্লেয়ার করা হলো
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [sortBy, setSortBy] = useState('default');
@@ -43,6 +45,36 @@ export default function Men() {
     setWishlist(prev => 
       prev.includes(productId) ? prev.filter(id => id !== productId) : [...prev, productId]
     );
+  };
+
+  // 🛒 Buy বাটনে ক্লিক করলে লগইন চেক করার ফাংশন
+  const handleBuyClick = (product) => {
+    const userInfo = localStorage.getItem('userInfo');
+
+    // যদি ইউজার লগইন করা না থাকে
+    if (!userInfo) {
+      toast.error('প্রথমে লগইন করুন!', {
+        style: {
+          background: '#161920',
+          color: '#fff',
+          border: '1px solid rgba(168, 85, 247, 0.4)',
+          fontSize: '12px',
+        },
+      });
+      navigate('/login'); // লগইন পেজে রিডাইরেক্ট করবে
+      return;
+    }
+
+    // ইউজার লগইন করা থাকলে মেসেজ দেখাবে
+    toast('আগে Details-এ যান, সেখান থেকে Size ও Color সিলেক্ট করে Add to Cart করুন!', {
+      icon: '🛍️',
+      style: {
+        background: '#161920',
+        color: '#fff',
+        border: '1px solid rgba(168, 85, 247, 0.4)',
+        fontSize: '12px',
+      },
+    });
   };
 
   // Sorting logic
@@ -165,7 +197,7 @@ export default function Men() {
                       <HiEye size={16} /> Details
                     </Link>
                     <button 
-                      onClick={() => alert(`Added ${product?.name} to cart!`)}
+                      onClick={() => handleBuyClick(product)}
                       disabled={product?.stock <= 0}
                       className={`py-2.5 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition cursor-pointer ${
                         product?.stock > 0

@@ -1,11 +1,13 @@
 // File Path: src/pages/Women.jsx
 
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom'; // 👈 useNavigate ইমপোর্ট করা হলো
 import axios from 'axios';
 import { HiShoppingBag, HiEye } from 'react-icons/hi';
+import toast from 'react-hot-toast'; // 👈 টোস্ট ইমপোর্ট করা হলো
 
 export default function Women() {
+  const navigate = useNavigate(); // 👈 হুক ডিক্লেয়ার করা হলো
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -33,6 +35,36 @@ export default function Women() {
 
     fetchWomenProducts();
   }, []);
+
+  // 🛒 Buy বাটনে ক্লিক করলে লগইন চেক করার ফাংশন
+  const handleBuyClick = (product) => {
+    const userInfo = localStorage.getItem('userInfo');
+
+    // যদি ইউজার লগইন করা না থাকে
+    if (!userInfo) {
+      toast.error('প্রথমে লগইন করুন!', {
+        style: {
+          background: '#161920',
+          color: '#fff',
+          border: '1px solid rgba(168, 85, 247, 0.4)',
+          fontSize: '12px',
+        },
+      });
+      navigate('/login'); // লগইন পেজে রিডাইরেক্ট করবে
+      return;
+    }
+
+    // ইউজার লগইন করা থাকলে মেসেজ দেখাবে
+    toast('আগে Details-এ যান, সেখান থেকে Size ও Color সিলেক্ট করে Add to Cart করুন!', {
+      icon: '🛍️',
+      style: {
+        background: '#161920',
+        color: '#fff',
+        border: '1px solid rgba(168, 85, 247, 0.4)',
+        fontSize: '12px',
+      },
+    });
+  };
 
   return (
     <div className="min-h-screen bg-[#0f1115] text-gray-200 py-10 px-6 font-sans">
@@ -105,7 +137,7 @@ export default function Women() {
                       <HiEye size={16} /> Details
                     </Link>
                     <button 
-                      onClick={() => alert(`Added ${product?.name} to cart!`)}
+                      onClick={() => handleBuyClick(product)}
                       className="py-2.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 shadow-md shadow-purple-600/20 transition cursor-pointer"
                     >
                       <HiShoppingBag size={16} /> Buy

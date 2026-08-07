@@ -2,13 +2,14 @@
 
 import React, { useState, useEffect } from 'react';
 import { Link, Outlet, useNavigate } from 'react-router-dom';
-import { HiShoppingBag,HiClipboardList } from 'react-icons/hi';
+import { HiShoppingBag, HiClipboardList, HiMenu, HiX } from 'react-icons/hi';
 import { useCart } from '../context/CartContext'; 
 import NotificationBell from './NotificationBell';
 
 // ========================================================================================
 export default function Layout() {
   const [userInfo, setUserInfo] = useState(null);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
   const { cart } = useCart();
 
@@ -28,7 +29,9 @@ export default function Layout() {
 
   const handleLogout = () => {
     localStorage.removeItem('userInfo');
+    setUserInf0?.(null);
     setUserInfo(null);
+    setIsMobileMenuOpen(false);
     navigate('/login');
   };
 
@@ -90,7 +93,7 @@ export default function Layout() {
             </div>
           </Link>
           
-          {/* মেনু লিংকস */}
+          {/* ডেস্কটপ মেনু লিংকস */}
           <div className="hidden md:flex space-x-8 text-sm font-medium text-gray-800 items-center">
             {['Home', 'Shop', 'Men', 'Women'].map((item) => {
               const path = item === 'Home' ? '/' : `/${item.toLowerCase()}`;
@@ -106,7 +109,6 @@ export default function Layout() {
               );
             })}
 
-            {/* 🌟 শর্ত: ইউজার যদি লগইন করা থাকে এবং তার রোল 'admin' হয় */}
             {userInfo && userInfo.role === 'admin' && (
               <Link 
                 to="/admin/dashboard" 
@@ -118,14 +120,14 @@ export default function Layout() {
           </div>
 
           {/* ডানপাশের ইউজার, কার্ট ও লগইন অপশন */}
-          <div className="flex items-center space-x-5">
+          <div className="flex items-center space-x-3 sm:space-x-4">
             
             {/* 🛒 কার্ট আইকন এবং কাউন্ট ব্যাজ */}
             <Link 
               to="/cart" 
               className="relative p-2.5 bg-gray-100 hover:bg-gray-200 rounded-full transition flex items-center justify-center text-gray-800"
             >
-              <HiShoppingBag size={22} className="text-gray-700" />
+              <HiShoppingBag size={20} className="text-gray-700" />
               
               {totalItems > 0 && (
                 <span className="absolute -top-1 -right-1 bg-indigo-600 text-white text-[11px] font-extrabold w-5 h-5 rounded-full flex items-center justify-center shadow-md animate-bounce">
@@ -134,52 +136,141 @@ export default function Layout() {
               )}
             </Link>
 
-  <Link 
-  to="/orders" 
-  className="flex items-center gap-1.5 text-xs font-bold text-gray-300 hover:text-purple-400 transition bg-[#161920] border border-gray-800 px-3 py-2 rounded-xl">
-  <HiClipboardList size={16} className="text-purple-400" />
-  <span>My Orders</span>
-</Link>
-             
-             {/* {NotificationBell} */}
+            {/* ডেস্কটপে মাই অর্ডারস */}
+            <div className="hidden sm:flex items-center">
+              <Link 
+                to="/orders" 
+                className="flex items-center gap-1.5 text-xs font-bold text-gray-700 hover:text-indigo-600 transition bg-gray-100 px-3 py-2 rounded-xl"
+              >
+                <HiClipboardList size={16} className="text-indigo-600" />
+                <span>My Orders</span>
+              </Link>
+            </div>
+               
+            {/* নোটিফিকেশন বেল */}
             <NotificationBell />
 
-            {userInfo ? (
-              <div className="flex items-center space-x-3">
-                <span className="text-sm font-semibold text-gray-800">Hi, {userInfo.name}</span>
-                <button
-                  onClick={handleLogout}
-                  className="rounded-md bg-red-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-700 transition cursor-pointer"
-                >
-                  Logout
-                </button>
-              </div>
-            ) : (
-              <div className="space-x-3">
-                <Link
-                  to="/login"
-                  className="text-sm font-medium text-gray-700 hover:text-indigo-600 transition"
-                >
-                  Login
-                </Link>
-                <Link
-                  to="/register"
-                  className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 transition"
-                >
-                  Register
-                </Link>
-              </div>
-            )}
+            {/* ডেস্কটপ ইউজার সেকশন */}
+            <div className="hidden md:flex items-center space-x-3">
+              {userInfo ? (
+                <div className="flex items-center space-x-3">
+                  <span className="text-sm font-semibold text-gray-800">Hi, {userInfo.name}</span>
+                  <button
+                    onClick={handleLogout}
+                    className="rounded-md bg-red-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-700 transition cursor-pointer"
+                  >
+                    Logout
+                  </button>
+                </div>
+              ) : (
+                <div className="space-x-3">
+                  <Link
+                    to="/login"
+                    className="text-sm font-medium text-gray-700 hover:text-indigo-600 transition"
+                  >
+                    Login
+                  </Link>
+                  <Link
+                    to="/register"
+                    className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 transition"
+                  >
+                    Register
+                  </Link>
+                </div>
+              )}
+            </div>
+
+            {/* মোবাইল হ্যামবার্গার মেনু বাটন */}
+            <button 
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="md:hidden p-2 rounded-lg text-gray-700 hover:bg-gray-100 transition focus:outline-none"
+            >
+              {isMobileMenuOpen ? <HiX size={24} /> : <HiMenu size={24} />}
+            </button>
           </div>
         </div>
+
+        {/* ৩. মোবাইল ড্রপডাউন মেনু */}
+        {isMobileMenuOpen && (
+          <div className="md:hidden bg-white border-t border-gray-100 px-4 pt-3 pb-6 space-y-4 shadow-xl transition-all">
+            <div className="flex flex-col space-y-2 font-medium text-gray-800">
+              {['Home', 'Shop', 'Men', 'Women'].map((item) => {
+                const path = item === 'Home' ? '/' : `/${item.toLowerCase()}`;
+                return (
+                  <Link 
+                    key={item} 
+                    to={path} 
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="py-2 px-3 rounded-lg hover:bg-gray-100 transition"
+                  >
+                    {item}
+                  </Link>
+                );
+              })}
+
+              <Link 
+                to="/orders" 
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="flex items-center gap-2 py-2 px-3 rounded-lg hover:bg-gray-100 transition text-gray-800"
+              >
+                <HiClipboardList size={18} className="text-indigo-600" />
+                <span>My Orders</span>
+              </Link>
+
+              {userInfo && userInfo.role === 'admin' && (
+                <Link 
+                  to="/admin/dashboard" 
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="text-xs font-bold bg-black text-white px-3.5 py-2.5 rounded-xl text-center hover:bg-gray-800 transition shadow-sm"
+                >
+                  Admin Dashboard
+                </Link>
+              )}
+            </div>
+
+            <hr className="border-gray-200" />
+
+            {/* মোবাইল ইউজার ও অথেন্টিকেশন সেকশন */}
+            <div className="pt-1">
+              {userInfo ? (
+                <div className="flex flex-col space-y-3">
+                  <span className="text-sm font-semibold text-gray-800 px-1">Hi, {userInfo.name}</span>
+                  <button
+                    onClick={handleLogout}
+                    className="w-full text-center rounded-lg bg-red-600 py-2.5 text-xs font-medium text-white hover:bg-red-700 transition"
+                  >
+                    Logout
+                  </button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-3">
+                  <Link
+                    to="/login"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="text-center rounded-lg border border-gray-300 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-100 transition"
+                  >
+                    Login
+                  </Link>
+                  <Link
+                    to="/register"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="text-center rounded-lg bg-indigo-600 py-2.5 text-sm font-medium text-white hover:bg-indigo-700 transition"
+                  >
+                    Register
+                  </Link>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </nav>
 
-      {/* ৩. ডাইনামিক কন্টেন্ট */}
+      {/* ৪. ডাইনামিক কন্টেন্ট */}
       <main className="flex-grow">
         <Outlet />
       </main>
 
-      {/* ৪. প্রিমিয়াম ফুটার */}
+      {/* ৫. প্রিমিয়াম ফুটার */}
       <footer className="bg-gray-900 text-white pt-12 pb-8 mt-auto">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
           <div>

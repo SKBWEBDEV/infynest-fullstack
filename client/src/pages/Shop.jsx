@@ -34,8 +34,25 @@ export default function Shop() {
     return img.startsWith('http') ? img : `http://localhost:5000/${img}`;
   };
 
-  // 🛒 শপ পেজ থেকে Buy এ ক্লিক করলে টোস্ট মেসেজ দেখানোর ফাংশন
+ // 🛒 শপ পেজ থেকে Buy এ ক্লিক করলে লগইন চেক করার ফাংশন
   const handleBuyClick = (productId) => {
+    const userInfo = localStorage.getItem('userInfo');
+
+    // যদি ইউজার লগইন করা না থাকে
+    if (!userInfo) {
+      toast.error('প্রথমে লগইন করুন!', {
+        style: {
+          background: '#161920',
+          color: '#fff',
+          border: '1px solid rgba(168, 85, 247, 0.4)',
+          fontSize: '12px',
+        },
+      });
+      navigate('/login'); // লগইন পেজে পাঠিয়ে দিবে
+      return;
+    }
+
+    // ইউজার লগইন করা থাকলে আগের মতো মেসেজ দেখাবে (বা চাইলে ডিটেইলস পেজে পাঠাতে পারেন)
     toast('আগে Details-এ যান, সেখান থেকে Size ও Color সিলেক্ট করে Add to Cart করুন!', {
       icon: '🛍️',
       style: {
@@ -46,7 +63,7 @@ export default function Shop() {
       },
     });
 
-    // চাইলে ইউজারকে সরাসরি ডিটেইলস পেজেও পাঠিয়ে দিতে পারেন (নিচের লাইন আনকমেন্ট করে):
+    // চাইলে সরাসরি ডিটেইলস পেজে পাঠাতে চাইলে নিচের আনকমেন্ট করতে পারেন:
     // navigate(`/product/${productId}`);
   };
 
