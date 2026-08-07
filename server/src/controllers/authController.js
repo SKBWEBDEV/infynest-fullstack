@@ -20,7 +20,8 @@ const sendVerificationEmail = async (email, token) => {
     },
   });
 
-  const verificationUrl = `http://localhost:5000/api/v1/auth/verify-email/${token}`;
+const verificationUrl =
+  `${process.env.BACKEND_URL}/api/v1/auth/verify-email/${token}`;
 
   await transporter.sendMail({
     from: process.env.EMAIL_USER,
@@ -36,23 +37,56 @@ const sendVerificationEmail = async (email, token) => {
 // পাসওয়ার্ড রিসেট ইমেল পাঠানোর হেলপার ফাংশন
 const sendResetPasswordEmail = async (email, token) => {
   const transporter = nodemailer.createTransport({
-    service: 'gmail',
+    service: process.env.EMAIL_SERVICE || 'gmail',
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS,
     },
   });
 
-  const resetUrl = `http://localhost:5173/reset-password/${token}`;
+  const resetUrl =
+    `${process.env.FRONTEND_URL}/reset-password/${token}`;
 
   await transporter.sendMail({
     from: process.env.EMAIL_USER,
     to: email,
     subject: 'Password Reset Request - INFYNEST',
-    html: `<h3>Password Reset</h3>
-           <p>You requested a password reset. Click the link below to set a new password:</p>
-           <a href="${resetUrl}" target="_blank">Reset Password</a>
-           <p>This link is valid for 10 minutes. If you did not request this, please ignore this email.</p>`,
+
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto;">
+        <h2>Password Reset</h2>
+
+        <p>
+          You requested to reset your INFYNEST account password.
+        </p>
+
+        <p>
+          Click the button below to create a new password.
+        </p>
+
+        <a
+          href="${resetUrl}"
+          style="
+            display: inline-block;
+            padding: 12px 20px;
+            background: #4f46e5;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+          "
+        >
+          Reset Password
+        </a>
+
+        <p style="margin-top: 20px;">
+          This link will expire in 10 minutes.
+        </p>
+
+        <p>
+          If you did not request this password reset, you can safely ignore this email.
+        </p>
+      </div>
+    `,
   });
 };
 
