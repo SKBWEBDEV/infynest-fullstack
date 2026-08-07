@@ -1,7 +1,7 @@
 // File Path: src/pages/MyOrders.jsx
 
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import API from '../services/api';
 import { Link } from 'react-router-dom';
 import { HiOutlineShoppingBag, HiClock, HiCheckCircle, HiTruck, HiXCircle } from 'react-icons/hi';
 import toast from 'react-hot-toast';
@@ -14,35 +14,39 @@ export default function MyOrders() {
     fetchMyOrders();
   }, []);
 
-  const fetchMyOrders = async () => {
-    try {
-      const token = localStorage.getItem('token') || JSON.parse(localStorage.getItem('userInfo'))?.token;
+const fetchMyOrders = async () => {
+  try {
+    const token =
+      localStorage.getItem('token') ||
+      JSON.parse(localStorage.getItem('userInfo'))?.token;
 
-      if (!token) {
-        toast.error('Please login to view your orders');
-        setLoading(false);
-        return;
-      }
-
-      const response = await axios.get('http://localhost:5000/api/v1/orders/myorders', {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
-
-      // 👈 ব্যাকএন্ড রেসপন্স থেকে data অ্যাররে রিসিভ করা
-      if (response.data && response.data.data) {
-        setOrders(response.data.data);
-      } else if (Array.isArray(response.data)) {
-        setOrders(response.data);
-      }
-    } catch (error) {
-      console.error('Error fetching orders:', error);
-      toast.error(error.response?.data?.message || 'Failed to fetch orders');
-    } finally {
+    if (!token) {
+      toast.error('Please login to view your orders');
       setLoading(false);
+      return;
     }
-  };
+
+    const response = await API.get('/orders/myorders', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (response.data && response.data.data) {
+      setOrders(response.data.data);
+    } else if (Array.isArray(response.data)) {
+      setOrders(response.data);
+    }
+  } catch (error) {
+    console.error('Error fetching orders:', error);
+
+    toast.error(
+      error.response?.data?.message || 'Failed to fetch orders'
+    );
+  } finally {
+    setLoading(false);
+  }
+};
 
   const getStatusBadge = (status) => {
     switch (status?.toLowerCase()) {
@@ -112,7 +116,11 @@ export default function MyOrders() {
                     <div key={idx} className="flex items-center justify-between gap-4 bg-[#0f1115] p-3 rounded-xl border border-gray-800/50">
                       <div className="flex items-center gap-3">
                         <img 
-                          src={item.image.startsWith('http') ? item.image : `http://localhost:5000/${item.image}`} 
+                          src={
+  item.image?.startsWith('http')
+    ? item.image
+    : `${import.meta.env.VITE_API_URL}/${item.image}`
+}
                           alt={item.name} 
                           className="w-14 h-14 object-cover rounded-lg bg-gray-900 border border-gray-800 shrink-0"
                         />
