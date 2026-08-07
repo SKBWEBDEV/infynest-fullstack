@@ -1,13 +1,7 @@
 import axios from "axios";
 
 const getBaseURL = () => {
-  if (import.meta.env.VITE_API_URL) {
-    return import.meta.env.VITE_API_URL;
-  }
-
-  const hostname = window.location.hostname;
-
-  return `http://${hostname}:5000/api/v1`;
+  return "https://infynest-backend.onrender.com/api/v1";
 };
 
 export const getImageUrl = (image) => {
@@ -29,22 +23,25 @@ const API = axios.create({
   withCredentials: true,
 });
 
-API.interceptors.request.use((config) => {
-  const userInfo = localStorage.getItem("userInfo");
+API.interceptors.request.use(
+  (config) => {
+    const userInfo = localStorage.getItem("userInfo");
 
-  if (userInfo) {
-    try {
-      const { token } = JSON.parse(userInfo);
+    if (userInfo) {
+      try {
+        const { token } = JSON.parse(userInfo);
 
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
+        if (token) {
+          config.headers.Authorization = `Bearer ${token}`;
+        }
+      } catch (error) {
+        console.error("Invalid userInfo:", error);
       }
-    } catch (error) {
-      console.error("Invalid userInfo:", error);
     }
-  }
 
-  return config;
-});
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
 
 export default API;
