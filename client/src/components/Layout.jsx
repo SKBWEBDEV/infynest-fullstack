@@ -28,12 +28,11 @@ export default function Layout() {
   }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem('userInfo');
-    setUserInf0?.(null);
-    setUserInfo(null);
-    setIsMobileMenuOpen(false);
-    navigate('/login');
-  };
+  localStorage.removeItem("userInfo");
+  setUserInfo(null);
+  setIsMobileMenuOpen(false);
+  navigate("/login");
+};
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
