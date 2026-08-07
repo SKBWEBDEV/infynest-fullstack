@@ -11,10 +11,11 @@ const generateToken = (id) => {
 };
 
 // ইমেল পাঠানোর হেলপার ফাংশন (ভেরিফিকেশনের জন্য)
+// Brevo SMTP - Verification Email
 const sendVerificationEmail = async (email, token) => {
   const transporter = nodemailer.createTransport({
-    host: "smtp.gmail.com",
-    port: 587,
+    host: process.env.EMAIL_HOST,
+    port: Number(process.env.EMAIL_PORT),
     secure: false,
     auth: {
       user: process.env.EMAIL_USER,
@@ -25,44 +26,59 @@ const sendVerificationEmail = async (email, token) => {
   const verificationUrl =
     `${process.env.BACKEND_URL}/api/v1/auth/verify-email/${token}`;
 
-  await transporter.verify();
 
   await transporter.sendMail({
-    from: `"INFYNEST" <${process.env.EMAIL_USER}>`,
-    to: email,
-    subject: "Email Verification - INFYNEST",
-    html: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto;">
-        <h2>Welcome to INFYNEST!</h2>
+    from: {
+      name: process.env.EMAIL_FROM_NAME || "INFYNEST",
+      address: process.env.EMAIL_FROM,
+    },
 
-        <p>Please click the button below to verify your email address.</p>
+    to: email,
+
+    subject: "Email Verification - INFYNEST",
+
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 30px;">
+        
+        <h2 style="color: #111827;">
+          Welcome to INFYNEST!
+        </h2>
+
+        <p style="color: #4b5563;">
+          Thank you for creating your INFYNEST account.
+          Please verify your email address by clicking the button below.
+        </p>
 
         <a
           href="${verificationUrl}"
           style="
             display: inline-block;
-            padding: 12px 20px;
+            padding: 12px 24px;
             background: #4f46e5;
-            color: white;
+            color: #ffffff;
             text-decoration: none;
             border-radius: 6px;
+            font-weight: bold;
           "
         >
           Verify Email
         </a>
 
-        <p style="margin-top: 20px;">
+        <p style="margin-top: 20px; color: #6b7280;">
           If you did not create this account, please ignore this email.
         </p>
+
       </div>
     `,
   });
 };
-
 // পাসওয়ার্ড রিসেট ইমেল পাঠানোর হেলপার ফাংশন
+// Brevo SMTP - Password Reset Email
 const sendResetPasswordEmail = async (email, token) => {
   const transporter = nodemailer.createTransport({
-    service: process.env.EMAIL_SERVICE || 'gmail',
+    host: process.env.EMAIL_HOST,
+    port: Number(process.env.EMAIL_PORT),
+    secure: false,
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS,
@@ -72,20 +88,30 @@ const sendResetPasswordEmail = async (email, token) => {
   const resetUrl =
     `${process.env.FRONTEND_URL}/reset-password/${token}`;
 
+  await transporter.verify();
+
   await transporter.sendMail({
-    from: process.env.EMAIL_USER,
+    from: {
+      name: process.env.EMAIL_FROM_NAME || "INFYNEST",
+      address: process.env.EMAIL_FROM,
+    },
+
     to: email,
-    subject: 'Password Reset Request - INFYNEST',
+
+    subject: "Password Reset Request - INFYNEST",
 
     html: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto;">
-        <h2>Password Reset</h2>
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 30px;">
 
-        <p>
+        <h2 style="color: #111827;">
+          Password Reset
+        </h2>
+
+        <p style="color: #4b5563;">
           You requested to reset your INFYNEST account password.
         </p>
 
-        <p>
+        <p style="color: #4b5563;">
           Click the button below to create a new password.
         </p>
 
@@ -93,23 +119,25 @@ const sendResetPasswordEmail = async (email, token) => {
           href="${resetUrl}"
           style="
             display: inline-block;
-            padding: 12px 20px;
+            padding: 12px 24px;
             background: #4f46e5;
-            color: white;
+            color: #ffffff;
             text-decoration: none;
             border-radius: 6px;
+            font-weight: bold;
           "
         >
           Reset Password
         </a>
 
-        <p style="margin-top: 20px;">
+        <p style="margin-top: 20px; color: #6b7280;">
           This link will expire in 10 minutes.
         </p>
 
-        <p>
+        <p style="color: #6b7280;">
           If you did not request this password reset, you can safely ignore this email.
         </p>
+
       </div>
     `,
   });
