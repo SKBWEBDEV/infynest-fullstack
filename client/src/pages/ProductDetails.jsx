@@ -5,6 +5,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { HiShoppingBag, HiArrowLeft, HiCheck, HiHeart, HiEye } from 'react-icons/hi';
 import { useCart } from '../context/CartContext';
+const API_URL = import.meta.env.VITE_API_URL;
 
 export default function ProductDetails() {
   const { id } = useParams();
@@ -26,7 +27,9 @@ export default function ProductDetails() {
     const fetchProductDetails = async () => {
       try {
         setLoading(true);
-        const { data } = await axios.get(`http://localhost:5000/api/v1/products/${id}`);
+        const { data } = await axios.get(
+  `${API_URL}/products/${id}`
+);
         
         const productData = data.product || data.data || data;
         setProduct(productData);
@@ -48,7 +51,9 @@ export default function ProductDetails() {
         setIsWishlisted(savedWishlist.includes(id));
 
         if (productData?.category) {
-          const allProductsRes = await axios.get('http://localhost:5000/api/v1/products');
+          const allProductsRes = await axios.get(
+  `${API_URL}/products`
+);
           const allList = Array.isArray(allProductsRes.data) 
             ? allProductsRes.data 
             : allProductsRes.data.products || allProductsRes.data.data || [];
@@ -93,9 +98,14 @@ export default function ProductDetails() {
   }
 
   const getImageUrl = (img) => {
-    if (!img) return 'https://via.placeholder.com/400';
-    return img.startsWith('http') ? img : `http://localhost:5000/${img}`;
-  };
+  if (!img) {
+    return 'https://via.placeholder.com/400';
+  }
+
+  return img.startsWith('http')
+    ? img
+    : `${API_URL}/${img}`;
+};
 
   const handleColorSelect = (color, index) => {
     setSelectedColor(color);
