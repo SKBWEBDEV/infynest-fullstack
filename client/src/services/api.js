@@ -1,10 +1,10 @@
-// File Path: src/api/api.js (অথবা আপনার ফাইল অনুযায়ী)
+// File Path: src/api/api.js
 
 import axios from 'axios';
 
 // ডাইনামিকালি বেস ইউআরএল নির্ধারণ করার ফাংশন
 const getBaseURL = () => {
-  // যদি .env ফাইলে প্রোডাকশন বা নির্দিষ্ট কোনো লিংক দেওয়া থাকে
+  // যদি .env ফাইলে প্রোডাকশন বা নির্দিষ্ট কোনো লিংক দেওয়া থাকে (যেমন ভেরসেলের এনভায়রনমেন্ট ভ্যারিয়েবল)
   if (import.meta.env.VITE_API_URL) {
     return import.meta.env.VITE_API_URL;
   }
@@ -15,7 +15,7 @@ const getBaseURL = () => {
   // ব্যাকএন্ডের পোর্ট (আপনার ব্যাকএন্ড যদি 5000 পোর্টে চলে)
   const backendPort = '5000';
 
-  // লোকাল ডেভেলপমেন্টের জন্য (পিসি বা মোবাইল যেখান থেকেই ওপেন করুন না কেন)
+  // লোকাল ডেভেলপমেন্টের জন্য
   return `http://${hostname}:${backendPort}/api/v1`;
 };
 
