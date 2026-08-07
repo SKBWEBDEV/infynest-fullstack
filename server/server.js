@@ -16,7 +16,8 @@ const app = express();
 app.use(cors({
   origin: [
     'http://localhost:5173',
-    'https://infynest-fullstack-git-main-naj-muj-shakibs-projects.vercel.app'
+    'https://infynest-fullstack.vercel.app', // তোমার প্রধান ক্লিন ডোমেইন
+    'https://infynest-fullstack-git-main-naj-muj-shakibs-projects.vercel.app' // তোমার গিট ব্রাঞ্চ লিংক
   ],
   credentials: true
 }));
