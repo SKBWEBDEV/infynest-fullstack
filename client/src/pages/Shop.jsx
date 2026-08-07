@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import API, { getImageUrl } from '../services/api';
 import { HiEye, HiShoppingBag } from 'react-icons/hi';
 import toast from 'react-hot-toast'; // 👈 টোস্ট ইমپور্ট করা হলো
 
@@ -15,24 +15,26 @@ export default function Shop() {
   useEffect(() => {
     window.scrollTo(0, 0);
     const fetchProducts = async () => {
-      try {
-        setLoading(true);
-        const { data } = await axios.get('http://localhost:5000/api/v1/products');
-        const productList = Array.isArray(data) ? data : data.products || data.data || [];
-        setProducts(productList);
-        setLoading(false);
-      } catch (error) {
-        console.error('Error fetching products:', error);
-        setLoading(false);
-      }
-    };
+  try {
+    setLoading(true);
+
+    const { data } = await API.get('/products');
+
+    const productList = Array.isArray(data)
+      ? data
+      : data.products || data.data || [];
+
+    setProducts(productList);
+    setLoading(false);
+  } catch (error) {
+    console.error('Error fetching products:', error);
+    setLoading(false);
+  }
+};
     fetchProducts();
   }, []);
 
-  const getImageUrl = (img) => {
-    if (!img) return 'https://via.placeholder.com/400';
-    return img.startsWith('http') ? img : `http://localhost:5000/${img}`;
-  };
+
 
  // 🛒 শপ পেজ থেকে Buy এ ক্লিক করলে লগইন চেক করার ফাংশন
   const handleBuyClick = (productId) => {

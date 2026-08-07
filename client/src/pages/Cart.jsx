@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import API, { getImageUrl } from '../services/api';
 import toast from 'react-hot-toast';
 import { HiTrash, HiShoppingBag, HiArrowLeft, HiCheck, HiPlus, HiMinus } from 'react-icons/hi';
 import { useCart } from '../context/CartContext';
@@ -48,74 +48,84 @@ export default function Cart() {
   const deliveryCharge = subtotal > 0 ? 100 : 0; 
   const totalAmount = subtotal + deliveryCharge;
 
-  const handlePlaceOrder = async (e) => {
-    e.preventDefault();
+const handlePlaceOrder = async (e) => {
+  e.preventDefault();
 
-    if (!name || !phone || !address) {
-      toast.error('Please fill in all delivery details!');
-      return;
-    }
+  if (!name || !phone || !address) {
+    toast.error('Please fill in all delivery details!');
+    return;
+  }
 
-    if (cart.length === 0) {
-      toast.error('Your cart is empty.');
-      return;
-    }
+  if (cart.length === 0) {
+    toast.error('Your cart is empty.');
+    return;
+  }
 
-    if ((paymentMethod === 'bKash' || paymentMethod === 'Nagad') && (!senderNumber || !transactionId)) {
-      toast.error(`Please provide your ${paymentMethod} Number and Transaction ID!`);
-      return;
-    }
+  if (
+    (paymentMethod === 'bKash' || paymentMethod === 'Nagad') &&
+    (!senderNumber || !transactionId)
+  ) {
+    toast.error(
+      `Please provide your ${paymentMethod} Number and Transaction ID!`
+    );
+    return;
+  }
 
-    // লোকালস্টোরেজ থেকে টোকেন বের করা
-    const token = localStorage.getItem('token') || JSON.parse(localStorage.getItem('userInfo'))?.token;
+  const userInfo = JSON.parse(localStorage.getItem('userInfo'));
 
-    if (!token) {
-      toast.error('Please login first to place an order!');
-      navigate('/login');
-      return;
-    }
+  if (!userInfo?.token) {
+    toast.error('Please login first to place an order!');
+    navigate('/login');
+    return;
+  }
 
-    const orderData = {
-      customerName: name,
-      phone: phone,
-      shippingAddress: address,
-      orderItems: cart.map(item => ({
-        product: item.productId,
-        name: item.name,
-        image: item.image,
-        price: item.price,
-        quantity: item.quantity,
-        size: item.size,
-        color: item.color
-      })),
-      totalAmount: totalAmount,
-      shippingFee: deliveryCharge,
-      paymentMethod: paymentMethod,
-      senderNumber: paymentMethod !== 'Cash on Delivery' ? senderNumber : '',
-      transactionId: paymentMethod !== 'Cash on Delivery' ? transactionId : ''
-    };
+  const orderData = {
+    customerName: name,
+    phone: phone,
+    shippingAddress: address,
 
-    try {
-      setLoading(true);
-      
-      const response = await axios.post('http://localhost:5000/api/v1/orders', orderData, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
-      
-      if (response.data) {
-        toast.success('Order placed successfully!');
-        setOrderSuccess(true);
-        clearCart();
-        setLoading(false);
-      }
-    } catch (error) {
-      console.error('Order placement error:', error);
-      toast.error(error.response?.data?.message || 'Failed to place order. Please try again.');
-      setLoading(false);
-    }
+    orderItems: cart.map((item) => ({
+      product: item.productId,
+      name: item.name,
+      image: item.image,
+      price: item.price,
+      quantity: item.quantity,
+      size: item.size,
+      color: item.color,
+    })),
+
+    totalAmount,
+    shippingFee: deliveryCharge,
+    paymentMethod,
+
+    senderNumber:
+      paymentMethod !== 'Cash on Delivery' ? senderNumber : '',
+
+    transactionId:
+      paymentMethod !== 'Cash on Delivery' ? transactionId : '',
   };
+
+  try {
+    setLoading(true);
+
+    const response = await API.post('/orders', orderData);
+
+    if (response.data) {
+      toast.success('Order placed successfully!');
+      setOrderSuccess(true);
+      clearCart();
+    }
+  } catch (error) {
+    console.error('Order placement error:', error);
+
+    toast.error(
+      error.response?.data?.message ||
+        'Failed to place order. Please try again.'
+    );
+  } finally {
+    setLoading(false);
+  }
+};
 
   if (orderSuccess) {
     return (
@@ -166,10 +176,9 @@ export default function Cart() {
                 >
                   <div className="flex items-center gap-4 w-full sm:w-auto">
                     <img 
-                      src={item.image.startsWith('http') ? item.image : `http://localhost:5000/${item.image}`} 
-                      alt={item.name} 
-                      className="w-20 h-20 object-cover rounded-xl bg-gray-900 border border-gray-800 shrink-0" 
-                    />
+  src={getImageUrl(item.image)}
+  alt={item.name}
+  className="w-20 h-20 object-cover rounded-xl bg-gray-900 border border-gray-800 shrink-0"/>
                     <div className="space-y-1">
                       <h3 className="font-bold text-white text-xs sm:text-sm line-clamp-1">{item.name}</h3>
                       <p className="text-xs text-purple-400 font-bold">৳{item.price}</p>

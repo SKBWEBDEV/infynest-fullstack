@@ -1,34 +1,34 @@
-// File Path: src/pages/Women.jsx
-
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom'; // 👈 useNavigate ইমপোর্ট করা হলো
-import axios from 'axios';
+import { Link, useNavigate } from 'react-router-dom';
+import API, { getImageUrl } from '../services/api';
 import { HiShoppingBag, HiEye } from 'react-icons/hi';
-import toast from 'react-hot-toast'; // 👈 টোস্ট ইমপোর্ট করা হলো
+import toast from 'react-hot-toast';
 
 export default function Women() {
-  const navigate = useNavigate(); // 👈 হুক ডিক্লেয়ার করা হলো
+  const navigate = useNavigate();
+
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchWomenProducts = async () => {
       try {
-        // ব্যাকএন্ড থেকে সব প্রোডাক্ট ফেচ করা হচ্ছে এবং ডেটা ফরম্যাট হ্যান্ডেল করা হচ্ছে
-        const { data } = await axios.get('http://localhost:5000/api/v1/products');
-        const productList = Array.isArray(data) 
-          ? data 
+        const { data } = await API.get('/products');
+
+        const productList = Array.isArray(data)
+          ? data
           : data.data || data.products || [];
-        
-        // শুধু যেগুলোর ক্যাটাগরি 'Women' সেগুলো ফিল্টার করা হচ্ছে
+
         const womenProducts = productList.filter(
-          (product) => product?.category?.toLowerCase() === 'women'
+          (product) =>
+            product?.category?.trim().toLowerCase() === 'women'
         );
 
         setProducts(womenProducts);
-        setLoading(false);
       } catch (error) {
         console.error('Error fetching women products:', error);
+        setProducts([]);
+      } finally {
         setLoading(false);
       }
     };
@@ -36,11 +36,9 @@ export default function Women() {
     fetchWomenProducts();
   }, []);
 
-  // 🛒 Buy বাটনে ক্লিক করলে লগইন চেক করার ফাংশন
   const handleBuyClick = (product) => {
     const userInfo = localStorage.getItem('userInfo');
 
-    // যদি ইউজার লগইন করা না থাকে
     if (!userInfo) {
       toast.error('প্রথমে লগইন করুন!', {
         style: {
@@ -50,20 +48,23 @@ export default function Women() {
           fontSize: '12px',
         },
       });
-      navigate('/login'); // লগইন পেজে রিডাইরেক্ট করবে
+
+      navigate('/login');
       return;
     }
 
-    // ইউজার লগইন করা থাকলে মেসেজ দেখাবে
-    toast('আগে Details-এ যান, সেখান থেকে Size ও Color সিলেক্ট করে Add to Cart করুন!', {
-      icon: '🛍️',
-      style: {
-        background: '#161920',
-        color: '#fff',
-        border: '1px solid rgba(168, 85, 247, 0.4)',
-        fontSize: '12px',
-      },
-    });
+    toast(
+      'আগে Details-এ যান, সেখান থেকে Size ও Color সিলেক্ট করে Add to Cart করুন!',
+      {
+        icon: '🛍️',
+        style: {
+          background: '#161920',
+          color: '#fff',
+          border: '1px solid rgba(168, 85, 247, 0.4)',
+          fontSize: '12px',
+        },
+      }
+    );
   };
 
   return (
@@ -90,13 +91,8 @@ export default function Women() {
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {products.map((product) => {
               // ইমেজ লিংক ইউআরএল নাকি লোকাল ফাইল তা হ্যান্ডেল করা হচ্ছে
-              let productImage = 'https://via.placeholder.com/300';
-              if (product?.images && product.images.length > 0) {
-                const img = product.images[0];
-                productImage = img.startsWith('http') ? img : `http://localhost:5000/${img}`;
-              } else if (product?.image) {
-                productImage = product.image.startsWith('http') ? product.image : `http://localhost:5000/${product.image}`;
-              }
+              const rawImage = product?.images?.[0] || product?.image;
+              const productImage = getImageUrl(rawImage);
 
               return (
                 <div 

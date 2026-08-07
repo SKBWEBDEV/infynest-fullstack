@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, Link } from "react-router-dom";
 import { GoogleLogin } from "@react-oauth/google";
-import axios from "axios";
+import API from "../services/api";
 import toast from "react-hot-toast";
 import {
   FaFacebookF,
@@ -52,15 +52,12 @@ const Register = () => {
     setLoading(true);
     try {
       // ব্যাকএন্ডের রেজিস্ট্রেশন রাউটে রিকোয়েস্ট পাঠানো
-      const res = await axios.post(
-        "http://localhost:5000/api/v1/auth/register",
-        {
-          name,
-          email,
-          password,
-          secretCode,
-        },
-      );
+      const res = await API.post("/auth/register", {
+  name,
+  email,
+  password,
+  secretCode,
+});
 
       if (res.status === 201) {
         setLoading(false);
@@ -241,8 +238,8 @@ const Register = () => {
               <GoogleLogin
                 onSuccess={async (credentialResponse) => {
                   try {
-                    const res = await axios.post(
-                      "http://localhost:5000/api/v1/auth/google-login",
+                    const res = await API.post(
+                        "/auth/google-login",
                       {
                         token: credentialResponse.credential,
                       },

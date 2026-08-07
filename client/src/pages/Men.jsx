@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom'; // 👈 useNavigate ইমপোর্ট করা হলো
-import axios from 'axios';
+import API, { getImageUrl } from '../services/api';
 import { HiShoppingBag, HiEye, HiHeart } from 'react-icons/hi';
 import toast from 'react-hot-toast'; // 👈 টোস্ট ইমপোর্ট করা হলো
 
@@ -16,7 +16,7 @@ export default function Men() {
   useEffect(() => {
     const fetchMenProducts = async () => {
       try {
-        const { data } = await axios.get('http://localhost:5000/api/v1/products');
+        const { data } = await API.get('/products');
         
         const productList = Array.isArray(data) 
           ? data 
@@ -126,9 +126,8 @@ export default function Men() {
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {sortedProducts.map((product) => {
               const rawImage = product?.images?.[0] || product?.image;
-              const productImage = rawImage 
-                ? (rawImage.startsWith('http') ? rawImage : `http://localhost:5000/${rawImage}`)
-                : 'https://via.placeholder.com/300';
+
+const productImage = getImageUrl(rawImage);
 
               const isWishlisted = wishlist.includes(product._id);
 

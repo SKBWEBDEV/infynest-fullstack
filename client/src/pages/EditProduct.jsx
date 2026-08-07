@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import axios from 'axios';
+import API from '../services/api';
 import toast from 'react-hot-toast';
 
 export default function EditProduct() {
@@ -25,86 +25,108 @@ export default function EditProduct() {
   const [loading, setLoading] = useState(false);
   
   const navigate = useNavigate();
-  const userInfo = JSON.parse(localStorage.getItem('userInfo')) || {};
 
-  useEffect(() => {
-    const fetchProduct = async () => {
-      try {
-        const { data } = await axios.get(`http://localhost:5000/api/v1/products/${id}`);
-        const prod = data.data;
-        setName(prod.name || '');
-        setRetailPrice(prod.retailPrice || '');
-        setWholesalePrice(prod.wholesalePrice || '');
-        setMinWholesaleQty(prod.minWholesaleQty || '');
-        setStock(prod.stock || '');
-        setCategory(prod.category || 'Men');
-        setSizes(prod.sizes ? prod.sizes.join(', ') : '');
-        setColors(prod.colors ? prod.colors.join(', ') : '');
-        setTags(prod.tags ? prod.tags.join(', ') : '');
-        setDescription(prod.description || '');
-        setIsFeatured(prod.isFeatured || false);
-        if (prod.images) {
-          setImageUrls(prod.images.join(', '));
-        }
-      } catch (error) {
-        toast.error('Failed to fetch product details');
+useEffect(() => {
+  const fetchProduct = async () => {
+    try {
+      const { data } = await API.get(`/products/${id}`);
+
+      const prod = data.data;
+
+      setName(prod.name || '');
+      setRetailPrice(prod.retailPrice || '');
+      setWholesalePrice(prod.wholesalePrice || '');
+      setMinWholesaleQty(prod.minWholesaleQty || '');
+      setStock(prod.stock || '');
+      setCategory(prod.category || 'Men');
+      setSizes(prod.sizes ? prod.sizes.join(', ') : '');
+      setColors(prod.colors ? prod.colors.join(', ') : '');
+      setTags(prod.tags ? prod.tags.join(', ') : '');
+      setDescription(prod.description || '');
+      setIsFeatured(prod.isFeatured || false);
+
+      if (prod.images) {
+        setImageUrls(prod.images.join(', '));
       }
-    };
-    fetchProduct();
-  }, [id]);
+    } catch (error) {
+      console.error(error);
+      toast.error(
+        error.response?.data?.message ||
+        'Failed to fetch product details'
+      );
+    }
+  };
+
+  fetchProduct();
+}, [id]);
 
   const handleFileChange = (e) => {
     setImages(e.target.files);
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  setLoading(true);
 
-    try {
-      const data = new FormData();
-      data.append('name', name);
-      data.append('description', description);
-      data.append('retailPrice', retailPrice);
-      data.append('wholesalePrice', wholesalePrice);
-      data.append('minWholesaleQty', minWholesaleQty);
-      data.append('category', category);
-      data.append('stock', stock);
-      data.append('isFeatured', isFeatured);
+  try {
+    const data = new FormData();
 
-      const sizesArray = sizes ? sizes.split(',').map(s => s.trim().toUpperCase()) : [];
-      const colorsArray = colors ? colors.split(',').map(c => c.trim()) : [];
-      const tagsArray = tags ? tags.split(',').map(t => t.trim()) : [];
-      
-      data.append('sizes', JSON.stringify(sizesArray));
-      data.append('colors', JSON.stringify(colorsArray));
-      data.append('tags', JSON.stringify(tagsArray));
+    data.append('name', name);
+    data.append('description', description);
+    data.append('retailPrice', retailPrice);
+    data.append('wholesalePrice', wholesalePrice);
+    data.append('minWholesaleQty', minWholesaleQty);
+    data.append('category', category);
+    data.append('stock', stock);
+    data.append('isFeatured', isFeatured);
 
-      if (imageInputType === 'url' && imageUrls) {
-        const urlsArray = imageUrls.split(',').map(u => u.trim());
-        data.append('imageUrls', JSON.stringify(urlsArray));
-      } else if (imageInputType === 'file' && images.length > 0) {
-        for (let i = 0; i < images.length; i++) {
-          data.append('images', images[i]);
-        }
-      }
+    const sizesArray = sizes
+      ? sizes.split(',').map((s) => s.trim().toUpperCase())
+      : [];
 
-      const config = {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-          Authorization: `Bearer ${userInfo.token}`,
-        },
-      };
+    const colorsArray = colors
+      ? colors.split(',').map((c) => c.trim())
+      : [];
 
-      await axios.put(`http://localhost:5000/api/v1/products/${id}`, data, config);
-      toast.success('Product updated successfully!');
-      navigate('/admin/products');
-    } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to update product');
-    } finally {
-      setLoading(false);
+    const tagsArray = tags
+      ? tags.split(',').map((t) => t.trim())
+      : [];
+
+    data.append('sizes', JSON.stringify(sizesArray));
+    data.append('colors', JSON.stringify(colorsArray));
+    data.append('tags', JSON.stringify(tagsArray));
+
+    if (imageInputType === 'url' && imageUrls) {
+      const urlsArray = imageUrls
+        .split(',')
+        .map((u) => u.trim())
+        .filter(Boolean);
+
+      data.append('imageUrls', JSON.stringify(urlsArray));
     }
-  };
+
+    if (imageInputType === 'file' && images.length > 0) {
+      for (let i = 0; i < images.length; i++) {
+        data.append('images', images[i]);
+      }
+    }
+
+    await API.put(`/products/${id}`, data);
+
+    toast.success('Product updated successfully!');
+    navigate('/admin/products');
+
+  } catch (error) {
+    console.error('Update product error:', error);
+
+    toast.error(
+      error.response?.data?.message ||
+      'Failed to update product'
+    );
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="min-h-screen bg-[#0f1115] text-gray-200 py-12 px-4 font-sans">

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, Link } from 'react-router-dom';
 import { GoogleLogin } from '@react-oauth/google';
-import axios from 'axios';
+import API from '../services/api';
 import toast from 'react-hot-toast';
 import { FaFacebookF, FaTwitter, FaLinkedinIn, FaInstagram } from 'react-icons/fa';
 import { HiArrowLeft, HiArrowRight, HiEye, HiEyeOff } from 'react-icons/hi';
@@ -39,10 +39,10 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const { data } = await axios.post('http://localhost:5000/api/v1/auth/login', {
-        email,
-        password,
-      });
+      const { data } = await API.post('/auth/login', {
+  email,
+  password,
+});
 
       // পুরো রেসপন্স ডাটা (টোকেন ও রোল সহ) লোকাল স্টোরেজে সেভ করা হলো
       localStorage.setItem('userInfo', JSON.stringify(data));
@@ -197,9 +197,9 @@ const Login = () => {
               <GoogleLogin
                 onSuccess={async (credentialResponse) => {
                   try {
-                    const res = await axios.post('http://localhost:5000/api/v1/auth/google-login', {
-                      token: credentialResponse.credential
-                    });
+                    const res = await API.post('/auth/google-login', {
+                        token: credentialResponse.credential,
+                       });
                     
                     console.log('Google Login Success:', res.data);
                     localStorage.setItem('userInfo', JSON.stringify(res.data));

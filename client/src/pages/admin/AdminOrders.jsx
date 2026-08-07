@@ -1,7 +1,7 @@
 // File Path: src/pages/admin/AdminOrders.jsx
 
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import API from "../../services/api";
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { 
@@ -42,9 +42,7 @@ export default function AdminOrders() {
         return;
       }
 
-      const response = await axios.get('http://localhost:5000/api/v1/orders', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await API.get("/orders");
 
       if (response.data && response.data.data) {
         setOrders(response.data.data);
@@ -64,11 +62,9 @@ export default function AdminOrders() {
     try {
       const token = localStorage.getItem('token') || JSON.parse(localStorage.getItem('userInfo'))?.token;
 
-      const response = await axios.put(`http://localhost:5000/api/v1/orders/${orderId}/status`, 
-        { status: newStatus }, 
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
+      const response = await API.put(`/orders/${orderId}/status`, {
+               status: newStatus,
+             });
       if (response.data.success) {
         toast.success(`Order status changed to ${newStatus}!`);
         fetchAllOrders(); // রিফ্রেশ লিস্ট

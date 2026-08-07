@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import API, { getImageUrl } from "../../services/api";
 import toast from 'react-hot-toast';
 import { 
   HiSearch, 
@@ -30,7 +30,7 @@ export default function Products() {
   // ব্যাকএন্ড থেকে প্রোডাক্ট ফেচ করার ফাংশন
   const fetchProducts = async () => {
     try {
-      const { data } = await axios.get('http://localhost:5000/api/v1/products');
+      const { data } = await API.get("/products");
       // আপনার ব্যাকএন্ড কন্ট্রোলারের রেসপন্স স্ট্রাকচার অনুযায়ী data.data ব্যবহার করা হয়েছে
       setProducts(data.data || []);
       setLoading(false);
@@ -49,10 +49,7 @@ export default function Products() {
   const handleDeleteProduct = async (id) => {
     if (window.confirm('Are you sure you want to delete this product?')) {
       try {
-        const config = {
-          headers: { Authorization: `Bearer ${userInfo.token}` }
-        };
-        await axios.delete(`http://localhost:5000/api/v1/products/${id}`, config);
+        await API.delete(`/products/${id}`);
         setProducts(products.filter((item) => item._id !== id));
         toast.success('Product deleted successfully');
       } catch (error) {
@@ -236,9 +233,7 @@ export default function Products() {
                   <tbody className="divide-y divide-gray-800/40 text-xs">
                     {filteredProducts.map((product) => {
                       // ইমেজ পাথ হ্যান্ডেল করার জন্য (লোকাল আপলোড নাকি এক্সটার্নাল URL)
-                      const imageUrl = product.images?.[0] 
-                        ? (product.images[0].startsWith('http') ? product.images[0] : `http://localhost:5000${product.images[0]}`)
-                        : 'https://via.placeholder.com/40';
+                      const imageUrl = getImageUrl(product.images?.[0]);
 
                       const stockQty = Number(product.stock) || 0;
 

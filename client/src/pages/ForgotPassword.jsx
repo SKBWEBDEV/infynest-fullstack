@@ -33,8 +33,17 @@ export default function ForgotPassword() {
             Enter your registered email address and we'll send you a link to reset your password.
           </p>
         </div>
-        {error && <div className="rounded bg-red-100 p-3 text-sm text-red-700">{error}</div>}
-        {message && <div className="rounded bg-green-100 p-3 text-sm text-green-700">{message}</div>}
+        {error && (
+  <p className="text-sm text-red-500">
+    {error}
+  </p>
+)}
+
+{message && (
+  <p className="text-sm text-green-500">
+    {message}
+  </p>
+)}
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email Address</label>
