@@ -13,24 +13,49 @@ const generateToken = (id) => {
 // ইমেল পাঠানোর হেলপার ফাংশন (ভেরিফিকেশনের জন্য)
 const sendVerificationEmail = async (email, token) => {
   const transporter = nodemailer.createTransport({
-    service: 'gmail',
+    host: "smtp.gmail.com",
+    port: 587,
+    secure: false,
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS,
     },
   });
 
-const verificationUrl =
-  `${process.env.BACKEND_URL}/api/v1/auth/verify-email/${token}`;
+  const verificationUrl =
+    `${process.env.BACKEND_URL}/api/v1/auth/verify-email/${token}`;
+
+  await transporter.verify();
 
   await transporter.sendMail({
-    from: process.env.EMAIL_USER,
+    from: `"INFYNEST" <${process.env.EMAIL_USER}>`,
     to: email,
-    subject: 'Email Verification - INFYNEST',
-    html: `<h3>Welcome to INFYNEST!</h3>
-           <p>Please click the link below to verify your email address:</p>
-           <a href="${verificationUrl}" target="_blank">Verify Email</a>
-           <p>If you did not request this, please ignore this email.</p>`,
+    subject: "Email Verification - INFYNEST",
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto;">
+        <h2>Welcome to INFYNEST!</h2>
+
+        <p>Please click the button below to verify your email address.</p>
+
+        <a
+          href="${verificationUrl}"
+          style="
+            display: inline-block;
+            padding: 12px 20px;
+            background: #4f46e5;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+          "
+        >
+          Verify Email
+        </a>
+
+        <p style="margin-top: 20px;">
+          If you did not create this account, please ignore this email.
+        </p>
+      </div>
+    `,
   });
 };
 
