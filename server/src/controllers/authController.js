@@ -15,17 +15,25 @@ const generateToken = (id) => {
 const sendVerificationEmail = async (email, token) => {
   const transporter = nodemailer.createTransport({
     host: process.env.EMAIL_HOST,
-    port: Number(process.env.EMAIL_PORT),
+    port: Number(process.env.EMAIL_PORT) || 2525,
     secure: false,
+
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS,
     },
+
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 15000,
   });
 
   const verificationUrl =
     `${process.env.BACKEND_URL}/api/v1/auth/verify-email/${token}`;
 
+  console.log("📧 Sending verification email to:", email);
+  console.log("📧 SMTP Host:", process.env.EMAIL_HOST);
+  console.log("📧 SMTP Port:", process.env.EMAIL_PORT);
 
   await transporter.sendMail({
     from: {
@@ -38,8 +46,13 @@ const sendVerificationEmail = async (email, token) => {
     subject: "Email Verification - INFYNEST",
 
     html: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 30px;">
-        
+      <div style="
+        font-family: Arial, sans-serif;
+        max-width: 600px;
+        margin: auto;
+        padding: 30px;
+      ">
+
         <h2 style="color: #111827;">
           Welcome to INFYNEST!
         </h2>
@@ -71,7 +84,12 @@ const sendVerificationEmail = async (email, token) => {
       </div>
     `,
   });
+
+  console.log("✅ Verification email sent successfully");
 };
+
+
+
 // পাসওয়ার্ড রিসেট ইমেল পাঠানোর হেলপার ফাংশন
 // Brevo SMTP - Password Reset Email
 const sendResetPasswordEmail = async (email, token) => {
@@ -175,6 +193,14 @@ export const register = async (req, res) => {
       verificationToken,
       isVerified: false,
     });
+
+    console.log("✅ USER CREATED:", user.email);
+
+console.log("📤 Starting verification email...");
+
+await sendVerificationEmail(email, verificationToken);
+
+console.log("✅ Registration completed");
 
     if (user) {
       await sendVerificationEmail(email, verificationToken);
