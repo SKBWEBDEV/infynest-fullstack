@@ -275,24 +275,19 @@ export default function CategoryProducts({
 
         {/* VIEW ALL */}
         <Link
-          to={`/category/${categorySlug}`}
-          className="
-            ml-1
-
-            text-xs
-            sm:text-sm
-
-            font-semibold
-            text-indigo-600
-
-            hover:text-indigo-800
-
-            transition
-            whitespace-nowrap
-          "
-        >
-          View All →
-        </Link>
+  to={`/products?category=${encodeURIComponent(categorySlug)}`}
+  className="
+    text-xs
+    sm:text-sm
+    font-semibold
+    text-indigo-600
+    hover:text-indigo-800
+    transition
+    whitespace-nowrap
+  "
+>
+  View All →
+</Link>
       </div>
     </div>
   );
