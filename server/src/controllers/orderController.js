@@ -78,6 +78,14 @@ export const createOrder = async (req, res) => {
       user: req.user._id,
       customerName: customerName || req.user.name,
       phone: phone || '',
+        orderStatus: 'Pending',
+
+  statusHistory: [
+    {
+      status: 'Pending',
+      changedAt: new Date(),
+    },
+  ],
       shippingAddress: typeof shippingAddress === 'object' 
         ? `${shippingAddress.street || ''}, ${shippingAddress.city || ''}` 
         : shippingAddress,
@@ -220,7 +228,17 @@ export const updateOrderStatus = async (req, res) => {
     // UPDATE ORDER STATUS
     // -----------------------------------------
 
+
+
     order.orderStatus = status;
+
+// Save status change history
+order.statusHistory.push({
+  status: status,
+  changedAt: new Date(),
+});
+
+
 
     // Delivered হলে payment update
     if (status === 'Delivered') {

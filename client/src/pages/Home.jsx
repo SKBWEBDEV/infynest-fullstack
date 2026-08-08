@@ -62,13 +62,6 @@ export default function Home() {
         badge="HOT SALE"
       />
 
-      {/* Other Home Sections */}
-      {/* <NewArrivals />
-
-      <SaleProducts />
-
-      <PromoBanners /> */}
-
     </div>
   );
 }

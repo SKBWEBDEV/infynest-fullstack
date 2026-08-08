@@ -63,6 +63,42 @@ const orderSchema = new mongoose.Schema(
       enum: ['Pending', 'Confirmed', 'Processing', 'Shipped', 'Delivered', 'Cancelled'], 
       default: 'Pending',
     },
+    orderStatus: {
+  type: String,
+  required: true,
+  enum: [
+    'Pending',
+    'Confirmed',
+    'Processing',
+    'Shipped',
+    'Delivered',
+    'Cancelled'
+  ],
+  default: 'Pending',
+},
+
+// Order status change history
+statusHistory: [
+  {
+    status: {
+      type: String,
+      enum: [
+        'Pending',
+        'Confirmed',
+        'Processing',
+        'Shipped',
+        'Delivered',
+        'Cancelled'
+      ],
+      required: true,
+    },
+    changedAt: {
+      type: Date,
+      default: Date.now,
+    },
+  },
+],
+
     stockReduced: {
   type: Boolean,
   default: false,

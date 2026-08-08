@@ -17,7 +17,13 @@ import Women from "./pages/Women";
 import ProductDetails from "./pages/ProductDetails";
 import Cart from "./pages/Cart";
 import Orders from "./pages/Orders";
-
+import SpiderMan from "./pages/SpiderMan";
+import ChainsawMan from "./pages/ChainsawMan";
+import StrangerThings from "./pages/StrangerThings";
+import GhostRider from "./pages/GhostRider";
+import Essentials from "./pages/Essentials";
+import Anime from "./pages/Anime";
+import Venom from "./pages/Venom";
 // ==========================================
 // AUTH PAGES
 // ==========================================
@@ -75,6 +81,20 @@ function App() {
 
           {/* ORDERS */}
           <Route path="/orders" element={<Orders />} />
+
+          <Route path="/spider-man" element={<SpiderMan />} />
+
+          <Route path="/chainsaw-man" element={<ChainsawMan />} />
+
+          <Route path="/stranger-things" element={<StrangerThings />} />
+
+          <Route path="/ghost-rider" element={<GhostRider />} />
+
+          <Route path="/essentials" element={<Essentials />} />
+
+          <Route path="/anime" element={<Anime />} />
+
+          <Route path="/venom" element={<Venom />} />
         </Route>
 
         {/* ================================================================

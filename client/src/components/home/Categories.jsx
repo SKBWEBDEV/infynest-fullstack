@@ -275,19 +275,18 @@ export default function CategoryProducts({
 
         {/* VIEW ALL */}
         <Link
-  to={`/products?category=${encodeURIComponent(categorySlug)}`}
+  to={`/${categorySlug}`}
   className="
-    text-xs
-    sm:text-sm
+    text-sm
     font-semibold
     text-indigo-600
     hover:text-indigo-800
     transition
-    whitespace-nowrap
   "
 >
   View All →
 </Link>
+        {/* <Link to="/spider-man">View All </Link> */}
       </div>
     </div>
   );
@@ -448,27 +447,27 @@ export default function CategoryProducts({
         /*
           RESPONSIVE
         */
-breakpoints={{
-  0: {
-    slidesPerView: 2,
-    spaceBetween: 10,
-  },
+        breakpoints={{
+          0: {
+            slidesPerView: 2,
+            spaceBetween: 10,
+          },
 
-  640: {
-    slidesPerView: 3,
-    spaceBetween: 14,
-  },
+          640: {
+            slidesPerView: 3,
+            spaceBetween: 14,
+          },
 
-  1024: {
-    slidesPerView: 6,
-    spaceBetween: 14,
-  },
+          1024: {
+            slidesPerView: 6,
+            spaceBetween: 14,
+          },
 
-  1280: {
-    slidesPerView: 7,
-    spaceBetween: 16,
-  },
-}}
+          1280: {
+            slidesPerView: 7,
+            spaceBetween: 16,
+          },
+        }}
         /*
           Important:
           prevent Swiper from stretching cards
