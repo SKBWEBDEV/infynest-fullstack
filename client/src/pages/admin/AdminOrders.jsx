@@ -33,29 +33,31 @@ export default function AdminOrders() {
   }, []);
 
   const fetchAllOrders = async () => {
-    try {
-      const token = localStorage.getItem('token') || JSON.parse(localStorage.getItem('userInfo'))?.token;
+  try {
+    const response = await API.get("/orders");
 
-      if (!token) {
-        toast.error('Admin token not found. Please login again.');
-        setLoading(false);
-        return;
-      }
+    console.log("Admin Orders Response:", response.data);
 
-      await API.get("/orders");
-
-      if (response.data && response.data.data) {
-        setOrders(response.data.data);
-      } else if (Array.isArray(response.data)) {
-        setOrders(response.data);
-      }
-    } catch (error) {
-      console.error('Error fetching admin orders:', error);
-      toast.error(error.response?.data?.message || 'Failed to fetch all orders');
-    } finally {
-      setLoading(false);
+    if (response.data?.data) {
+      setOrders(response.data.data);
+    } else if (response.data?.orders) {
+      setOrders(response.data.orders);
+    } else if (Array.isArray(response.data)) {
+      setOrders(response.data);
+    } else {
+      setOrders([]);
     }
-  };
+  } catch (error) {
+    console.error("Error fetching admin orders:", error);
+
+    toast.error(
+      error.response?.data?.message || "Failed to fetch all orders"
+    );
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   // অর্ডার স্ট্যাটাস আপডেট করার ফাংশন
   const handleStatusChange = async (orderId, newStatus) => {

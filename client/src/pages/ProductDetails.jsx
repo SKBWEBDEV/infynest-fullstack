@@ -339,49 +339,74 @@ export default function ProductDetails() {
 
         </div>
 
-        {relatedProducts.length > 0 && (
-          <div className="space-y-6 pt-10 border-t border-gray-800">
-            <h2 className="text-lg font-black text-white">Related Products</h2>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-              {relatedProducts.map((item) => {
-                const itemImg = item?.images?.[0] || item?.image;
-                const formattedImg = getImageUrl(itemImg);
 
-                return (
-                  <Link 
-                    key={item._id} 
-                    to={`/product/${item._id}`}
-                    className="bg-[#161920] border border-gray-800 rounded-2xl overflow-hidden hover:border-purple-500/50 transition duration-300 flex flex-col justify-between group p-3"
-                  >
-                    <div>
-                      <div className="relative h-36 rounded-xl overflow-hidden bg-gray-900 mb-3">
-                        <img 
-                          src={formattedImg} 
-                          alt={item.name} 
-                          className="w-full h-full object-cover group-hover:scale-105 transition duration-500" 
-                        />
-                      </div>
-                      <h3 className="font-bold text-white text-xs truncate group-hover:text-purple-400 transition">
-                        {item.name}
-                      </h3>
-                      <p className="text-[10px] text-gray-400 line-clamp-1 mt-1">
-                        {item.description}
-                      </p>
-                    </div>
+{relatedProducts.length > 0 && (
+  <div className="space-y-5 pt-8 border-t border-gray-800">
+    <div>
+      <h2 className="text-lg md:text-xl font-black text-white">
+        Related Products
+      </h2>
+      <p className="text-[11px] text-gray-500 mt-1">
+        You may also like these products.
+      </p>
+    </div>
 
-                    <div className="flex items-center justify-between pt-3 mt-2 border-t border-gray-800/60">
-                      <span className="text-xs font-black text-purple-400">৳{item.retailPrice || item.price}</span>
-                      <span className="text-[10px] bg-gray-800 text-gray-300 px-2 py-0.5 rounded-lg flex items-center gap-1">
-                        <HiEye size={12} /> View
-                      </span>
-                    </div>
-                  </Link>
-                );
-              })}
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4">
+      {relatedProducts.map((item) => {
+        const itemImg = item?.images?.[0] || item?.image;
+        const formattedImg = getImageUrl(itemImg);
+
+        return (
+          <Link
+            key={item._id}
+            to={`/product/${item._id}`}
+            className="group bg-[#161920] border border-gray-800 rounded-2xl overflow-hidden hover:border-purple-500/50 transition-all duration-300 p-2.5 md:p-3"
+          >
+            {/* Product Image */}
+            <div className="relative h-32 sm:h-36 md:h-40 rounded-xl overflow-hidden bg-[#0f1115] border border-gray-800/60 mb-3 flex items-center justify-center">
+              <img
+                src={formattedImg}
+                alt={item.name}
+                className="w-full h-full object-contain p-2 group-hover:scale-105 transition-transform duration-500"
+              />
+
+              {item.category && (
+                <span className="absolute top-2 left-2 bg-black/70 backdrop-blur-sm text-purple-400 text-[8px] md:text-[9px] font-bold px-2 py-1 rounded-md uppercase tracking-wide">
+                  {item.category}
+                </span>
+              )}
             </div>
-          </div>
-        )}
+
+            {/* Product Info */}
+            <div className="space-y-1.5">
+              <h3 className="font-bold text-white text-[11px] md:text-xs truncate group-hover:text-purple-400 transition">
+                {item.name}
+              </h3>
+
+              <p className="text-[9px] md:text-[10px] text-gray-500 line-clamp-1">
+                {item.description || "Quality product for you."}
+              </p>
+            </div>
+
+            {/* Price + View */}
+            <div className="flex items-center justify-between gap-2 pt-2.5 mt-2.5 border-t border-gray-800/70">
+              <span className="text-[11px] md:text-xs font-black text-purple-400 truncate">
+                ৳{item.retailPrice || item.price}
+              </span>
+
+              <span className="shrink-0 text-[9px] md:text-[10px] bg-gray-800 hover:bg-purple-600 text-gray-300 hover:text-white px-2 py-1 rounded-lg flex items-center gap-1 transition">
+                <HiEye size={11} />
+                View
+              </span>
+            </div>
+          </Link>
+        );
+      })}
+    </div>
+  </div>
+)}
+
+
 
       </div>
     </div>

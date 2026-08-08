@@ -25,6 +25,7 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [previousImageIndex, setPreviousImageIndex] = useState(0);
 
   const navigate = useNavigate();
 
@@ -48,32 +49,38 @@ const Login = () => {
   // AUTO SLIDE
   // ==========================================
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentImageIndex((prevIndex) => {
-        return (prevIndex + 1) % sliderImages.length;
-      });
-    }, 3500);
+useEffect(() => {
+  const interval = setInterval(() => {
+    const nextIndex =
+      (currentImageIndex + 1) % sliderImages.length;
 
-    return () => clearInterval(interval);
-  }, []);
+    setPreviousImageIndex(currentImageIndex);
+    setCurrentImageIndex(nextIndex);
+  }, 3500);
+
+  return () => clearInterval(interval);
+}, [currentImageIndex, sliderImages.length]);
 
   // ==========================================
   // MANUAL SLIDE
   // ==========================================
 
-  const nextSlide = () => {
-    setCurrentImageIndex(
-      (prevIndex) => (prevIndex + 1) % sliderImages.length,
-    );
-  };
+const nextSlide = () => {
+  const nextIndex =
+    (currentImageIndex + 1) % sliderImages.length;
 
-  const prevSlide = () => {
-    setCurrentImageIndex(
-      (prevIndex) =>
-        (prevIndex - 1 + sliderImages.length) % sliderImages.length,
-    );
-  };
+  setPreviousImageIndex(currentImageIndex);
+  setCurrentImageIndex(nextIndex);
+};
+
+const prevSlide = () => {
+  const prevIndex =
+    (currentImageIndex - 1 + sliderImages.length) %
+    sliderImages.length;
+
+  setPreviousImageIndex(currentImageIndex);
+  setCurrentImageIndex(prevIndex);
+};
 
   // ==========================================
   // LOGIN
@@ -132,196 +139,147 @@ const Login = () => {
             LEFT SIDE - AUTO IMAGE SLIDER
         ========================================== */}
 
-        <div
+
+        {/* Left Side: Image Slider Banner */}
+<div
+  className="
+    relative
+    rounded-[28px]
+    overflow-hidden
+    p-6 md:p-8
+    flex flex-col justify-between
+    text-white
+    h-[480px]
+    lg:h-[540px]
+    border border-white/40
+  "
+>
+  {/* Previous Image */}
+  <div
+    className="absolute inset-0 bg-cover bg-center"
+    style={{
+      backgroundImage: `
+        linear-gradient(
+          to bottom,
+          rgba(0,0,0,0.15),
+          rgba(0,0,0,0.7)
+        ),
+        url('${sliderImages[previousImageIndex]}')
+      `,
+    }}
+  />
+
+  {/* Current Image */}
+  <div
+    key={currentImageIndex}
+    className="absolute inset-0 bg-cover bg-center animate-slider-fade"
+    style={{
+      backgroundImage: `
+        linear-gradient(
+          to bottom,
+          rgba(0,0,0,0.15),
+          rgba(0,0,0,0.7)
+        ),
+        url('${sliderImages[currentImageIndex]}')
+      `,
+    }}
+  />
+
+  {/* Content */}
+  <div className="relative z-10 flex h-full flex-col justify-between">
+
+    {/* Top */}
+    <div className="flex justify-between items-center">
+      <span className="text-xs font-medium tracking-wider text-gray-200">
+        {t("welcome_back")}
+      </span>
+
+      <div className="flex items-center gap-2">
+        <span className="text-xs text-gray-300">
+          {t("dont_have_account")}
+        </span>
+
+        <Link
+          to="/register"
           className="
-            relative
-            w-full
-            min-h-[430px]
-            sm:min-h-[480px]
-            lg:min-h-[540px]
-            rounded-[24px]
-            md:rounded-[28px]
-            overflow-hidden
-            border border-white/40
-            text-white
+            border border-white/50
+            px-3.5 py-1.5
+            rounded-full
+            text-xs font-medium
+            hover:bg-white
+            hover:text-black
+            transition
           "
         >
+          {t("register")}
+        </Link>
+      </div>
+    </div>
 
-          {/* Background Image */}
+    {/* Bottom */}
+    <div className="flex justify-between items-end">
 
-          <div
-            key={currentImageIndex}
-            className="absolute inset-0 bg-cover bg-center animate-login-fade"
-            style={{
-              backgroundImage: `
-                linear-gradient(
-                  to bottom,
-                  rgba(0,0,0,0.15),
-                  rgba(0,0,0,0.78)
-                ),
-                url("${sliderImages[currentImageIndex]}")
-              `,
-            }}
-          />
-
-          {/* Slider Content */}
-
-          <div className="relative z-10 min-h-[430px] sm:min-h-[480px] lg:min-h-[540px] p-5 sm:p-6 md:p-8 flex flex-col justify-between">
-
-            {/* Top */}
-
-            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
-
-              <span className="text-xs font-medium tracking-wider text-gray-200">
-                {t("welcome_back")}
-              </span>
-
-              <div className="flex items-center gap-2">
-
-                <span className="text-[11px] sm:text-xs text-gray-300">
-                  {t("dont_have_account")}
-                </span>
-
-                <Link
-                  to="/register"
-                  className="
-                    border border-white/50
-                    px-3 sm:px-3.5
-                    py-1.5
-                    rounded-full
-                    text-[11px] sm:text-xs
-                    font-medium
-                    hover:bg-white
-                    hover:text-black
-                    transition
-                  "
-                >
-                  {t("register")}
-                </Link>
-
-              </div>
-            </div>
-
-            {/* Center Content */}
-
-            <div className="flex-1 flex items-center">
-
-              <div className="max-w-md">
-
-                <span className="inline-flex items-center px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-[10px] font-semibold tracking-wider mb-4">
-                  INFYNEST
-                </span>
-
-                <p className="text-[10px] sm:text-xs uppercase tracking-[0.25em] sm:tracking-[0.3em] text-gray-300 mb-3">
-                  Fashion • Lifestyle • E-commerce
-                </p>
-
-                <h2 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight leading-tight">
-                  Welcome
-                  <br />
-                  <span className="text-indigo-400">
-                    back to INFYNEST.
-                  </span>
-                </h2>
-
-                <p className="mt-4 text-xs sm:text-sm text-gray-200 leading-relaxed max-w-sm">
-                  Discover premium fashion and lifestyle products
-                  designed to make every moment feel special.
-                </p>
-
-              </div>
-
-            </div>
-
-            {/* Bottom */}
-
-            <div className="flex justify-between items-end gap-3">
-
-              {/* Brand */}
-
-              <div className="flex items-center gap-2 sm:gap-3">
-
-                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-gradient-to-tr from-orange-500 to-red-600 flex items-center justify-center font-bold text-xs sm:text-sm text-white shadow-md shrink-0">
-                  IN
-                </div>
-
-                <div>
-                  <h4 className="font-bold text-xs sm:text-sm">
-                    INFYNEST.ui
-                  </h4>
-
-                  <p className="text-[9px] sm:text-[11px] text-gray-300">
-                    UI & E-commerce Platform
-                  </p>
-                </div>
-
-              </div>
-
-              {/* Navigation */}
-
-              <div className="flex gap-2 shrink-0">
-
-                <button
-                  type="button"
-                  onClick={prevSlide}
-                  className="
-                    w-8 h-8 sm:w-9 sm:h-9
-                    rounded-full
-                    border border-white/40
-                    flex items-center justify-center
-                    hover:bg-white/20
-                    transition
-                    text-white
-                    cursor-pointer
-                    backdrop-blur-sm
-                  "
-                >
-                  <HiArrowLeft size={14} />
-                </button>
-
-                <button
-                  type="button"
-                  onClick={nextSlide}
-                  className="
-                    w-8 h-8 sm:w-9 sm:h-9
-                    rounded-full
-                    border border-white/40
-                    flex items-center justify-center
-                    hover:bg-white/20
-                    transition
-                    text-white
-                    cursor-pointer
-                    backdrop-blur-sm
-                  "
-                >
-                  <HiArrowRight size={14} />
-                </button>
-
-              </div>
-
-            </div>
-
-            {/* Slider Indicators */}
-
-            <div className="absolute bottom-5 sm:bottom-7 left-1/2 -translate-x-1/2 flex gap-1.5">
-
-              {sliderImages.map((_, index) => (
-                <button
-                  key={index}
-                  type="button"
-                  onClick={() => setCurrentImageIndex(index)}
-                  className={`h-1.5 rounded-full transition-all duration-300 ${
-                    index === currentImageIndex
-                      ? "w-7 bg-white"
-                      : "w-1.5 bg-white/40"
-                  }`}
-                />
-              ))}
-
-            </div>
-
-          </div>
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-orange-500 to-red-600 flex items-center justify-center font-bold text-sm text-white shadow-md">
+          IN
         </div>
+
+        <div>
+          <h4 className="font-bold text-sm">
+            INFYNEST.ui
+          </h4>
+
+          <p className="text-[11px] text-gray-300">
+            UI & E-commerce Platform
+          </p>
+        </div>
+      </div>
+
+      {/* Arrows */}
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={prevSlide}
+          className="
+            w-8 h-8
+            rounded-full
+            border border-white/40
+            flex items-center justify-center
+            hover:bg-white/20
+            transition
+            text-white
+            cursor-pointer
+            backdrop-blur-sm
+          "
+        >
+          <HiArrowLeft size={14} />
+        </button>
+
+        <button
+          type="button"
+          onClick={nextSlide}
+          className="
+            w-8 h-8
+            rounded-full
+            border border-white/40
+            flex items-center justify-center
+            hover:bg-white/20
+            transition
+            text-white
+            cursor-pointer
+            backdrop-blur-sm
+          "
+        >
+          <HiArrowRight size={14} />
+        </button>
+      </div>
+
+    </div>
+
+  </div>
+</div>
+
+        
 
         {/* ==========================================
             RIGHT SIDE - LOGIN FORM

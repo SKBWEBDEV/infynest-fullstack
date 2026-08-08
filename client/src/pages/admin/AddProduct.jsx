@@ -8,8 +8,6 @@ import toast from "react-hot-toast";
 export default function AddProduct() {
   const [name, setName] = useState("");
   const [retailPrice, setRetailPrice] = useState("");
-  const [wholesalePrice, setWholesalePrice] = useState("");
-  const [minWholesaleQty, setMinWholesaleQty] = useState("10");
   const [stock, setStock] = useState("");
   const [category, setCategory] = useState("Men");
   const [sizes, setSizes] = useState("");
@@ -61,14 +59,12 @@ export default function AddProduct() {
   try {
     const data = new FormData();
 
-    data.append("name", name);
-    data.append("description", description);
-    data.append("retailPrice", retailPrice);
-    data.append("wholesalePrice", wholesalePrice);
-    data.append("minWholesaleQty", minWholesaleQty);
-    data.append("category", category);
-    data.append("stock", stock);
-    data.append("isFeatured", String(isFeatured));
+data.append("name", name);
+data.append("description", description);
+data.append("retailPrice", Number(retailPrice));
+data.append("category", category);
+data.append("stock", Number(stock));
+data.append("isFeatured", String(isFeatured));
 
     const sizesArray = sizes
       ? sizes
@@ -173,31 +169,19 @@ export default function AddProduct() {
             </label>
 
             <input
-              type="number"
-              min="0"
-              value={wholesalePrice}
-              onChange={(e) => setWholesalePrice(e.target.value)}
-              required
-              className="w-full p-3 bg-[#1e222d] border border-gray-800 rounded-xl text-white focus:outline-none focus:border-purple-500"
-              placeholder="950"
-            />
+  type="number"
+  min="0"
+  value={wholesalePrice}
+  onChange={(e) => setWholesalePrice(e.target.value)}
+  placeholder="Optional"
+  className="w-full p-3 bg-[#1e222d] border border-gray-800 rounded-xl text-white focus:outline-none focus:border-purple-500"
+/>
           </div>
         </div>
 
         {/* Stock / Category */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <label className="block text-gray-400 mb-1 font-semibold">
-              Min Wholesale Qty
-            </label>
-
-            <input
-              type="number"
-              min="1"
-              value={minWholesaleQty}
-              onChange={(e) => setMinWholesaleQty(e.target.value)}
-              className="w-full p-3 bg-[#1e222d] border border-gray-800 rounded-xl text-white focus:outline-none focus:border-purple-500"
-            />
           </div>
 
           <div>

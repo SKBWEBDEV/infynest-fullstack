@@ -69,7 +69,7 @@ export default function Shop() {
     // navigate(`/product/${productId}`);
   };
 
-  const categories = ['All', 'Men', 'Women', 'Kids', 'Accessories', 'Stationery', 'Lifestyle'];
+  const categories = ['All', 'Men', 'Women'];
 
   const filteredProducts = selectedCategory === 'All' 
     ? products 
@@ -111,64 +111,72 @@ export default function Shop() {
         </div>
 
         {/* Products Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {filteredProducts.map((item) => {
-            const itemImg = item?.images?.[0] || item?.image;
-            const formattedImg = getImageUrl(itemImg);
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
+  {filteredProducts.map((item) => {
+    const itemImg = item?.images?.[0] || item?.image;
+    const formattedImg = getImageUrl(itemImg);
 
-            return (
-              <div 
-                key={item._id} 
-                className="bg-[#161920] border border-gray-800 rounded-3xl overflow-hidden hover:border-purple-500/50 transition duration-300 flex flex-col justify-between group p-4 shadow-xl"
-              >
-                <div>
-                  <div className="relative h-48 rounded-2xl overflow-hidden bg-gray-900 mb-4">
-                    <img 
-                      src={formattedImg} 
-                      alt={item.name} 
-                      className="w-full h-full object-cover group-hover:scale-105 transition duration-500" 
-                    />
-                    {item.category && (
-                      <span className="absolute top-3 left-3 bg-black/60 backdrop-blur-md text-purple-400 text-[10px] font-bold px-2.5 py-1 rounded-lg uppercase">
-                        {item.category}
-                      </span>
-                    )}
-                  </div>
+    return (
+      <div
+        key={item._id}
+        className="bg-[#161920] border border-gray-800 rounded-2xl sm:rounded-3xl overflow-hidden hover:border-purple-500/50 transition duration-300 flex flex-col justify-between group p-2.5 sm:p-3 md:p-4 shadow-xl"
+      >
+        <div>
+          {/* Product Image */}
+          <div className="relative aspect-[4/5] rounded-xl sm:rounded-2xl overflow-hidden bg-gray-900 mb-3">
+            <img
+              src={formattedImg}
+              alt={item.name}
+              className="w-full h-full object-cover object-center group-hover:scale-105 transition duration-500"
+            />
 
-                  <h3 className="font-bold text-white text-sm truncate group-hover:text-purple-400 transition">
-                    {item.name}
-                  </h3>
-                  <p className="text-xs text-gray-400 line-clamp-1 mt-1">
-                    {item.description || 'Best quality product for you.'}
-                  </p>
-                </div>
+            {item.category && (
+              <span className="absolute top-2 left-2 bg-black/60 backdrop-blur-md text-purple-400 text-[8px] sm:text-[10px] font-bold px-2 py-1 rounded-md sm:rounded-lg uppercase">
+                {item.category}
+              </span>
+            )}
+          </div>
 
-                <div className="pt-4 mt-4 border-t border-gray-800/80 flex items-center justify-between">
-                  <span className="text-sm font-black text-purple-400">৳{item.retailPrice || item.price}</span>
-                  
-                  <div className="flex items-center gap-2">
-                    {/* Details Button */}
-                    <Link 
-                      to={`/product/${item._id}`}
-                      className="px-3 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white text-xs font-bold rounded-xl transition flex items-center gap-1"
-                    >
-                      <HiEye size={14} /> Details
-                    </Link>
+          {/* Product Name */}
+          <h3 className="font-bold text-white text-xs sm:text-sm truncate group-hover:text-purple-400 transition">
+            {item.name}
+          </h3>
 
-                    {/* Buy Button (Triggers Toast) */}
-                    <button 
-                      onClick={() => handleBuyClick(item._id)}
-                      className="px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-xl transition flex items-center gap-1 shadow-md shadow-purple-600/30 cursor-pointer"
-                    >
-                      <HiShoppingBag size={14} /> Buy
-                    </button>
-                  </div>
-                </div>
-
-              </div>
-            );
-          })}
+          <p className="text-[10px] sm:text-xs text-gray-400 line-clamp-1 mt-1">
+            {item.description || "Best quality product for you."}
+          </p>
         </div>
+
+        {/* Bottom */}
+        <div className="pt-3 mt-3 border-t border-gray-800/80 flex items-center justify-between gap-2">
+          <span className="text-xs sm:text-sm font-black text-purple-400 whitespace-nowrap">
+            ৳{item.retailPrice || item.price}
+          </span>
+
+          <div className="flex items-center gap-1.5">
+
+            <Link
+              to={`/product/${item._id}`}
+              className="px-2 sm:px-3 py-1.5 sm:py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white text-[9px] sm:text-xs font-bold rounded-lg sm:rounded-xl transition flex items-center gap-1"
+            >
+              <HiEye size={12} />
+              <span className="hidden sm:inline">Details</span>
+            </Link>
+
+            <button
+              onClick={() => handleBuyClick(item._id)}
+              className="px-2 sm:px-3 py-1.5 sm:py-2 bg-purple-600 hover:bg-purple-700 text-white text-[9px] sm:text-xs font-bold rounded-lg sm:rounded-xl transition flex items-center gap-1 shadow-md shadow-purple-600/30 cursor-pointer"
+            >
+              <HiShoppingBag size={12} />
+              <span className="hidden sm:inline">Buy</span>
+            </button>
+
+          </div>
+        </div>
+      </div>
+    );
+  })}
+</div>
 
       </div>
     </div>
