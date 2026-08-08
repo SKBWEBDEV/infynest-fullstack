@@ -1,3 +1,5 @@
+// File Path: backend/models/Product.js
+
 import mongoose from "mongoose";
 
 const productSchema = new mongoose.Schema(
@@ -26,13 +28,49 @@ const productSchema = new mongoose.Schema(
     retailPrice: {
       type: Number,
       required: [true, "Retail price is required"],
-      min: 0,
+      min: [0, "Retail price cannot be negative"],
     },
 
     // ==========================================
     // DISCOUNT PRICE
     // ==========================================
-discountPrice: { type: Number, default: null, min: 0, },
+    discountPrice: {
+      type: Number,
+      default: null,
+      min: [0, "Discount price cannot be negative"],
+
+      validate: {
+        validator: function (value) {
+          // Empty/null discount is allowed
+          if (value === null || value === undefined) {
+            return true;
+          }
+
+          // Discount must be lower than retail price
+          return value < this.retailPrice;
+        },
+
+        message: "Discount price must be less than retail price",
+      },
+    },
+
+    // ==========================================
+    // WHOLESALE PRICE
+    // ==========================================
+    wholesalePrice: {
+      type: Number,
+      default: null,
+      min: [0, "Wholesale price cannot be negative"],
+    },
+
+    // ==========================================
+    // MINIMUM WHOLESALE QUANTITY
+    // ==========================================
+    minWholesaleQty: {
+      type: Number,
+      default: 1,
+      min: [1, "Minimum wholesale quantity must be at least 1"],
+    },
 
     // ==========================================
     // DESIGN / CATEGORY
@@ -40,6 +78,7 @@ discountPrice: { type: Number, default: null, min: 0, },
     category: {
       type: String,
       required: [true, "Design category is required"],
+
       enum: [
         "spider-man",
         "chainsaw-man",
@@ -49,6 +88,7 @@ discountPrice: { type: Number, default: null, min: 0, },
         "anime",
         "venom",
       ],
+
       trim: true,
     },
 
@@ -73,6 +113,16 @@ discountPrice: { type: Number, default: null, min: 0, },
     ],
 
     // ==========================================
+    // TAGS
+    // ==========================================
+    tags: [
+      {
+        type: String,
+        trim: true,
+      },
+    ],
+
+    // ==========================================
     // PRODUCT IMAGES
     // ==========================================
     images: [
@@ -89,7 +139,7 @@ discountPrice: { type: Number, default: null, min: 0, },
       type: Number,
       required: [true, "Stock count is required"],
       default: 0,
-      min: 0,
+      min: [0, "Stock cannot be negative"],
     },
 
     // ==========================================
@@ -100,6 +150,7 @@ discountPrice: { type: Number, default: null, min: 0, },
       default: false,
     },
   },
+
   {
     timestamps: true,
   },

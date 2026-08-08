@@ -2,21 +2,28 @@
 
 import { Product } from "../models/Product.js";
 
+// ======================================================
+// GET ALL PRODUCTS
+// ======================================================
 // @desc    Get all products
 // @route   GET /api/v1/products
 export const getProducts = async (req, res) => {
   try {
     const { category, isFeatured } = req.query;
 
-    let query = {};
+    const query = {};
 
-    if (category) query.category = category;
+    if (category) {
+      query.category = category;
+    }
 
-    if (isFeatured) {
+    if (isFeatured !== undefined) {
       query.isFeatured = isFeatured === "true";
     }
 
-    const products = await Product.find(query).sort({ createdAt: -1 });
+    const products = await Product.find(query).sort({
+      createdAt: -1,
+    });
 
     res.status(200).json({
       success: true,
@@ -24,6 +31,8 @@ export const getProducts = async (req, res) => {
       data: products,
     });
   } catch (error) {
+    console.error("Get products error:", error);
+
     res.status(500).json({
       success: false,
       message: error.message,
@@ -31,6 +40,9 @@ export const getProducts = async (req, res) => {
   }
 };
 
+// ======================================================
+// GET SINGLE PRODUCT
+// ======================================================
 // @desc    Get single product details
 // @route   GET /api/v1/products/:id
 export const getProductById = async (req, res) => {
@@ -49,6 +61,8 @@ export const getProductById = async (req, res) => {
       data: product,
     });
   } catch (error) {
+    console.error("Get product error:", error);
+
     res.status(500).json({
       success: false,
       message: error.message,
@@ -56,6 +70,9 @@ export const getProductById = async (req, res) => {
   }
 };
 
+// ======================================================
+// CREATE PRODUCT
+// ======================================================
 // @desc    Create a product (Admin only)
 // @route   POST /api/v1/products
 export const createProduct = async (req, res) => {
@@ -64,7 +81,7 @@ export const createProduct = async (req, res) => {
       name,
       description,
       retailPrice,
-      discountPrice, // ✅ ADDED
+      discountPrice,
       wholesalePrice,
       minWholesaleQty,
       category,
@@ -76,22 +93,48 @@ export const createProduct = async (req, res) => {
       imageUrls,
     } = req.body;
 
-    let images = req.files
-      ? req.files.map((file) => `/uploads/${file.filename}`)
-      : [];
+    // ==========================================
+    // PRICE VALIDATION
+    // ==========================================
+    const retail = Number(retailPrice);
+
+    let discount = null;
+
+    if (
+      discountPrice !== undefined &&
+      discountPrice !== null &&
+      discountPrice !== ""
+    ) {
+      discount = Number(discountPrice);
+
+      if (discount >= retail) {
+        return res.status(400).json({
+          success: false,
+          message: "Discount price must be less than retail price.",
+        });
+      }
+    }
 
     // ==========================================
-    // IMAGE URLS
+    // IMAGES
     // ==========================================
+    let images = [];
+
+    // Uploaded files
+    if (req.files && req.files.length > 0) {
+      images = req.files.map((file) => `/uploads/${file.filename}`);
+    }
+
+    // Image URLs
     if (imageUrls) {
       try {
         const parsedUrls = JSON.parse(imageUrls);
 
-        if (Array.isArray(parsedUrls) && parsedUrls.length > 0) {
+        if (Array.isArray(parsedUrls)) {
           images = [...images, ...parsedUrls];
         }
-      } catch (err) {
-        console.error("Invalid imageUrls:", err);
+      } catch (error) {
+        console.error("Invalid imageUrls:", error);
       }
     }
 
@@ -101,18 +144,20 @@ export const createProduct = async (req, res) => {
     const product = await Product.create({
       name,
       description,
-      retailPrice,
 
-      // ✅ DISCOUNT PRICE
-      discountPrice:
-        discountPrice !== undefined &&
-        discountPrice !== null &&
-        discountPrice !== ""
-          ? Number(discountPrice)
+      retailPrice: retail,
+
+      discountPrice: discount,
+
+      wholesalePrice:
+        wholesalePrice !== undefined && wholesalePrice !== ""
+          ? Number(wholesalePrice)
           : null,
 
-      wholesalePrice,
-      minWholesaleQty,
+      minWholesaleQty:
+        minWholesaleQty !== undefined && minWholesaleQty !== ""
+          ? Number(minWholesaleQty)
+          : 1,
 
       category,
 
@@ -124,9 +169,9 @@ export const createProduct = async (req, res) => {
 
       images,
 
-      stock,
+      stock: Number(stock),
 
-      isFeatured,
+      isFeatured: isFeatured === "true" || isFeatured === true,
     });
 
     res.status(201).json({
@@ -144,6 +189,9 @@ export const createProduct = async (req, res) => {
   }
 };
 
+// ======================================================
+// UPDATE PRODUCT
+// ======================================================
 // @desc    Update a product (Admin only)
 // @route   PUT /api/v1/products/:id
 export const updateProduct = async (req, res) => {
@@ -152,7 +200,7 @@ export const updateProduct = async (req, res) => {
       name,
       description,
       retailPrice,
-      discountPrice, // ✅ ADDED
+      discountPrice,
       wholesalePrice,
       minWholesaleQty,
       category,
@@ -167,7 +215,7 @@ export const updateProduct = async (req, res) => {
     // ==========================================
     // FIND PRODUCT
     // ==========================================
-    let product = await Product.findById(req.params.id);
+    const product = await Product.findById(req.params.id);
 
     if (!product) {
       return res.status(404).json({
@@ -177,28 +225,11 @@ export const updateProduct = async (req, res) => {
     }
 
     // ==========================================
-    // IMAGES
+    // PRICE VALIDATION
     // ==========================================
-    let images = product.images;
+    const retail = Number(retailPrice);
 
-    if (req.files && req.files.length > 0) {
-      images = req.files.map((file) => `/uploads/${file.filename}`);
-    } else if (imageUrls) {
-      try {
-        const parsedUrls = JSON.parse(imageUrls);
-
-        if (Array.isArray(parsedUrls) && parsedUrls.length > 0) {
-          images = parsedUrls;
-        }
-      } catch (err) {
-        console.error("Invalid imageUrls:", err);
-      }
-    }
-
-    // ==========================================
-    // DISCOUNT PRICE
-    // ==========================================
-    let updatedDiscountPrice = product.discountPrice;
+    let updatedDiscountPrice = null;
 
     if (
       discountPrice !== undefined &&
@@ -206,40 +237,86 @@ export const updateProduct = async (req, res) => {
       discountPrice !== ""
     ) {
       updatedDiscountPrice = Number(discountPrice);
-    } else if (discountPrice === "") {
-      updatedDiscountPrice = null;
+
+      if (updatedDiscountPrice >= retail) {
+        return res.status(400).json({
+          success: false,
+          message: "Discount price must be less than retail price.",
+        });
+      }
     }
 
     // ==========================================
-    // UPDATE PRODUCT
+    // EXISTING IMAGES
     // ==========================================
-    product = await Product.findByIdAndUpdate(
+    let images = Array.isArray(product.images) ? [...product.images] : [];
+
+    // ==========================================
+    // IMAGE URLS
+    // ==========================================
+    if (imageUrls) {
+      try {
+        const parsedUrls = JSON.parse(imageUrls);
+
+        if (Array.isArray(parsedUrls)) {
+          images = parsedUrls;
+        }
+      } catch (error) {
+        console.error("Invalid imageUrls:", error);
+      }
+    }
+
+    // ==========================================
+    // NEW UPLOADED IMAGES
+    // ==========================================
+    if (req.files && req.files.length > 0) {
+      const newImages = req.files.map((file) => `/uploads/${file.filename}`);
+
+      images = [...images, ...newImages];
+    }
+
+    // ==========================================
+    // UPDATE DATA
+    // ==========================================
+    const updateData = {
+      name,
+      description,
+
+      retailPrice: retail,
+
+      discountPrice: updatedDiscountPrice,
+
+      wholesalePrice:
+        wholesalePrice !== undefined && wholesalePrice !== ""
+          ? Number(wholesalePrice)
+          : null,
+
+      minWholesaleQty:
+        minWholesaleQty !== undefined && minWholesaleQty !== ""
+          ? Number(minWholesaleQty)
+          : 1,
+
+      category,
+
+      sizes: sizes ? JSON.parse(sizes) : product.sizes,
+
+      colors: colors ? JSON.parse(colors) : product.colors,
+
+      tags: tags ? JSON.parse(tags) : product.tags,
+
+      images,
+
+      stock: Number(stock),
+
+      isFeatured: isFeatured === "true" || isFeatured === true,
+    };
+
+    // ==========================================
+    // SAVE
+    // ==========================================
+    const updatedProduct = await Product.findByIdAndUpdate(
       req.params.id,
-      {
-        name,
-        description,
-        retailPrice,
-
-        // ✅ DISCOUNT PRICE FIX
-        discountPrice: updatedDiscountPrice,
-
-        wholesalePrice,
-        minWholesaleQty,
-
-        category,
-
-        sizes: sizes ? JSON.parse(sizes) : product.sizes,
-
-        colors: colors ? JSON.parse(colors) : product.colors,
-
-        tags: tags ? JSON.parse(tags) : product.tags,
-
-        images,
-
-        stock,
-
-        isFeatured,
-      },
+      updateData,
       {
         new: true,
         runValidators: true,
@@ -249,7 +326,7 @@ export const updateProduct = async (req, res) => {
     res.status(200).json({
       success: true,
       message: "Product updated successfully",
-      data: product,
+      data: updatedProduct,
     });
   } catch (error) {
     console.error("Update product error:", error);
@@ -261,6 +338,9 @@ export const updateProduct = async (req, res) => {
   }
 };
 
+// ======================================================
+// DELETE PRODUCT
+// ======================================================
 // @desc    Delete product (Admin only)
 // @route   DELETE /api/v1/products/:id
 export const deleteProduct = async (req, res) => {
@@ -279,6 +359,8 @@ export const deleteProduct = async (req, res) => {
       message: "Product deleted successfully",
     });
   } catch (error) {
+    console.error("Delete product error:", error);
+
     res.status(500).json({
       success: false,
       message: error.message,

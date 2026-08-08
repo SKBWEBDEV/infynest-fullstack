@@ -1,6 +1,6 @@
 // File Path: src/pages/EditProduct.jsx
 
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import API from "../services/api";
 import toast from "react-hot-toast";
@@ -9,32 +9,40 @@ export default function EditProduct() {
   const { id } = useParams();
   const navigate = useNavigate();
 
-  // ================================
-  // States
-  // ================================
+  // ==========================================
+  // STATES
+  // ==========================================
   const [name, setName] = useState("");
+
   const [retailPrice, setRetailPrice] = useState("");
+
   const [discountPrice, setDiscountPrice] = useState("");
+
   const [stock, setStock] = useState("");
 
-  // NEW CATEGORY SYSTEM
   const [category, setCategory] = useState("spider-man");
 
   const [sizes, setSizes] = useState("");
+
   const [colors, setColors] = useState("");
+
   const [tags, setTags] = useState("");
+
   const [description, setDescription] = useState("");
+
   const [isFeatured, setIsFeatured] = useState(false);
 
   const [images, setImages] = useState([]);
+
   const [imageUrls, setImageUrls] = useState("");
+
   const [imageInputType, setImageInputType] = useState("file");
 
   const [loading, setLoading] = useState(false);
 
-  // ================================
-  // Fetch Product
-  // ================================
+  // ==========================================
+  // FETCH PRODUCT
+  // ==========================================
   useEffect(() => {
     const fetchProduct = async () => {
       try {
@@ -43,26 +51,26 @@ export default function EditProduct() {
         const prod = data.data || data.product || data;
 
         setName(prod.name || "");
+
         setRetailPrice(prod.retailPrice ?? "");
+
         setDiscountPrice(prod.discountPrice ?? "");
+
         setStock(prod.stock ?? "");
 
-        // Category
         setCategory(prod.category || "spider-man");
 
-        // Sizes
         setSizes(Array.isArray(prod.sizes) ? prod.sizes.join(", ") : "");
 
-        // Colors
         setColors(Array.isArray(prod.colors) ? prod.colors.join(", ") : "");
 
-        // Tags
         setTags(Array.isArray(prod.tags) ? prod.tags.join(", ") : "");
 
         setDescription(prod.description || "");
+
         setIsFeatured(Boolean(prod.isFeatured));
 
-        // Existing Images
+        // Existing images
         if (Array.isArray(prod.images) && prod.images.length > 0) {
           setImageUrls(prod.images.join(", "));
         }
@@ -80,55 +88,96 @@ export default function EditProduct() {
     }
   }, [id]);
 
-  // ================================
-  // File Change
-  // ================================
+  // ==========================================
+  // FILE CHANGE
+  // ==========================================
   const handleFileChange = (e) => {
     setImages(Array.from(e.target.files || []));
   };
 
-  // ================================
-  // Submit
-  // ================================
+  // ==========================================
+  // PRICE VALUES
+  // ==========================================
+  const retail = Number(retailPrice);
+
+  const discount = discountPrice === "" ? null : Number(discountPrice);
+
+  const isDiscountInvalid =
+    discount !== null && retail > 0 && discount >= retail;
+
+  const discountPercentage =
+    discount !== null && retail > 0 && discount > 0 && discount < retail
+      ? Math.round(((retail - discount) / retail) * 100)
+      : 0;
+
+  const savedAmount =
+    discount !== null && retail > 0 && discount < retail
+      ? retail - discount
+      : 0;
+
+  // ==========================================
+  // SUBMIT
+  // ==========================================
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Discount validation
+    // ==========================================
+    // RETAIL PRICE VALIDATION
+    // ==========================================
+    if (retailPrice === "" || Number(retailPrice) < 0) {
+      toast.error("Please enter a valid retail price.");
+
+      return;
+    }
+
+    // ==========================================
+    // DISCOUNT VALIDATION
+    // ==========================================
+    if (discountPrice !== "" && Number(discountPrice) < 0) {
+      toast.error("Discount price cannot be negative.");
+
+      return;
+    }
+
     if (discountPrice !== "" && Number(discountPrice) >= Number(retailPrice)) {
-      toast.error("Discount price must be less than retail price.");
+      toast.error("Discount price must be lower than retail price.");
+
       return;
     }
 
     setLoading(true);
 
     try {
-      const data = new FormData();
+      const formData = new FormData();
 
-      // ================================
-      // Basic Information
-      // ================================
-      data.append("name", name);
-      data.append("description", description);
-      data.append("retailPrice", Number(retailPrice));
-      data.append("stock", Number(stock));
+      // ==========================================
+      // BASIC INFORMATION
+      // ==========================================
+      formData.append("name", name);
 
-      // NEW CATEGORY
-      data.append("category", category);
+      formData.append("description", description);
 
-      data.append("isFeatured", String(isFeatured));
+      formData.append("retailPrice", Number(retailPrice));
 
-      // ================================
-      // Discount Price
-      // ================================
+      formData.append("stock", Number(stock));
+
+      formData.append("category", category);
+
+      formData.append("isFeatured", String(isFeatured));
+
+      // ==========================================
+      // DISCOUNT PRICE
+      // ==========================================
       if (discountPrice !== "") {
-        data.append("discountPrice", Number(discountPrice));
+        formData.append("discountPrice", Number(discountPrice));
       } else {
-        data.append("discountPrice", "");
+        // Empty means remove discount
+        formData.append("discountPrice", "");
       }
 
-      // ================================
-      // Sizes
-      // ================================
+      // ==========================================
+      // SIZES
+      // ==========================================
       const sizesArray = sizes
         ? sizes
             .split(",")
@@ -136,11 +185,11 @@ export default function EditProduct() {
             .filter(Boolean)
         : [];
 
-      data.append("sizes", JSON.stringify(sizesArray));
+      formData.append("sizes", JSON.stringify(sizesArray));
 
-      // ================================
-      // Colors
-      // ================================
+      // ==========================================
+      // COLORS
+      // ==========================================
       const colorsArray = colors
         ? colors
             .split(",")
@@ -148,11 +197,11 @@ export default function EditProduct() {
             .filter(Boolean)
         : [];
 
-      data.append("colors", JSON.stringify(colorsArray));
+      formData.append("colors", JSON.stringify(colorsArray));
 
-      // ================================
-      // Tags
-      // ================================
+      // ==========================================
+      // TAGS
+      // ==========================================
       const tagsArray = tags
         ? tags
             .split(",")
@@ -160,33 +209,35 @@ export default function EditProduct() {
             .filter(Boolean)
         : [];
 
-      data.append("tags", JSON.stringify(tagsArray));
+      formData.append("tags", JSON.stringify(tagsArray));
 
-      // ================================
-      // Image URLs
-      // ================================
+      // ==========================================
+      // EXISTING / URL IMAGES
+      // ==========================================
       if (imageInputType === "url" && imageUrls.trim()) {
         const urlsArray = imageUrls
           .split(",")
           .map((url) => url.trim())
           .filter(Boolean);
 
-        data.append("imageUrls", JSON.stringify(urlsArray));
+        if (urlsArray.length > 0) {
+          formData.append("imageUrls", JSON.stringify(urlsArray));
+        }
       }
 
-      // ================================
-      // Image Files
-      // ================================
+      // ==========================================
+      // NEW FILE IMAGES
+      // ==========================================
       if (imageInputType === "file" && images.length > 0) {
         images.forEach((image) => {
-          data.append("images", image);
+          formData.append("images", image);
         });
       }
 
-      // ================================
-      // Update Product
-      // ================================
-      await API.put(`/products/${id}`, data);
+      // ==========================================
+      // UPDATE
+      // ==========================================
+      await API.put(`/products/${id}`, formData);
 
       toast.success("Product updated successfully!");
 
@@ -200,29 +251,15 @@ export default function EditProduct() {
     }
   };
 
-  // ================================
-  // Discount Percentage
-  // ================================
-  const discountPercentage =
-    discountPrice !== "" &&
-    Number(retailPrice) > 0 &&
-    Number(discountPrice) < Number(retailPrice)
-      ? Math.round(
-          ((Number(retailPrice) - Number(discountPrice)) /
-            Number(retailPrice)) *
-            100,
-        )
-      : 0;
-
-  // ================================
+  // ==========================================
   // UI
-  // ================================
+  // ==========================================
   return (
-    <div className="min-h-screen bg-[#0f1115] text-white p-4 md:p-6">
+    <div className="min-h-screen bg-[#0b0d12] text-white p-4 md:p-6">
       <div className="max-w-5xl mx-auto">
-        {/* ================================
-            Header
-        ================================ */}
+        {/* ======================================
+            HEADER
+        ====================================== */}
         <div className="mb-6">
           <h1 className="text-2xl md:text-3xl font-black">Edit Product</h1>
 
@@ -231,13 +268,13 @@ export default function EditProduct() {
           </p>
         </div>
 
-        {/* ================================
-            Form
-        ================================ */}
+        {/* ======================================
+            FORM
+        ====================================== */}
         <form onSubmit={handleSubmit} className="space-y-5">
-          {/* Product Name */}
+          {/* PRODUCT NAME */}
           <div>
-            <label className="block text-gray-400 mb-1.5 font-semibold text-xs">
+            <label className="block text-gray-300 mb-1.5 font-semibold text-xs">
               Product Name
             </label>
 
@@ -251,63 +288,138 @@ export default function EditProduct() {
             />
           </div>
 
-          {/* ================================
-              Pricing
-          ================================ */}
-          <div className="bg-[#161920] border border-gray-800 rounded-2xl p-4">
-            <h2 className="text-sm font-bold text-white mb-4">Pricing</h2>
+          {/* ======================================
+              PRICING
+          ====================================== */}
+          <div className="bg-[#161920] border border-gray-800 rounded-2xl p-5">
+            <div className="mb-4">
+              <h2 className="text-sm font-bold text-white">Pricing</h2>
+
+              <p className="text-[11px] text-gray-500 mt-1">
+                Set your regular price and optional sale price.
+              </p>
+            </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Retail Price */}
+              {/* RETAIL PRICE */}
               <div>
-                <label className="block text-gray-400 mb-1.5 font-semibold text-xs">
-                  Retail Price (৳)
+                <label className="block text-gray-300 mb-1.5 font-semibold text-xs">
+                  Retail Price
                 </label>
 
-                <input
-                  type="number"
-                  min="0"
-                  value={retailPrice}
-                  onChange={(e) => setRetailPrice(e.target.value)}
-                  required
-                  placeholder="1200"
-                  className="w-full p-3.5 bg-[#1e222d] border border-gray-800 rounded-xl text-white focus:outline-none focus:border-purple-500"
-                />
+                <div className="relative">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 font-bold">
+                    ৳
+                  </span>
+
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={retailPrice}
+                    onChange={(e) => setRetailPrice(e.target.value)}
+                    required
+                    placeholder="849"
+                    className="w-full pl-9 pr-3.5 py-3.5 bg-[#1e222d] border border-gray-800 rounded-xl text-white focus:outline-none focus:border-purple-500"
+                  />
+                </div>
+
+                <p className="text-[10px] text-gray-500 mt-1.5">
+                  Regular selling price
+                </p>
               </div>
 
-              {/* Discount Price */}
+              {/* DISCOUNT PRICE */}
               <div>
-                <label className="block text-gray-400 mb-1.5 font-semibold text-xs">
-                  Discount Price (৳)
-                  <span className="text-gray-600 ml-1">Optional</span>
+                <label className="flex items-center gap-2 mb-1.5 text-xs font-semibold">
+                  <span className="text-gray-300">Discount Price</span>
+
+                  <span className="px-2 py-0.5 rounded-full bg-green-500/10 text-green-400 text-[9px] font-bold">
+                    OPTIONAL
+                  </span>
                 </label>
 
-                <input
-                  type="number"
-                  min="0"
-                  value={discountPrice}
-                  onChange={(e) => setDiscountPrice(e.target.value)}
-                  placeholder="Optional"
-                  className="w-full p-3.5 bg-[#1e222d] border border-gray-800 rounded-xl text-white focus:outline-none focus:border-purple-500"
-                />
+                <div className="relative">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-green-400 font-bold">
+                    ৳
+                  </span>
 
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={discountPrice}
+                    onChange={(e) => setDiscountPrice(e.target.value)}
+                    placeholder="500"
+                    className={`w-full pl-9 pr-3.5 py-3.5 bg-[#1e222d] border rounded-xl text-white focus:outline-none transition ${
+                      isDiscountInvalid
+                        ? "border-red-500 focus:border-red-500"
+                        : "border-gray-800 focus:border-green-500"
+                    }`}
+                  />
+                </div>
+
+                {/* DISCOUNT INFO */}
                 {discountPercentage > 0 && (
-                  <p className="text-[11px] text-green-400 mt-1.5 font-semibold">
-                    {discountPercentage}% OFF
+                  <div className="flex items-center gap-2 mt-2">
+                    <span className="inline-flex items-center px-2 py-1 rounded-md bg-green-500/10 text-green-400 text-[10px] font-bold">
+                      {discountPercentage}% OFF
+                    </span>
+
+                    <span className="text-[10px] text-gray-400">
+                      Save ৳{savedAmount}
+                    </span>
+                  </div>
+                )}
+
+                {/* INVALID DISCOUNT */}
+                {isDiscountInvalid && (
+                  <p className="text-[10px] text-red-400 mt-2 font-semibold">
+                    ⚠ Discount price must be lower than retail price (৳
+                    {retailPrice}).
+                  </p>
+                )}
+
+                {!isDiscountInvalid && discountPrice === "" && (
+                  <p className="text-[10px] text-gray-500 mt-2">
+                    Leave empty if there is no discount.
                   </p>
                 )}
               </div>
             </div>
+
+            {/* PRICE PREVIEW */}
+            {discountPercentage > 0 && (
+              <div className="mt-5 p-3.5 rounded-xl bg-[#0f1115] border border-gray-800 flex items-center justify-between">
+                <div>
+                  <p className="text-[10px] text-gray-500 uppercase tracking-wider">
+                    Customer will pay
+                  </p>
+
+                  <p className="text-xl font-black text-white mt-0.5">
+                    ৳{discount}
+                  </p>
+                </div>
+
+                <div className="text-right">
+                  <p className="text-[10px] text-gray-500">Regular</p>
+
+                  <p className="text-sm text-gray-500 line-through">
+                    ৳{retail}
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* ================================
-              Stock & Category
-          ================================ */}
+          {/* ======================================
+              STOCK + CATEGORY
+          ====================================== */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Stock */}
+            {/* STOCK */}
             <div>
-              <label className="block text-gray-400 mb-1.5 font-semibold text-xs">
-                Stock Qty
+              <label className="block text-gray-300 mb-1.5 font-semibold text-xs">
+                Stock Quantity
               </label>
 
               <input
@@ -321,9 +433,9 @@ export default function EditProduct() {
               />
             </div>
 
-            {/* Category */}
+            {/* CATEGORY */}
             <div>
-              <label className="block text-gray-400 mb-1.5 font-semibold text-xs">
+              <label className="block text-gray-300 mb-1.5 font-semibold text-xs">
                 Category
               </label>
 
@@ -349,13 +461,13 @@ export default function EditProduct() {
             </div>
           </div>
 
-          {/* ================================
-              Sizes / Colors / Tags
-          ================================ */}
+          {/* ======================================
+              SIZES / COLORS / TAGS
+          ====================================== */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Sizes */}
+            {/* SIZES */}
             <div>
-              <label className="block text-gray-400 mb-1.5 font-semibold text-xs">
+              <label className="block text-gray-300 mb-1.5 font-semibold text-xs">
                 Sizes
               </label>
 
@@ -368,9 +480,9 @@ export default function EditProduct() {
               />
             </div>
 
-            {/* Colors */}
+            {/* COLORS */}
             <div>
-              <label className="block text-gray-400 mb-1.5 font-semibold text-xs">
+              <label className="block text-gray-300 mb-1.5 font-semibold text-xs">
                 Colors
               </label>
 
@@ -383,10 +495,10 @@ export default function EditProduct() {
               />
             </div>
 
-            {/* Tags */}
+            {/* TAGS */}
             <div>
-              <label className="block text-gray-400 mb-1.5 font-semibold text-xs">
-                Related Tags / Keywords
+              <label className="block text-gray-300 mb-1.5 font-semibold text-xs">
+                Related Tags
               </label>
 
               <input
@@ -399,16 +511,16 @@ export default function EditProduct() {
             </div>
           </div>
 
-          {/* ================================
-              Product Images
-          ================================ */}
-          <div className="bg-[#161920] p-4 rounded-2xl border border-gray-800 space-y-4">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+          {/* ======================================
+              PRODUCT IMAGES
+          ====================================== */}
+          <div className="bg-[#161920] p-5 rounded-2xl border border-gray-800">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
               <div>
                 <h2 className="text-sm font-bold text-white">Product Images</h2>
 
                 <p className="text-[10px] text-gray-500 mt-1">
-                  Upload new images or use image URLs.
+                  Keep existing images or add new ones.
                 </p>
               </div>
 
@@ -434,12 +546,12 @@ export default function EditProduct() {
                       : "bg-gray-800 text-gray-400"
                   }`}
                 >
-                  Image URL(s)
+                  Image URLs
                 </button>
               </div>
             </div>
 
-            {/* File Upload */}
+            {/* FILE UPLOAD */}
             {imageInputType === "file" ? (
               <div>
                 <input
@@ -452,11 +564,16 @@ export default function EditProduct() {
 
                 {images.length > 0 && (
                   <p className="text-[11px] text-purple-400 mt-2 font-medium">
-                    {images.length} file(s) selected
+                    {images.length} new image(s) selected
                   </p>
                 )}
+
+                <p className="text-[10px] text-gray-500 mt-2">
+                  New images will be added to the existing images.
+                </p>
               </div>
             ) : (
+              /* URL INPUT */
               <div>
                 <input
                   type="text"
@@ -467,17 +584,17 @@ export default function EditProduct() {
                 />
 
                 <p className="text-[10px] text-gray-500 mt-1.5">
-                  Add multiple image URLs separated by commas.
+                  Separate multiple image URLs with commas.
                 </p>
               </div>
             )}
           </div>
 
-          {/* ================================
-              Description
-          ================================ */}
+          {/* ======================================
+              DESCRIPTION
+          ====================================== */}
           <div>
-            <label className="block text-gray-400 mb-1.5 font-semibold text-xs">
+            <label className="block text-gray-300 mb-1.5 font-semibold text-xs">
               Description
             </label>
 
@@ -491,9 +608,9 @@ export default function EditProduct() {
             />
           </div>
 
-          {/* ================================
-              Featured
-          ================================ */}
+          {/* ======================================
+              FEATURED
+          ====================================== */}
           <div className="bg-[#161920] border border-gray-800 rounded-2xl p-4">
             <label className="flex items-center gap-3 cursor-pointer">
               <input
@@ -515,12 +632,12 @@ export default function EditProduct() {
             </label>
           </div>
 
-          {/* ================================
-              Submit
-          ================================ */}
+          {/* ======================================
+              SUBMIT
+          ====================================== */}
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || isDiscountInvalid}
             className="w-full py-3.5 bg-gradient-to-r from-purple-600 to-pink-500 text-white font-bold rounded-xl shadow-lg hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? "Updating..." : "Update Product"}
