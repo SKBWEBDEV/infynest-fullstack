@@ -32,17 +32,7 @@ const productSchema = new mongoose.Schema(
     // ==========================================
     // DISCOUNT PRICE
     // ==========================================
-    discountPrice: {
-      type: Number,
-      default: null,
-      min: 0,
-      validate: {
-        validator: function (value) {
-          return value === null || value < this.retailPrice;
-        },
-        message: "Discount price must be less than retail price",
-      },
-    },
+discountPrice: { type: Number, default: null, min: 0, },
 
     // ==========================================
     // DESIGN / CATEGORY
