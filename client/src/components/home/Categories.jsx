@@ -11,16 +11,21 @@ export default function CategoryProducts({
   categorySlug,
   badge = "HOT SALE",
 }) {
-  const scrollRef = useRef(null);
+  const sliderRef = useRef(null);
+  const animationRef = useRef(null);
+  const pauseTimeoutRef = useRef(null);
 
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [isPaused, setIsPaused] = useState(false);
 
-  // ============================================
-  // FETCH CATEGORY PRODUCTS
-  // ============================================
+  const isPausedRef = useRef(false);
+
+  // ==========================================
+  // FETCH PRODUCTS
+  // ==========================================
   useEffect(() => {
+    let mounted = true;
+
     const fetchProducts = async () => {
       try {
         setLoading(true);
@@ -30,7 +35,7 @@ export default function CategoryProducts({
         );
 
         console.log(
-          `Products for ${categorySlug}:`,
+          `${categorySlug} products:`,
           response.data
         );
 
@@ -42,105 +47,46 @@ export default function CategoryProducts({
           data?.results ||
           [];
 
-        setProducts(
-          Array.isArray(productList)
-            ? productList
-            : []
-        );
+        if (mounted) {
+          setProducts(
+            Array.isArray(productList)
+              ? productList
+              : []
+          );
+        }
       } catch (error) {
         console.error(
-          `Failed to fetch ${categorySlug} products:`,
+          `Failed to fetch ${categorySlug}:`,
           error
         );
 
-        setProducts([]);
+        if (mounted) {
+          setProducts([]);
 
-        toast.error(
-          error?.response?.data?.message ||
-            `Failed to load ${title} products`
-        );
+          toast.error(
+            error?.response?.data?.message ||
+              `Failed to load ${title} products`
+          );
+        }
       } finally {
-        setLoading(false);
+        if (mounted) {
+          setLoading(false);
+        }
       }
     };
 
     if (categorySlug) {
       fetchProducts();
     }
-  }, [categorySlug, title]);
-
-  // ============================================
-  // MOBILE AUTO SLIDER
-  // ============================================
-  useEffect(() => {
-    const container = scrollRef.current;
-
-    if (!container) return;
-
-    const autoSlide = () => {
-      // Only mobile
-      if (window.innerWidth >= 640) return;
-
-      // Don't slide when paused
-      if (isPaused) return;
-
-      // No products
-      if (!products.length) return;
-
-      const firstCard =
-        container.querySelector("[data-product-card]");
-
-      if (!firstCard) return;
-
-      const cardWidth =
-        firstCard.getBoundingClientRect().width;
-
-      const styles = window.getComputedStyle(container);
-
-      const gap =
-        parseFloat(styles.columnGap || styles.gap || 0);
-
-      const scrollAmount = cardWidth + gap;
-
-      const maxScroll =
-        container.scrollWidth -
-        container.clientWidth;
-
-      if (maxScroll <= 0) return;
-
-      const currentScroll =
-        container.scrollLeft;
-
-      // If near end -> go back to beginning
-      if (
-        currentScroll + scrollAmount >=
-        maxScroll - 5
-      ) {
-        container.scrollTo({
-          left: 0,
-          behavior: "smooth",
-        });
-      } else {
-        container.scrollBy({
-          left: scrollAmount,
-          behavior: "smooth",
-        });
-      }
-    };
-
-    const interval = setInterval(
-      autoSlide,
-      2500
-    );
 
     return () => {
-      clearInterval(interval);
+      mounted = false;
     };
-  }, [isPaused, products]);
+  }, [categorySlug, title]);
 
-  // ============================================
+  // ==========================================
   // IMAGE
-  // ============================================
+  // ==========================================
   const getImage = (product) => {
     if (
       Array.isArray(product.images) &&
@@ -156,9 +102,220 @@ export default function CategoryProducts({
     return "/placeholder-product.jpg";
   };
 
-  // ============================================
+  // ==========================================
+  // PRICE
+  // ==========================================
+  const getPricing = (product) => {
+    const retailPrice = Number(
+      product.retailPrice || 0
+    );
+
+    const discountPrice =
+      product.discountPrice !== null &&
+      product.discountPrice !== undefined
+        ? Number(product.discountPrice)
+        : null;
+
+    const hasDiscount =
+      discountPrice !== null &&
+      discountPrice < retailPrice;
+
+    return {
+      retailPrice,
+      discountPrice,
+      hasDiscount,
+      finalPrice: hasDiscount
+        ? discountPrice
+        : retailPrice,
+    };
+  };
+
+  // ==========================================
+  // GET ORIGINAL CONTENT WIDTH
+  // ==========================================
+  const getOriginalWidth = () => {
+    const slider = sliderRef.current;
+
+    if (!slider) {
+      return 0;
+    }
+
+    const cards =
+      slider.querySelectorAll(
+        "[data-original-card]"
+      );
+
+    if (!cards.length) {
+      return 0;
+    }
+
+    const firstCard = cards[0];
+
+    const cardWidth =
+      firstCard.getBoundingClientRect().width;
+
+    const styles =
+      window.getComputedStyle(slider);
+
+    const gap =
+      parseFloat(
+        styles.columnGap ||
+          styles.gap ||
+          "0"
+      ) || 0;
+
+    return (
+      (cardWidth + gap) *
+      products.length
+    );
+  };
+
+  // ==========================================
+  // AUTO SLIDE
+  // ==========================================
+  useEffect(() => {
+    if (products.length < 2) {
+      return;
+    }
+
+    let lastTime = 0;
+
+    // ========================================
+    // SPEED
+    // ========================================
+    // 20 = slow
+    // 30 = normal
+    // 40 = fast
+    const SPEED = 30;
+
+    const animate = (time) => {
+      if (!lastTime) {
+        lastTime = time;
+      }
+
+      const delta =
+        (time - lastTime) / 1000;
+
+      lastTime = time;
+
+      const slider = sliderRef.current;
+
+      if (!slider) {
+        animationRef.current =
+          requestAnimationFrame(animate);
+
+        return;
+      }
+
+      // ======================================
+      // MOBILE ONLY
+      // ======================================
+      if (
+        window.innerWidth < 640 &&
+        !isPausedRef.current
+      ) {
+        slider.scrollLeft +=
+          SPEED * delta;
+
+        // ====================================
+        // INFINITE LOOP
+        // ====================================
+        const originalWidth =
+          getOriginalWidth();
+
+        if (
+          originalWidth > 0 &&
+          slider.scrollLeft >=
+            originalWidth
+        ) {
+          slider.scrollLeft -=
+            originalWidth;
+        }
+      }
+
+      animationRef.current =
+        requestAnimationFrame(animate);
+    };
+
+    animationRef.current =
+      requestAnimationFrame(animate);
+
+    return () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(
+          animationRef.current
+        );
+      }
+    };
+  }, [products]);
+
+  // ==========================================
+  // TOUCH START
+  // ==========================================
+  const handleTouchStart = () => {
+    isPausedRef.current = true;
+
+    if (pauseTimeoutRef.current) {
+      clearTimeout(
+        pauseTimeoutRef.current
+      );
+    }
+  };
+
+  // ==========================================
+  // TOUCH END
+  // ==========================================
+  const handleTouchEnd = () => {
+    if (pauseTimeoutRef.current) {
+      clearTimeout(
+        pauseTimeoutRef.current
+      );
+    }
+
+    pauseTimeoutRef.current =
+      setTimeout(() => {
+        isPausedRef.current = false;
+      }, 1500);
+  };
+
+  // ==========================================
+  // MOUSE ENTER
+  // ==========================================
+  const handleMouseEnter = () => {
+    // Desktop doesn't auto-slide anyway.
+    // This only prevents accidental movement.
+    isPausedRef.current = true;
+  };
+
+  // ==========================================
+  // MOUSE LEAVE
+  // ==========================================
+  const handleMouseLeave = () => {
+    isPausedRef.current = false;
+  };
+
+  // ==========================================
+  // CLEANUP
+  // ==========================================
+  useEffect(() => {
+    return () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(
+          animationRef.current
+        );
+      }
+
+      if (pauseTimeoutRef.current) {
+        clearTimeout(
+          pauseTimeoutRef.current
+        );
+      }
+    };
+  }, []);
+
+  // ==========================================
   // ADD TO CART
-  // ============================================
+  // ==========================================
   const handleAddToCart = async (
     e,
     product
@@ -170,10 +327,6 @@ export default function CategoryProducts({
       const productId =
         product._id || product.id;
 
-      // ------------------------------------------
-      // Change this endpoint if your backend uses
-      // another cart route.
-      // ------------------------------------------
       await API.post("/cart/add", {
         productId,
         quantity: 1,
@@ -195,17 +348,43 @@ export default function CategoryProducts({
     }
   };
 
-  // ============================================
+  // ==========================================
   // HEADER
-  // ============================================
+  // ==========================================
   const Header = () => (
-    <div className="flex items-center justify-between mb-5">
+    <div
+      className="
+        flex
+        items-end
+        justify-between
+        gap-4
+        mb-5
+        px-4
+        sm:px-6
+        lg:px-8
+      "
+    >
       <div>
-        <h2 className="text-xl sm:text-2xl font-black text-gray-900">
+        <h2
+          className="
+            text-xl
+            sm:text-2xl
+            font-bold
+            text-gray-900
+          "
+        >
           {title}
         </h2>
 
-        <div className="mt-2 h-1 w-12 bg-indigo-600 rounded-full" />
+        <div
+          className="
+            mt-2
+            h-1
+            w-12
+            bg-indigo-600
+            rounded-full
+          "
+        />
       </div>
 
       <Link
@@ -224,54 +403,96 @@ export default function CategoryProducts({
     </div>
   );
 
-  // ============================================
+  // ==========================================
   // LOADING
-  // ============================================
+  // ==========================================
   if (loading) {
     return (
-      <section className="py-8 sm:py-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="py-8">
+        <div className="max-w-7xl mx-auto">
           <Header />
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-5">
-            {[1, 2, 3, 4].map((item) => (
-              <div
-                key={item}
-                className="
-                  bg-gray-100
-                  rounded-xl
-                  overflow-hidden
-                  animate-pulse
-                "
-              >
-                <div className="aspect-[3/4] bg-gray-200" />
+          <div
+            className="
+              grid
+              grid-cols-2
+              sm:grid-cols-4
+              gap-3
+              sm:gap-5
+              px-4
+              sm:px-6
+              lg:px-8
+            "
+          >
+            {[1, 2, 3, 4].map(
+              (item) => (
+                <div
+                  key={item}
+                  className="
+                    bg-gray-100
+                    rounded-xl
+                    overflow-hidden
+                    animate-pulse
+                  "
+                >
+                  <div
+                    className="
+                      aspect-[3/4]
+                      bg-gray-200
+                    "
+                  />
 
-                <div className="p-3">
-                  <div className="h-3 bg-gray-200 rounded mb-2" />
+                  <div className="p-3">
+                    <div
+                      className="
+                        h-3
+                        bg-gray-200
+                        rounded
+                        mb-2
+                      "
+                    />
 
-                  <div className="h-4 bg-gray-200 rounded w-3/4 mb-3" />
+                    <div
+                      className="
+                        h-4
+                        bg-gray-200
+                        rounded
+                        w-3/4
+                        mb-3
+                      "
+                    />
 
-                  <div className="h-8 bg-gray-200 rounded" />
+                    <div
+                      className="
+                        h-8
+                        bg-gray-200
+                        rounded
+                      "
+                    />
+                  </div>
                 </div>
-              </div>
-            ))}
+              )
+            )}
           </div>
         </div>
       </section>
     );
   }
 
-  // ============================================
+  // ==========================================
   // NO PRODUCTS
-  // ============================================
+  // ==========================================
   if (products.length === 0) {
     return (
-      <section className="py-8 sm:py-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="py-8">
+        <div className="max-w-7xl mx-auto">
           <Header />
 
           <div
             className="
+              mx-4
+              sm:mx-6
+              lg:mx-8
               py-10
               text-center
               border
@@ -281,7 +502,8 @@ export default function CategoryProducts({
             "
           >
             <p className="text-sm text-gray-500">
-              No products available in {title}.
+              No products available in{" "}
+              {title}.
             </p>
           </div>
         </div>
@@ -289,62 +511,59 @@ export default function CategoryProducts({
     );
   }
 
-  // ============================================
-  // MAIN UI
-  // ============================================
-  return (
-    <section className="py-8 sm:py-10">
-      <div className="max-w-7xl mx-auto">
-        {/* ========================================
-            HEADER
-        ======================================== */}
-        <div className="px-4 sm:px-6 lg:px-8">
-          <Header />
-        </div>
+  // ==========================================
+  // CREATE 2 COPIES
+  // ==========================================
+  const sliderProducts = [
+    ...products,
+    ...products,
+  ];
 
-        {/* ========================================
-            MOBILE / DESKTOP PRODUCTS
-        ======================================== */}
+  // ==========================================
+  // MAIN
+  // ==========================================
+  return (
+    <section className="py-8">
+      <div className="max-w-7xl mx-auto">
+        {/* HEADER */}
+        <Header />
+
+        {/* ====================================
+            MOBILE SLIDER
+        ==================================== */}
         <div
-          ref={scrollRef}
-          onMouseEnter={() =>
-            setIsPaused(true)
-          }
-          onMouseLeave={() =>
-            setIsPaused(false)
-          }
-          onTouchStart={() =>
-            setIsPaused(true)
-          }
-          onTouchEnd={() => {
-            // Give user a little time before auto-slide
-            setTimeout(() => {
-              setIsPaused(false);
-            }, 1200);
-          }}
+          ref={sliderRef}
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
           className="
             flex
             gap-3
             overflow-x-auto
+
             px-4
             sm:px-6
             lg:px-8
-            pb-2
+
+            pb-3
+
+            scrollbar-hide
 
             sm:grid
             sm:grid-cols-4
             sm:gap-5
             sm:overflow-hidden
-
-            scrollbar-hide
           "
           style={{
             scrollbarWidth: "none",
             msOverflowStyle: "none",
-            scrollBehavior: "smooth",
+            WebkitOverflowScrolling:
+              "touch",
+            scrollBehavior: "auto",
           }}
         >
-          {products.map(
+          {sliderProducts.map(
             (product, index) => {
               const productId =
                 product._id ||
@@ -353,35 +572,22 @@ export default function CategoryProducts({
               const image =
                 getImage(product);
 
-              const retailPrice =
-                Number(
-                  product.retailPrice || 0
-                );
-
-              const discountPrice =
-                product.discountPrice !==
-                  null &&
-                product.discountPrice !==
-                  undefined
-                  ? Number(
-                      product.discountPrice
-                    )
-                  : null;
-
-              const hasDiscount =
-                discountPrice !== null &&
-                discountPrice <
-                  retailPrice;
-
-              const finalPrice =
-                hasDiscount
-                  ? discountPrice
-                  : retailPrice;
+              const {
+                retailPrice,
+                discountPrice,
+                hasDiscount,
+                finalPrice,
+              } = getPricing(product);
 
               return (
                 <div
                   key={`${productId}-${index}`}
                   data-product-card
+                  data-original-card={
+                    index < products.length
+                      ? "true"
+                      : undefined
+                  }
                   className="
                     group
                     flex-none
@@ -396,13 +602,13 @@ export default function CategoryProducts({
                     border
                     border-gray-200
                     shadow-sm
+
                     hover:shadow-lg
+
                     transition
                   "
                 >
-                  {/* ==================================
-                      PRODUCT IMAGE
-                  ================================== */}
+                  {/* IMAGE */}
                   <Link
                     to={`/product/${productId}`}
                     className="block"
@@ -415,7 +621,6 @@ export default function CategoryProducts({
                         bg-gray-100
                       "
                     >
-                      {/* Badge */}
                       {badge && (
                         <span
                           className="
@@ -453,6 +658,7 @@ export default function CategoryProducts({
 
                           transition-transform
                           duration-500
+
                           group-hover:scale-105
                         "
                         onError={(e) => {
@@ -463,11 +669,8 @@ export default function CategoryProducts({
                     </div>
                   </Link>
 
-                  {/* ==================================
-                      PRODUCT INFO
-                  ================================== */}
+                  {/* INFO */}
                   <div className="p-3 sm:p-4">
-                    {/* Product Type */}
                     <p
                       className="
                         text-[9px]
@@ -481,7 +684,6 @@ export default function CategoryProducts({
                       T-SHIRT
                     </p>
 
-                    {/* Product Name */}
                     <Link
                       to={`/product/${productId}`}
                     >
@@ -491,10 +693,8 @@ export default function CategoryProducts({
                           sm:text-sm
                           font-semibold
                           text-gray-900
-
                           line-clamp-2
                           min-h-[32px]
-
                           hover:text-indigo-600
                           transition
                         "
@@ -503,10 +703,17 @@ export default function CategoryProducts({
                       </h3>
                     </Link>
 
-                    {/* Price */}
+                    {/* PRICE */}
                     <div className="mt-2">
                       {hasDiscount ? (
-                        <div className="flex items-center gap-2 flex-wrap">
+                        <div
+                          className="
+                            flex
+                            items-center
+                            gap-2
+                            flex-wrap
+                          "
+                        >
                           <span
                             className="
                               text-[11px]
@@ -543,11 +750,15 @@ export default function CategoryProducts({
                       )}
                     </div>
 
-                    {/* ==================================
-                        ACTION BUTTONS
-                    ================================== */}
-                    <div className="mt-3 grid grid-cols-2 gap-2">
-                      {/* View Details */}
+                    {/* BUTTONS */}
+                    <div
+                      className="
+                        mt-3
+                        grid
+                        grid-cols-2
+                        gap-2
+                      "
+                    >
                       <Link
                         to={`/product/${productId}`}
                         className="
@@ -559,22 +770,24 @@ export default function CategoryProducts({
                           px-2
 
                           rounded-lg
+
                           border
                           border-gray-300
 
                           text-[10px]
                           sm:text-xs
+
                           font-semibold
                           text-gray-700
 
                           hover:bg-gray-100
+
                           transition
                         "
                       >
                         View Details
                       </Link>
 
-                      {/* Add To Cart */}
                       <button
                         type="button"
                         onClick={(e) =>
@@ -598,9 +811,11 @@ export default function CategoryProducts({
 
                           text-[10px]
                           sm:text-xs
+
                           font-semibold
 
                           hover:bg-indigo-700
+
                           active:scale-95
 
                           transition
