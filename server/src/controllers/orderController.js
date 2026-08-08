@@ -64,15 +64,7 @@ export const createOrder = async (req, res) => {
       });
     }
 
-    // ৪. স্টক নিরাপদে কমানো এবং ডাটাবেজে আপডেট করা
-    for (const item of processedOrderItems) {
-      const product = await Product.findById(item.product);
-      if (product) {
-        const currentStock = Number(product.stock) || 0;
-        product.stock = Math.max(0, currentStock - item.quantity);
-        await product.save();
-      }
-    }
+   
 
     const taxPrice = itemsPrice * 0.05; // ৫% ভ্যাট
     const deliveryFee = shippingFee !== undefined ? Number(shippingFee) : (itemsPrice > 5000 ? 0 : 100);
@@ -109,7 +101,7 @@ export const createOrder = async (req, res) => {
 
     res.status(201).json({ 
       success: true, 
-      message: 'Order created and stock updated successfully', 
+      message: 'Order created successfully',
       data: order 
     });
 
@@ -167,21 +159,75 @@ export const updateOrderToDelivered = async (req, res) => {
 // @route   PUT /api/v1/orders/:id/status
 export const updateOrderStatus = async (req, res) => {
   try {
-    const { status } = req.body; 
+    const { status } = req.body;
+
     const order = await Order.findById(req.params.id);
 
     if (!order) {
-      return res.status(404).json({ success: false, message: 'Order not found' });
+      return res.status(404).json({
+        success: false,
+        message: 'Order not found',
+      });
     }
+
+    // Previous status
+    const previousStatus = order.orderStatus;
+
+    // -----------------------------------------
+    // STOCK REDUCTION
+    // Only when Pending -> Confirmed
+    // -----------------------------------------
+    if (
+      previousStatus === 'Pending' &&
+      status === 'Confirmed' &&
+      !order.stockReduced
+    ) {
+      // আগে সব product-এর stock check
+      for (const item of order.orderItems) {
+        const product = await Product.findById(item.product);
+
+        if (!product) {
+          return res.status(404).json({
+            success: false,
+            message: `Product not found: ${item.name}`,
+          });
+        }
+
+        if (product.stock < item.quantity) {
+          return res.status(400).json({
+            success: false,
+            message: `Insufficient stock for ${product.name}. Available: ${product.stock}, Required: ${item.quantity}`,
+          });
+        }
+      }
+
+      // Stock কমানো
+      for (const item of order.orderItems) {
+        const product = await Product.findById(item.product);
+
+        if (product) {
+          product.stock -= item.quantity;
+
+          await product.save();
+        }
+      }
+
+      // Prevent duplicate stock reduction
+      order.stockReduced = true;
+    }
+
+    // -----------------------------------------
+    // UPDATE ORDER STATUS
+    // -----------------------------------------
 
     order.orderStatus = status;
 
-    // যদি স্ট্যাটাস Delivered হয়
+    // Delivered হলে payment update
     if (status === 'Delivered') {
       order.isDelivered = true;
       order.deliveredAt = Date.now();
-      
-      // ক্যাশ অন ডেলিভারি হলেও পণ্য হাতে পেয়ে টাকা পরিশোধ করায় এখন Paid হয়ে যাবে
+
+      // Cash on Delivery হলে Delivered হওয়ার পর Paid
       order.isPaid = true;
       order.paymentStatus = 'Paid';
       order.paidAt = Date.now();
@@ -191,26 +237,40 @@ export const updateOrderStatus = async (req, res) => {
 
     const updatedOrder = await order.save();
 
-    // নোটিফিকেশন তৈরি
+    // -----------------------------------------
+    // USER NOTIFICATION
+    // -----------------------------------------
+
     if (order.user) {
       try {
         await Notification.create({
           user: order.user,
-          message: `আপনার অর্ডার #${order._id.toString().slice(-8)} এর স্ট্যাটাস আপডেট হয়ে হয়েছে: ${status}`,
-          orderId: order._id
+          message: `আপনার অর্ডার #${order._id
+            .toString()
+            .slice(-8)} এর স্ট্যাটাস আপডেট হয়েছে: ${status}`,
+          orderId: order._id,
         });
       } catch (notifError) {
         console.error('Notification error:', notifError);
       }
     }
 
-    res.status(200).json({ 
-      success: true, 
-      message: `Order status updated to ${status}`, 
-      data: updatedOrder 
+    res.status(200).json({
+      success: true,
+      message:
+        status === 'Confirmed' && order.stockReduced
+          ? 'Order confirmed and stock updated successfully'
+          : `Order status updated to ${status}`,
+      data: updatedOrder,
     });
+
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error('Update order status error:', error);
+
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
 
