@@ -46,8 +46,12 @@ const productSchema = new mongoose.Schema(
             return true;
           }
 
-          // Discount must be lower than retail price
-          return value < this.retailPrice;
+          // Retail price must exist
+          if (this.retailPrice === undefined || this.retailPrice === null) {
+            return false;
+          }
+
+          return Number(value) < Number(this.retailPrice);
         },
 
         message: "Discount price must be less than retail price",
@@ -64,7 +68,7 @@ const productSchema = new mongoose.Schema(
     },
 
     // ==========================================
-    // MINIMUM WHOLESALE QUANTITY
+    // MIN WHOLESALE QUANTITY
     // ==========================================
     minWholesaleQty: {
       type: Number,
@@ -73,12 +77,11 @@ const productSchema = new mongoose.Schema(
     },
 
     // ==========================================
-    // DESIGN / CATEGORY
+    // CATEGORY
     // ==========================================
     category: {
       type: String,
       required: [true, "Design category is required"],
-
       enum: [
         "spider-man",
         "chainsaw-man",
@@ -88,7 +91,6 @@ const productSchema = new mongoose.Schema(
         "anime",
         "venom",
       ],
-
       trim: true,
     },
 
@@ -150,7 +152,6 @@ const productSchema = new mongoose.Schema(
       default: false,
     },
   },
-
   {
     timestamps: true,
   },

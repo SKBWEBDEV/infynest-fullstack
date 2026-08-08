@@ -2,11 +2,9 @@
 
 import { Product } from "../models/Product.js";
 
-// ======================================================
+// ==========================================
 // GET ALL PRODUCTS
-// ======================================================
-// @desc    Get all products
-// @route   GET /api/v1/products
+// ==========================================
 export const getProducts = async (req, res) => {
   try {
     const { category, isFeatured } = req.query;
@@ -40,11 +38,9 @@ export const getProducts = async (req, res) => {
   }
 };
 
-// ======================================================
+// ==========================================
 // GET SINGLE PRODUCT
-// ======================================================
-// @desc    Get single product details
-// @route   GET /api/v1/products/:id
+// ==========================================
 export const getProductById = async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
@@ -70,11 +66,9 @@ export const getProductById = async (req, res) => {
   }
 };
 
-// ======================================================
+// ==========================================
 // CREATE PRODUCT
-// ======================================================
-// @desc    Create a product (Admin only)
-// @route   POST /api/v1/products
+// ==========================================
 export const createProduct = async (req, res) => {
   try {
     const {
@@ -94,38 +88,12 @@ export const createProduct = async (req, res) => {
     } = req.body;
 
     // ==========================================
-    // PRICE VALIDATION
-    // ==========================================
-    const retail = Number(retailPrice);
-
-    let discount = null;
-
-    if (
-      discountPrice !== undefined &&
-      discountPrice !== null &&
-      discountPrice !== ""
-    ) {
-      discount = Number(discountPrice);
-
-      if (discount >= retail) {
-        return res.status(400).json({
-          success: false,
-          message: "Discount price must be less than retail price.",
-        });
-      }
-    }
-
-    // ==========================================
     // IMAGES
     // ==========================================
-    let images = [];
+    let images = req.files
+      ? req.files.map((file) => `/uploads/${file.filename}`)
+      : [];
 
-    // Uploaded files
-    if (req.files && req.files.length > 0) {
-      images = req.files.map((file) => `/uploads/${file.filename}`);
-    }
-
-    // Image URLs
     if (imageUrls) {
       try {
         const parsedUrls = JSON.parse(imageUrls);
@@ -139,15 +107,38 @@ export const createProduct = async (req, res) => {
     }
 
     // ==========================================
-    // CREATE PRODUCT
+    // PRICE VALUES
+    // ==========================================
+    const parsedRetailPrice = Number(retailPrice);
+
+    const parsedDiscountPrice =
+      discountPrice !== undefined &&
+      discountPrice !== null &&
+      discountPrice !== ""
+        ? Number(discountPrice)
+        : null;
+
+    // Backend validation
+    if (
+      parsedDiscountPrice !== null &&
+      parsedDiscountPrice >= parsedRetailPrice
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Discount price must be less than retail price",
+      });
+    }
+
+    // ==========================================
+    // CREATE
     // ==========================================
     const product = await Product.create({
       name,
       description,
 
-      retailPrice: retail,
+      retailPrice: parsedRetailPrice,
 
-      discountPrice: discount,
+      discountPrice: parsedDiscountPrice,
 
       wholesalePrice:
         wholesalePrice !== undefined && wholesalePrice !== ""
@@ -171,7 +162,7 @@ export const createProduct = async (req, res) => {
 
       stock: Number(stock),
 
-      isFeatured: isFeatured === "true" || isFeatured === true,
+      isFeatured: isFeatured === true || isFeatured === "true",
     });
 
     res.status(201).json({
@@ -182,18 +173,16 @@ export const createProduct = async (req, res) => {
   } catch (error) {
     console.error("Create product error:", error);
 
-    res.status(500).json({
+    res.status(400).json({
       success: false,
       message: error.message,
     });
   }
 };
 
-// ======================================================
+// ==========================================
 // UPDATE PRODUCT
-// ======================================================
-// @desc    Update a product (Admin only)
-// @route   PUT /api/v1/products/:id
+// ==========================================
 export const updateProduct = async (req, res) => {
   try {
     const {
@@ -225,35 +214,47 @@ export const updateProduct = async (req, res) => {
     }
 
     // ==========================================
-    // PRICE VALIDATION
+    // PARSE PRICES
     // ==========================================
-    const retail = Number(retailPrice);
+    const parsedRetailPrice = Number(retailPrice);
 
-    let updatedDiscountPrice = null;
+    let parsedDiscountPrice = null;
 
     if (
       discountPrice !== undefined &&
       discountPrice !== null &&
       discountPrice !== ""
     ) {
-      updatedDiscountPrice = Number(discountPrice);
-
-      if (updatedDiscountPrice >= retail) {
-        return res.status(400).json({
-          success: false,
-          message: "Discount price must be less than retail price.",
-        });
-      }
+      parsedDiscountPrice = Number(discountPrice);
     }
 
     // ==========================================
-    // EXISTING IMAGES
+    // PRICE VALIDATION
+    // ==========================================
+    if (
+      parsedDiscountPrice !== null &&
+      (Number.isNaN(parsedDiscountPrice) ||
+        parsedDiscountPrice >= parsedRetailPrice)
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Discount price must be less than retail price",
+      });
+    }
+
+    // ==========================================
+    // IMAGES
     // ==========================================
     let images = Array.isArray(product.images) ? [...product.images] : [];
 
-    // ==========================================
-    // IMAGE URLS
-    // ==========================================
+    // New uploaded files
+    if (req.files && req.files.length > 0) {
+      const newImages = req.files.map((file) => `/uploads/${file.filename}`);
+
+      images = [...images, ...newImages];
+    }
+
+    // Image URLs
     if (imageUrls) {
       try {
         const parsedUrls = JSON.parse(imageUrls);
@@ -267,61 +268,49 @@ export const updateProduct = async (req, res) => {
     }
 
     // ==========================================
-    // NEW UPLOADED IMAGES
+    // UPDATE DOCUMENT
     // ==========================================
-    if (req.files && req.files.length > 0) {
-      const newImages = req.files.map((file) => `/uploads/${file.filename}`);
+    product.name = name;
+    product.description = description;
 
-      images = [...images, ...newImages];
+    product.retailPrice = parsedRetailPrice;
+
+    product.discountPrice = parsedDiscountPrice;
+
+    product.wholesalePrice =
+      wholesalePrice !== undefined && wholesalePrice !== ""
+        ? Number(wholesalePrice)
+        : null;
+
+    product.minWholesaleQty =
+      minWholesaleQty !== undefined && minWholesaleQty !== ""
+        ? Number(minWholesaleQty)
+        : 1;
+
+    product.category = category;
+
+    if (sizes !== undefined) {
+      product.sizes = sizes ? JSON.parse(sizes) : [];
     }
 
-    // ==========================================
-    // UPDATE DATA
-    // ==========================================
-    const updateData = {
-      name,
-      description,
+    if (colors !== undefined) {
+      product.colors = colors ? JSON.parse(colors) : [];
+    }
 
-      retailPrice: retail,
+    if (tags !== undefined) {
+      product.tags = tags ? JSON.parse(tags) : [];
+    }
 
-      discountPrice: updatedDiscountPrice,
+    product.images = images;
 
-      wholesalePrice:
-        wholesalePrice !== undefined && wholesalePrice !== ""
-          ? Number(wholesalePrice)
-          : null,
+    product.stock = Number(stock);
 
-      minWholesaleQty:
-        minWholesaleQty !== undefined && minWholesaleQty !== ""
-          ? Number(minWholesaleQty)
-          : 1,
-
-      category,
-
-      sizes: sizes ? JSON.parse(sizes) : product.sizes,
-
-      colors: colors ? JSON.parse(colors) : product.colors,
-
-      tags: tags ? JSON.parse(tags) : product.tags,
-
-      images,
-
-      stock: Number(stock),
-
-      isFeatured: isFeatured === "true" || isFeatured === true,
-    };
+    product.isFeatured = isFeatured === true || isFeatured === "true";
 
     // ==========================================
     // SAVE
     // ==========================================
-    const updatedProduct = await Product.findByIdAndUpdate(
-      req.params.id,
-      updateData,
-      {
-        new: true,
-        runValidators: true,
-      },
-    );
+    const updatedProduct = await product.save();
 
     res.status(200).json({
       success: true,
@@ -331,18 +320,16 @@ export const updateProduct = async (req, res) => {
   } catch (error) {
     console.error("Update product error:", error);
 
-    res.status(500).json({
+    res.status(400).json({
       success: false,
       message: error.message,
     });
   }
 };
 
-// ======================================================
+// ==========================================
 // DELETE PRODUCT
-// ======================================================
-// @desc    Delete product (Admin only)
-// @route   DELETE /api/v1/products/:id
+// ==========================================
 export const deleteProduct = async (req, res) => {
   try {
     const product = await Product.findByIdAndDelete(req.params.id);

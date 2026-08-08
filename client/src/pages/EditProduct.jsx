@@ -13,32 +13,29 @@ export default function EditProduct() {
   // STATES
   // ==========================================
   const [name, setName] = useState("");
-
-  const [retailPrice, setRetailPrice] = useState("");
-
-  const [discountPrice, setDiscountPrice] = useState("");
-
-  const [stock, setStock] = useState("");
-
-  const [category, setCategory] = useState("spider-man");
-
-  const [sizes, setSizes] = useState("");
-
-  const [colors, setColors] = useState("");
-
-  const [tags, setTags] = useState("");
-
   const [description, setDescription] = useState("");
 
+  // Pricing
+  const [retailPrice, setRetailPrice] = useState("");
+  const [discountPrice, setDiscountPrice] = useState("");
+  const [wholesalePrice, setWholesalePrice] = useState("");
+  const [minWholesaleQty, setMinWholesaleQty] = useState("1");
+
+  // Product
+  const [stock, setStock] = useState("");
+  const [category, setCategory] = useState("spider-man");
+  const [sizes, setSizes] = useState("");
+  const [colors, setColors] = useState("");
+  const [tags, setTags] = useState("");
   const [isFeatured, setIsFeatured] = useState(false);
 
+  // Images
   const [images, setImages] = useState([]);
-
   const [imageUrls, setImageUrls] = useState("");
-
   const [imageInputType, setImageInputType] = useState("file");
 
   const [loading, setLoading] = useState(false);
+  const [fetching, setFetching] = useState(true);
 
   // ==========================================
   // FETCH PRODUCT
@@ -46,33 +43,83 @@ export default function EditProduct() {
   useEffect(() => {
     const fetchProduct = async () => {
       try {
+        setFetching(true);
+
         const { data } = await API.get(`/products/${id}`);
 
-        const prod = data.data || data.product || data;
+        const prod = data?.data || data?.product || data;
 
-        setName(prod.name || "");
+        setName(prod?.name || "");
+        setDescription(prod?.description || "");
 
-        setRetailPrice(prod.retailPrice ?? "");
+        setRetailPrice(
+          prod?.retailPrice !== null && prod?.retailPrice !== undefined
+            ? String(prod.retailPrice)
+            : "",
+        );
 
-        setDiscountPrice(prod.discountPrice ?? "");
+        setDiscountPrice(
+          prod?.discountPrice !== null && prod?.discountPrice !== undefined
+            ? String(prod.discountPrice)
+            : "",
+        );
 
-        setStock(prod.stock ?? "");
+        setWholesalePrice(
+          prod?.wholesalePrice !== null && prod?.wholesalePrice !== undefined
+            ? String(prod.wholesalePrice)
+            : "",
+        );
 
-        setCategory(prod.category || "spider-man");
+        setMinWholesaleQty(
+          prod?.minWholesaleQty !== null && prod?.minWholesaleQty !== undefined
+            ? String(prod.minWholesaleQty)
+            : "1",
+        );
 
-        setSizes(Array.isArray(prod.sizes) ? prod.sizes.join(", ") : "");
+        setStock(
+          prod?.stock !== null && prod?.stock !== undefined
+            ? String(prod.stock)
+            : "",
+        );
 
-        setColors(Array.isArray(prod.colors) ? prod.colors.join(", ") : "");
+        setCategory(prod?.category || "spider-man");
 
-        setTags(Array.isArray(prod.tags) ? prod.tags.join(", ") : "");
+        // ------------------------------------------
+        // SIZES
+        // ------------------------------------------
+        if (Array.isArray(prod?.sizes)) {
+          setSizes(prod.sizes.join(", "));
+        } else {
+          setSizes("");
+        }
 
-        setDescription(prod.description || "");
+        // ------------------------------------------
+        // COLORS
+        // ------------------------------------------
+        if (Array.isArray(prod?.colors)) {
+          setColors(prod.colors.join(", "));
+        } else {
+          setColors("");
+        }
 
-        setIsFeatured(Boolean(prod.isFeatured));
+        // ------------------------------------------
+        // TAGS
+        // ------------------------------------------
+        if (Array.isArray(prod?.tags)) {
+          setTags(prod.tags.join(", "));
+        } else {
+          setTags("");
+        }
 
-        // Existing images
-        if (Array.isArray(prod.images) && prod.images.length > 0) {
+        setIsFeatured(Boolean(prod?.isFeatured));
+
+        // ------------------------------------------
+        // EXISTING IMAGES
+        // ------------------------------------------
+        if (Array.isArray(prod?.images)) {
           setImageUrls(prod.images.join(", "));
+        } else {
+          setImageUrls("");
         }
       } catch (error) {
         console.error("Fetch product error:", error);
@@ -80,6 +127,8 @@ export default function EditProduct() {
         toast.error(
           error?.response?.data?.message || "Failed to fetch product details",
         );
+      } finally {
+        setFetching(false);
       }
     };
 
@@ -102,16 +151,38 @@ export default function EditProduct() {
 
   const discount = discountPrice === "" ? null : Number(discountPrice);
 
-  const isDiscountInvalid =
-    discount !== null && retail > 0 && discount >= retail;
+  const wholesale = wholesalePrice === "" ? null : Number(wholesalePrice);
 
+  const minimumWholesaleQty =
+    minWholesaleQty === "" ? 1 : Number(minWholesaleQty);
+
+  // ==========================================
+  // DISCOUNT VALIDATION
+  // ==========================================
+  const isDiscountInvalid =
+    discount !== null &&
+    (Number.isNaN(discount) ||
+      discount < 0 ||
+      retail <= 0 ||
+      discount >= retail);
+
+  // ==========================================
+  // DISCOUNT CALCULATION
+  // ==========================================
   const discountPercentage =
-    discount !== null && retail > 0 && discount > 0 && discount < retail
+    discount !== null &&
+    !Number.isNaN(discount) &&
+    retail > 0 &&
+    discount > 0 &&
+    discount < retail
       ? Math.round(((retail - discount) / retail) * 100)
       : 0;
 
   const savedAmount =
-    discount !== null && retail > 0 && discount < retail
+    discount !== null &&
+    !Number.isNaN(discount) &&
+    retail > 0 &&
+    discount < retail
       ? retail - discount
       : 0;
 
@@ -124,24 +195,51 @@ export default function EditProduct() {
     // ==========================================
     // RETAIL PRICE VALIDATION
     // ==========================================
-    if (retailPrice === "" || Number(retailPrice) < 0) {
+    if (retailPrice === "" || Number.isNaN(retail) || retail < 0) {
       toast.error("Please enter a valid retail price.");
-
       return;
     }
 
     // ==========================================
-    // DISCOUNT VALIDATION
+    // DISCOUNT PRICE VALIDATION
     // ==========================================
-    if (discountPrice !== "" && Number(discountPrice) < 0) {
-      toast.error("Discount price cannot be negative.");
+    if (discountPrice !== "") {
+      if (Number.isNaN(discount) || discount < 0) {
+        toast.error("Discount price cannot be negative.");
+        return;
+      }
 
+      if (discount >= retail) {
+        toast.error(
+          `Discount price must be lower than retail price (৳${retail}).`,
+        );
+        return;
+      }
+    }
+
+    // ==========================================
+    // WHOLESALE PRICE VALIDATION
+    // ==========================================
+    if (wholesalePrice !== "") {
+      if (Number.isNaN(wholesale) || wholesale < 0) {
+        toast.error("Wholesale price cannot be negative.");
+        return;
+      }
+    }
+
+    // ==========================================
+    // MIN WHOLESALE QTY VALIDATION
+    // ==========================================
+    if (Number.isNaN(minimumWholesaleQty) || minimumWholesaleQty < 1) {
+      toast.error("Minimum wholesale quantity must be at least 1.");
       return;
     }
 
-    if (discountPrice !== "" && Number(discountPrice) >= Number(retailPrice)) {
-      toast.error("Discount price must be lower than retail price.");
-
+    // ==========================================
+    // STOCK VALIDATION
+    // ==========================================
+    if (stock === "" || Number.isNaN(Number(stock)) || Number(stock) < 0) {
+      toast.error("Please enter a valid stock quantity.");
       return;
     }
 
@@ -153,36 +251,75 @@ export default function EditProduct() {
       // ==========================================
       // BASIC INFORMATION
       // ==========================================
-      formData.append("name", name);
+      formData.append("name", name.trim());
 
-      formData.append("description", description);
+      formData.append("description", description.trim());
 
+      // ==========================================
+      // RETAIL PRICE
+      // ==========================================
       formData.append("retailPrice", Number(retailPrice));
-
-      formData.append("stock", Number(stock));
-
-      formData.append("category", category);
-
-      formData.append("isFeatured", String(isFeatured));
 
       // ==========================================
       // DISCOUNT PRICE
       // ==========================================
-      if (discountPrice !== "") {
-        formData.append("discountPrice", Number(discountPrice));
-      } else {
-        // Empty means remove discount
+      if (discountPrice === "") {
+        // Empty = remove discount
         formData.append("discountPrice", "");
+      } else {
+        formData.append("discountPrice", Number(discountPrice));
       }
 
       // ==========================================
+      // WHOLESALE PRICE
+      // ==========================================
+      if (wholesalePrice === "") {
+        formData.append("wholesalePrice", "");
+      } else {
+        formData.append("wholesalePrice", Number(wholesalePrice));
+      }
+
+      // ==========================================
+      // MIN WHOLESALE QTY
+      // ==========================================
+      formData.append("minWholesaleQty", Number(minWholesaleQty));
+
+      // ==========================================
+      // STOCK
+      // ==========================================
+      formData.append("stock", Number(stock));
+
+      // ==========================================
+      // CATEGORY
+      // ==========================================
+      formData.append("category", category);
+
+      // ==========================================
+      // FEATURED
+      // ==========================================
+      formData.append("isFeatured", String(isFeatured));
+
+      // ==========================================
       // SIZES
+      // IMPORTANT:
+      // Don't uppercase "Free Size"
+      // because Product schema allows:
+      // S, M, L, XL, XXL, Free Size
       // ==========================================
       const sizesArray = sizes
         ? sizes
             .split(",")
-            .map((size) => size.trim().toUpperCase())
+            .map((size) => size.trim())
             .filter(Boolean)
+            .map((size) => {
+              const normalized = size.toLowerCase();
+
+              if (normalized === "free size") {
+                return "Free Size";
+              }
+
+              return size.toUpperCase();
+            })
         : [];
 
       formData.append("sizes", JSON.stringify(sizesArray));
@@ -212,7 +349,7 @@ export default function EditProduct() {
       formData.append("tags", JSON.stringify(tagsArray));
 
       // ==========================================
-      // EXISTING / URL IMAGES
+      // IMAGE URLs
       // ==========================================
       if (imageInputType === "url" && imageUrls.trim()) {
         const urlsArray = imageUrls
@@ -226,7 +363,7 @@ export default function EditProduct() {
       }
 
       // ==========================================
-      // NEW FILE IMAGES
+      // NEW IMAGE FILES
       // ==========================================
       if (imageInputType === "file" && images.length > 0) {
         images.forEach((image) => {
@@ -235,7 +372,7 @@ export default function EditProduct() {
       }
 
       // ==========================================
-      // UPDATE
+      // UPDATE PRODUCT
       // ==========================================
       await API.put(`/products/${id}`, formData);
 
@@ -245,23 +382,45 @@ export default function EditProduct() {
     } catch (error) {
       console.error("Update product error:", error);
 
-      toast.error(error?.response?.data?.message || "Failed to update product");
+      const message =
+        error?.response?.data?.message ||
+        error?.response?.data?.error ||
+        "Failed to update product";
+
+      toast.error(message);
     } finally {
       setLoading(false);
     }
   };
 
   // ==========================================
+  // LOADING SCREEN
+  // ==========================================
+  if (fetching) {
+    return (
+      <div className="min-h-screen bg-[#0f1115] flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin mx-auto" />
+
+          <p className="text-gray-400 text-sm mt-3">Loading product...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // ==========================================
   // UI
   // ==========================================
   return (
-    <div className="min-h-screen bg-[#0b0d12] text-white p-4 md:p-6">
+    <div className="min-h-screen bg-[#0f1115] text-white px-4 py-6 md:px-6">
       <div className="max-w-5xl mx-auto">
         {/* ======================================
             HEADER
         ====================================== */}
         <div className="mb-6">
-          <h1 className="text-2xl md:text-3xl font-black">Edit Product</h1>
+          <h1 className="text-2xl md:text-3xl font-black text-white">
+            Edit Product
+          </h1>
 
           <p className="text-xs text-gray-400 mt-1">
             Update your product information, pricing and images.
@@ -272,7 +431,9 @@ export default function EditProduct() {
             FORM
         ====================================== */}
         <form onSubmit={handleSubmit} className="space-y-5">
-          {/* PRODUCT NAME */}
+          {/* ======================================
+              PRODUCT NAME
+          ====================================== */}
           <div>
             <label className="block text-gray-300 mb-1.5 font-semibold text-xs">
               Product Name
@@ -292,11 +453,11 @@ export default function EditProduct() {
               PRICING
           ====================================== */}
           <div className="bg-[#161920] border border-gray-800 rounded-2xl p-5">
-            <div className="mb-4">
+            <div className="mb-5">
               <h2 className="text-sm font-bold text-white">Pricing</h2>
 
               <p className="text-[11px] text-gray-500 mt-1">
-                Set your regular price and optional sale price.
+                Set retail, discount and wholesale pricing.
               </p>
             </div>
 
@@ -308,7 +469,7 @@ export default function EditProduct() {
                 </label>
 
                 <div className="relative">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 font-bold">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 font-bold">
                     ৳
                   </span>
 
@@ -351,7 +512,7 @@ export default function EditProduct() {
                     value={discountPrice}
                     onChange={(e) => setDiscountPrice(e.target.value)}
                     placeholder="500"
-                    className={`w-full pl-9 pr-3.5 py-3.5 bg-[#1e222d] border rounded-xl text-white focus:outline-none transition ${
+                    className={`w-full pl-9 pr-3.5 py-3.5 bg-[#1e222d] border rounded-xl text-white placeholder-gray-600 focus:outline-none transition ${
                       isDiscountInvalid
                         ? "border-red-500 focus:border-red-500"
                         : "border-gray-800 focus:border-green-500"
@@ -359,9 +520,9 @@ export default function EditProduct() {
                   />
                 </div>
 
-                {/* DISCOUNT INFO */}
+                {/* DISCOUNT SUCCESS */}
                 {discountPercentage > 0 && (
-                  <div className="flex items-center gap-2 mt-2">
+                  <div className="flex flex-wrap items-center gap-2 mt-2">
                     <span className="inline-flex items-center px-2 py-1 rounded-md bg-green-500/10 text-green-400 text-[10px] font-bold">
                       {discountPercentage}% OFF
                     </span>
@@ -372,37 +533,87 @@ export default function EditProduct() {
                   </div>
                 )}
 
-                {/* INVALID DISCOUNT */}
+                {/* DISCOUNT ERROR */}
                 {isDiscountInvalid && (
                   <p className="text-[10px] text-red-400 mt-2 font-semibold">
-                    ⚠ Discount price must be lower than retail price (৳
-                    {retailPrice}).
+                    ⚠ Discount price must be lower than retail price
+                    {retail > 0 ? ` (৳${retail})` : "."}
                   </p>
                 )}
 
+                {/* OPTIONAL INFO */}
                 {!isDiscountInvalid && discountPrice === "" && (
                   <p className="text-[10px] text-gray-500 mt-2">
                     Leave empty if there is no discount.
                   </p>
                 )}
               </div>
+
+              {/* WHOLESALE PRICE */}
+              <div>
+                <label className="block text-gray-300 mb-1.5 font-semibold text-xs">
+                  Wholesale Price
+                  <span className="text-gray-600 ml-1">Optional</span>
+                </label>
+
+                <div className="relative">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-blue-400 font-bold">
+                    ৳
+                  </span>
+
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={wholesalePrice}
+                    onChange={(e) => setWholesalePrice(e.target.value)}
+                    placeholder="700"
+                    className="w-full pl-9 pr-3.5 py-3.5 bg-[#1e222d] border border-gray-800 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+
+                <p className="text-[10px] text-gray-500 mt-1.5">
+                  Price for wholesale customers
+                </p>
+              </div>
+
+              {/* MIN WHOLESALE QTY */}
+              <div>
+                <label className="block text-gray-300 mb-1.5 font-semibold text-xs">
+                  Minimum Wholesale Quantity
+                </label>
+
+                <input
+                  type="number"
+                  min="1"
+                  step="1"
+                  value={minWholesaleQty}
+                  onChange={(e) => setMinWholesaleQty(e.target.value)}
+                  placeholder="1"
+                  className="w-full p-3.5 bg-[#1e222d] border border-gray-800 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-purple-500"
+                />
+
+                <p className="text-[10px] text-gray-500 mt-1.5">
+                  Minimum quantity required for wholesale price
+                </p>
+              </div>
             </div>
 
             {/* PRICE PREVIEW */}
             {discountPercentage > 0 && (
-              <div className="mt-5 p-3.5 rounded-xl bg-[#0f1115] border border-gray-800 flex items-center justify-between">
+              <div className="mt-5 p-4 rounded-xl bg-[#0f1115] border border-gray-800 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <div>
                   <p className="text-[10px] text-gray-500 uppercase tracking-wider">
                     Customer will pay
                   </p>
 
-                  <p className="text-xl font-black text-white mt-0.5">
+                  <p className="text-2xl font-black text-white mt-0.5">
                     ৳{discount}
                   </p>
                 </div>
 
-                <div className="text-right">
-                  <p className="text-[10px] text-gray-500">Regular</p>
+                <div className="sm:text-right">
+                  <p className="text-[10px] text-gray-500">Regular Price</p>
 
                   <p className="text-sm text-gray-500 line-through">
                     ৳{retail}
@@ -425,11 +636,12 @@ export default function EditProduct() {
               <input
                 type="number"
                 min="0"
+                step="1"
                 value={stock}
                 onChange={(e) => setStock(e.target.value)}
                 required
                 placeholder="50"
-                className="w-full p-3.5 bg-[#1e222d] border border-gray-800 rounded-xl text-white focus:outline-none focus:border-purple-500"
+                className="w-full p-3.5 bg-[#1e222d] border border-gray-800 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-purple-500"
               />
             </div>
 
@@ -475,9 +687,13 @@ export default function EditProduct() {
                 type="text"
                 value={sizes}
                 onChange={(e) => setSizes(e.target.value)}
-                placeholder="S, M, L, XL"
+                placeholder="S, M, L, XL, Free Size"
                 className="w-full p-3.5 bg-[#1e222d] border border-gray-800 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-purple-500"
               />
+
+              <p className="text-[9px] text-gray-600 mt-1">
+                Example: S, M, L, XL, XXL, Free Size
+              </p>
             </div>
 
             {/* COLORS */}
@@ -569,11 +785,10 @@ export default function EditProduct() {
                 )}
 
                 <p className="text-[10px] text-gray-500 mt-2">
-                  New images will be added to the existing images.
+                  New uploaded images will be added to the existing images.
                 </p>
               </div>
             ) : (
-              /* URL INPUT */
               <div>
                 <input
                   type="text"
@@ -584,7 +799,8 @@ export default function EditProduct() {
                 />
 
                 <p className="text-[10px] text-gray-500 mt-1.5">
-                  Separate multiple image URLs with commas.
+                  Existing images are loaded above. Edit or replace URLs as
+                  needed.
                 </p>
               </div>
             )}
