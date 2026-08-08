@@ -1,4 +1,3 @@
-
 import mongoose from "mongoose";
 
 const productSchema = new mongoose.Schema(
@@ -48,20 +47,20 @@ const productSchema = new mongoose.Schema(
     // ==========================================
     // DESIGN / CATEGORY
     // ==========================================
-category: {
-  type: String,
-  required: [true, "Design category is required"],
-  enum: [
-    "spider-man",
-    "chainsaw-man",
-    "stranger-things",
-    "ghost-rider",
-    "essentials",
-    "anime",
-    "venom",
-  ],
-  trim: true,
-},
+    category: {
+      type: String,
+      required: [true, "Design category is required"],
+      enum: [
+        "spider-man",
+        "chainsaw-man",
+        "stranger-things",
+        "ghost-rider",
+        "essentials",
+        "anime",
+        "venom",
+      ],
+      trim: true,
+    },
 
     // ==========================================
     // SIZES
@@ -113,8 +112,7 @@ category: {
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 export const Product = mongoose.model("Product", productSchema);
-

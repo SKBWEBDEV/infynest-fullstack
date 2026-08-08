@@ -112,31 +112,6 @@ export default function CategoryProducts({
   };
 
   // ==========================================
-  // ADD TO CART
-  // ==========================================
-  const handleAddToCart = async (e, product) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    try {
-      const productId = product._id || product.id;
-
-      await API.post("/cart/add", {
-        productId,
-        quantity: 1,
-      });
-
-      toast.success(`${product.name} added to cart!`);
-    } catch (error) {
-      console.error("Add to cart error:", error);
-
-      toast.error(
-        error?.response?.data?.message || "Failed to add product to cart",
-      );
-    }
-  };
-
-  // ==========================================
   // HEADER
   // ==========================================
   const Header = () => (
@@ -147,6 +122,9 @@ export default function CategoryProducts({
         justify-between
         gap-4
         mb-5
+        px-4
+        sm:px-6
+        lg:px-8
       "
     >
       {/* TITLE */}
@@ -275,18 +253,17 @@ export default function CategoryProducts({
 
         {/* VIEW ALL */}
         <Link
-  to={`/${categorySlug}`}
-  className="
-    text-sm
-    font-semibold
-    text-indigo-600
-    hover:text-indigo-800
-    transition
-  "
->
-  View All →
-</Link>
-        {/* <Link to="/spider-man">View All </Link> */}
+          to={`/${categorySlug}`}
+          className="
+            text-sm
+            font-semibold
+            text-indigo-600
+            hover:text-indigo-800
+            transition
+          "
+        >
+          View All →
+        </Link>
       </div>
     </div>
   );
@@ -296,10 +273,8 @@ export default function CategoryProducts({
   // ==========================================
   if (loading) {
     return (
-      <section className="py-6">
-        <div className="mb-5 px-4 sm:px-6 lg:px-8">
-          <Header />
-        </div>
+      <section className="py-8 sm:py-10">
+        <Header />
 
         <div
           className="
@@ -317,45 +292,45 @@ export default function CategoryProducts({
             <div
               key={item}
               className="
-                  bg-gray-100
-                  rounded-xl
-                  overflow-hidden
-                  animate-pulse
-                "
+                bg-gray-100
+                rounded-xl
+                overflow-hidden
+                animate-pulse
+              "
             >
               <div
                 className="
-                    aspect-[3/4]
-                    bg-gray-200
-                  "
+                  aspect-[3/4]
+                  bg-gray-200
+                "
               />
 
               <div className="p-3">
                 <div
                   className="
-                      h-3
-                      bg-gray-200
-                      rounded
-                      mb-2
-                    "
+                    h-3
+                    bg-gray-200
+                    rounded
+                    mb-2
+                  "
                 />
 
                 <div
                   className="
-                      h-4
-                      bg-gray-200
-                      rounded
-                      w-3/4
-                      mb-3
-                    "
+                    h-4
+                    bg-gray-200
+                    rounded
+                    w-3/4
+                    mb-3
+                  "
                 />
 
                 <div
                   className="
-                      h-8
-                      bg-gray-200
-                      rounded
-                    "
+                    h-8
+                    bg-gray-200
+                    rounded
+                  "
                 />
               </div>
             </div>
@@ -370,10 +345,8 @@ export default function CategoryProducts({
   // ==========================================
   if (products.length === 0) {
     return (
-      <section className="py-6">
-        <div className="mb-5 px-4 sm:px-6 lg:px-8">
-          <Header />
-        </div>
+      <section className="py-8 sm:py-10">
+        <Header />
 
         <div
           className="
@@ -404,13 +377,9 @@ export default function CategoryProducts({
   // MAIN UI
   // ==========================================
   return (
-    <section className="py-6">
-      {/* ======================================
-          HEADER
-      ====================================== */}
-      <div className="px-4 sm:px-6 lg:px-8">
-        <Header />
-      </div>
+    <section className="py-8 sm:py-10">
+      {/* HEADER */}
+      <Header />
 
       {/* ======================================
           SWIPER PRODUCT SLIDER
@@ -421,32 +390,15 @@ export default function CategoryProducts({
           prevEl: `.${navigationId}-prev`,
           nextEl: `.${navigationId}-next`,
         }}
-        /*
-          Infinite loop
-          Swiper needs enough slides for loop mode.
-        */
         loop={products.length >= 4}
-        /*
-          AUTO SLIDE
-        */
         autoplay={{
           delay: 2500,
           disableOnInteraction: false,
           pauseOnMouseEnter: true,
         }}
-        /*
-          Smooth transition
-        */
         speed={700}
-        /*
-          MOBILE
-          Exactly 2 cards.
-        */
         slidesPerView={2}
         spaceBetween={10}
-        /*
-          RESPONSIVE
-        */
         breakpoints={{
           0: {
             slidesPerView: 2,
@@ -468,10 +420,6 @@ export default function CategoryProducts({
             spaceBetween: 16,
           },
         }}
-        /*
-          Important:
-          prevent Swiper from stretching cards
-        */
         className="
           !px-4
           sm:!px-6
@@ -491,55 +439,55 @@ export default function CategoryProducts({
             <SwiperSlide key={productId} className="!h-auto">
               {/* =================================
                     PRODUCT CARD
-                ================================= */}
+              ================================= */}
               <div
                 className="
-                    group
-                    h-full
-                    bg-white
-                    rounded-xl
-                    overflow-hidden
-                    border
-                    border-gray-200
-                    shadow-sm
-                    hover:shadow-lg
-                    transition
-                  "
+                  group
+                  h-full
+                  bg-white
+                  rounded-xl
+                  overflow-hidden
+                  border
+                  border-gray-200
+                  shadow-sm
+                  hover:shadow-lg
+                  transition
+                "
               >
                 {/* =================================
                       PRODUCT IMAGE
-                  ================================= */}
+                ================================= */}
                 <Link to={`/product/${productId}`} className="block">
                   <div
                     className="
-                        relative
-                        aspect-[3/4]
-                        overflow-hidden
-                        bg-gray-100
-                      "
+                      relative
+                      aspect-[3/4]
+                      overflow-hidden
+                      bg-gray-100
+                    "
                   >
                     {/* BADGE */}
                     {badge && (
                       <span
                         className="
-                            absolute
-                            top-2
-                            left-2
-                            z-10
+                          absolute
+                          top-2
+                          left-2
+                          z-10
 
-                            bg-black
-                            text-white
+                          bg-black
+                          text-white
 
-                            text-[8px]
-                            sm:text-[9px]
+                          text-[8px]
+                          sm:text-[9px]
 
-                            font-bold
+                          font-bold
 
-                            px-1.5
-                            py-1
+                          px-1.5
+                          py-1
 
-                            rounded
-                          "
+                          rounded
+                        "
                       >
                         {badge}
                       </span>
@@ -551,15 +499,15 @@ export default function CategoryProducts({
                       alt={product.name || "Product"}
                       loading="lazy"
                       className="
-                          w-full
-                          h-full
-                          object-cover
+                        w-full
+                        h-full
+                        object-cover
 
-                          transition-transform
-                          duration-500
+                        transition-transform
+                        duration-500
 
-                          group-hover:scale-105
-                        "
+                        group-hover:scale-105
+                      "
                       onError={(e) => {
                         e.currentTarget.src = "/placeholder-product.jpg";
                       }}
@@ -569,26 +517,26 @@ export default function CategoryProducts({
 
                 {/* =================================
                       PRODUCT INFO
-                  ================================= */}
+                ================================= */}
                 <div
                   className="
-                      p-2
-                      sm:p-2.5
-                      lg:p-3
-                    "
+                    p-2
+                    sm:p-2.5
+                    lg:p-3
+                  "
                 >
                   {/* PRODUCT TYPE */}
                   <p
                     className="
-                        text-[8px]
-                        sm:text-[9px]
+                      text-[8px]
+                      sm:text-[9px]
 
-                        font-semibold
-                        text-gray-500
+                      font-semibold
+                      text-gray-500
 
-                        uppercase
-                        mb-1
-                      "
+                      uppercase
+                      mb-1
+                    "
                   >
                     T-SHIRT
                   </p>
@@ -597,20 +545,20 @@ export default function CategoryProducts({
                   <Link to={`/product/${productId}`}>
                     <h3
                       className="
-                          text-[10px]
-                          sm:text-xs
-                          lg:text-sm
+                        text-[10px]
+                        sm:text-xs
+                        lg:text-sm
 
-                          font-semibold
-                          text-gray-900
+                        font-semibold
+                        text-gray-900
 
-                          line-clamp-2
+                        line-clamp-2
 
-                          min-h-[28px]
+                        min-h-[28px]
 
-                          hover:text-indigo-600
-                          transition
-                        "
+                        hover:text-indigo-600
+                        transition
+                      "
                     >
                       {product.name}
                     </h3>
@@ -618,27 +566,27 @@ export default function CategoryProducts({
 
                   {/* =================================
                         PRICE
-                    ================================= */}
+                  ================================= */}
                   <div className="mt-1.5">
                     {hasDiscount ? (
                       <div
                         className="
-                            flex
-                            items-center
-                            gap-1.5
-                            flex-wrap
-                          "
+                          flex
+                          items-center
+                          gap-1.5
+                          flex-wrap
+                        "
                       >
                         {/* OLD PRICE */}
                         <span
                           className="
-                              text-[9px]
-                              sm:text-[10px]
+                            text-[9px]
+                            sm:text-[10px]
 
-                              text-gray-400
+                            text-gray-400
 
-                              line-through
-                            "
+                            line-through
+                          "
                         >
                           ৳{retailPrice}
                         </span>
@@ -646,12 +594,12 @@ export default function CategoryProducts({
                         {/* DISCOUNT PRICE */}
                         <span
                           className="
-                              text-xs
-                              sm:text-sm
+                            text-xs
+                            sm:text-sm
 
-                              font-bold
-                              text-gray-900
-                            "
+                            font-bold
+                            text-gray-900
+                          "
                         >
                           ৳{discountPrice}
                         </span>
@@ -659,12 +607,12 @@ export default function CategoryProducts({
                     ) : (
                       <span
                         className="
-                            text-xs
-                            sm:text-sm
+                          text-xs
+                          sm:text-sm
 
-                            font-bold
-                            text-gray-900
-                          "
+                          font-bold
+                          text-gray-900
+                        "
                       >
                         ৳{finalPrice}
                       </span>
@@ -672,83 +620,43 @@ export default function CategoryProducts({
                   </div>
 
                   {/* =================================
-                        ACTION BUTTONS
-                    ================================= */}
-                  <div
-                    className="
-                        mt-2
-                        grid
-                        grid-cols-2
-                        gap-1
-                      "
-                  >
-                    {/* VIEW DETAILS */}
+                        BUY NOW BUTTON
+                  ================================= */}
+                  <div className="mt-2">
                     <Link
                       to={`/product/${productId}`}
                       className="
-                          flex
-                          items-center
-                          justify-center
+                        flex
+                        items-center
+                        justify-center
 
-                          py-1.5
-                          px-1
+                        w-full
 
-                          rounded-md
+                        py-2
+                        px-2
 
-                          border
-                          border-gray-300
+                        rounded-md
 
-                          text-[8px]
-                          sm:text-[9px]
-                          lg:text-[10px]
+                        bg-indigo-600
+                        text-white
 
-                          font-semibold
-                          text-gray-700
+                        text-[8px]
+                        sm:text-[9px]
+                        lg:text-[10px]
 
-                          hover:bg-gray-100
+                        font-semibold
 
-                          transition
+                        hover:bg-indigo-700
 
-                          whitespace-nowrap
-                        "
+                        active:scale-95
+
+                        transition
+
+                        whitespace-nowrap
+                      "
                     >
-                      Details
+                      Buy Now
                     </Link>
-
-                    {/* ADD TO CART */}
-                    <button
-                      type="button"
-                      onClick={(e) => handleAddToCart(e, product)}
-                      className="
-                          flex
-                          items-center
-                          justify-center
-
-                          py-1.5
-                          px-1
-
-                          rounded-md
-
-                          bg-indigo-600
-                          text-white
-
-                          text-[8px]
-                          sm:text-[9px]
-                          lg:text-[10px]
-
-                          font-semibold
-
-                          hover:bg-indigo-700
-
-                          active:scale-95
-
-                          transition
-
-                          whitespace-nowrap
-                        "
-                    >
-                      Add Cart
-                    </button>
                   </div>
                 </div>
               </div>
