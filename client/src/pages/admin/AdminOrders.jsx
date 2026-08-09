@@ -51,16 +51,16 @@ export default function AdminOrders() {
   // --------------------------------------------------
 
   const [updatingOrderId, setUpdatingOrderId] = useState(null);
-  const pdfGeneratingRef = useRef(false);
 
   // --------------------------------------------------
   // PDF
   // --------------------------------------------------
 
   const [pdfOrderId, setPdfOrderId] = useState(null);
+  const pdfGeneratingRef = useRef(false);
 
   // --------------------------------------------------
-  // FETCH ALL ORDERS
+  // FETCH ORDERS
   // --------------------------------------------------
 
   useEffect(() => {
@@ -68,7 +68,7 @@ export default function AdminOrders() {
   }, []);
 
   // --------------------------------------------------
-  // CLOSE MODAL WITH ESC
+  // ESC CLOSE MODAL
   // --------------------------------------------------
 
   useEffect(() => {
@@ -86,7 +86,7 @@ export default function AdminOrders() {
   }, []);
 
   // --------------------------------------------------
-  // BODY SCROLL LOCK WHEN MODAL OPEN
+  // BODY SCROLL LOCK
   // --------------------------------------------------
 
   useEffect(() => {
@@ -102,7 +102,7 @@ export default function AdminOrders() {
   }, [selectedOrder]);
 
   // --------------------------------------------------
-  // FETCH ORDERS
+  // FETCH ALL ORDERS
   // --------------------------------------------------
 
   const fetchAllOrders = async () => {
@@ -140,6 +140,8 @@ export default function AdminOrders() {
   // --------------------------------------------------
 
   const handleStatusChange = async (orderId, newStatus) => {
+    if (!orderId || !newStatus) return;
+
     try {
       setUpdatingOrderId(orderId);
 
@@ -152,7 +154,7 @@ export default function AdminOrders() {
 
         setOrders((prevOrders) =>
           prevOrders.map((order) =>
-            order._id === orderId
+            order?._id === orderId
               ? {
                   ...order,
                   orderStatus: newStatus,
@@ -161,7 +163,6 @@ export default function AdminOrders() {
           ),
         );
 
-        // Update selected order inside modal too
         setSelectedOrder((prev) =>
           prev && prev._id === orderId
             ? {
@@ -219,20 +220,21 @@ export default function AdminOrders() {
     return orders.filter((order) => {
       const search = searchTerm.toLowerCase().trim();
 
-      const orderId = order?._id?.toLowerCase() || "";
+      const orderId = String(order?._id || "").toLowerCase();
 
-      const customerName =
-        order?.customerName?.toLowerCase() ||
-        order?.user?.name?.toLowerCase() ||
-        "";
+      const customerName = String(
+        order?.customerName || order?.user?.name || "",
+      ).toLowerCase();
 
       const phone = String(order?.phone || "").toLowerCase();
 
-      const email = order?.user?.email?.toLowerCase() || "";
+      const email = String(
+        order?.email || order?.user?.email || "",
+      ).toLowerCase();
 
       const productNames = Array.isArray(order?.orderItems)
         ? order.orderItems
-            .map((item) => item?.name?.toLowerCase() || "")
+            .map((item) => String(item?.name || "").toLowerCase())
             .join(" ")
         : "";
 
@@ -244,9 +246,10 @@ export default function AdminOrders() {
         email.includes(search) ||
         productNames.includes(search);
 
+      const currentStatus = order?.orderStatus || "Pending";
+
       const matchesStatus =
-        statusFilter === "All" ||
-        (order?.orderStatus || "Pending") === statusFilter;
+        statusFilter === "All" || currentStatus === statusFilter;
 
       const matchesPayment =
         paymentFilter === "All" || order?.paymentMethod === paymentFilter;
@@ -279,9 +282,8 @@ export default function AdminOrders() {
       }
     });
 
-    // Newest first
     const sortNewest = (a, b) => {
-      return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+      return new Date(b?.createdAt || 0) - new Date(a?.createdAt || 0);
     };
 
     today.sort(sortNewest);
@@ -300,7 +302,7 @@ export default function AdminOrders() {
   // --------------------------------------------------
 
   const getStatusBadge = (status) => {
-    switch (status?.toLowerCase()) {
+    switch (String(status || "").toLowerCase()) {
       case "delivered":
         return (
           <span className="text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-full text-[11px] font-bold">
@@ -350,7 +352,10 @@ export default function AdminOrders() {
   // --------------------------------------------------
 
   const getPaymentStatusBadge = (order) => {
-    if (order?.isPaid || order?.paymentStatus === "Paid") {
+    if (
+      order?.isPaid === true ||
+      String(order?.paymentStatus || "").toLowerCase() === "paid"
+    ) {
       return (
         <span className="text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-full text-[10px] font-bold">
           Paid
@@ -358,7 +363,7 @@ export default function AdminOrders() {
       );
     }
 
-    if (order?.paymentStatus === "Failed") {
+    if (String(order?.paymentStatus || "").toLowerCase() === "failed") {
       return (
         <span className="text-red-400 bg-red-500/10 border border-red-500/20 px-2.5 py-1 rounded-full text-[10px] font-bold">
           Failed
@@ -374,7 +379,7 @@ export default function AdminOrders() {
   };
 
   // --------------------------------------------------
-  // ORDER TOTAL HELPERS
+  // TOTAL HELPERS
   // --------------------------------------------------
 
   const calculateSubtotal = (order) => {
@@ -404,7 +409,10 @@ export default function AdminOrders() {
       return Number(order.totalPrice || 0);
     }
 
-    return calculateSubtotal(order);
+    const subtotal = calculateSubtotal(order);
+    const shippingFee = Number(order?.shippingFee || 0);
+
+    return subtotal + shippingFee;
   };
 
   // --------------------------------------------------
@@ -412,7 +420,7 @@ export default function AdminOrders() {
   // --------------------------------------------------
 
   const formatMoney = (amount) => {
-    return Number(amount || 0).toLocaleString();
+    return Number(amount || 0).toLocaleString("en-BD");
   };
 
   // --------------------------------------------------
@@ -424,9 +432,14 @@ export default function AdminOrders() {
 
     const date = new Date(dateValue);
 
-    if (Number.isNaN(date.getTime())) return "N/A";
+    if (Number.isNaN(date.getTime())) {
+      return "N/A";
+    }
 
-    return date.toLocaleString();
+    return date.toLocaleString("en-BD", {
+      dateStyle: "medium",
+      timeStyle: "short",
+    });
   };
 
   // --------------------------------------------------
@@ -439,7 +452,7 @@ export default function AdminOrders() {
     }
 
     if (typeof order.shippingAddress === "object") {
-      return [
+      const address = [
         order.shippingAddress?.street,
         order.shippingAddress?.area,
         order.shippingAddress?.city,
@@ -447,314 +460,263 @@ export default function AdminOrders() {
       ]
         .filter(Boolean)
         .join(", ");
+
+      return address || "N/A";
     }
 
     return String(order.shippingAddress);
   };
 
   // --------------------------------------------------
-  // DOWNLOAD SINGLE ORDER PDF
+  // DOWNLOAD ORDER PDF
   // --------------------------------------------------
 
-const downloadOrderPDF = async (order) => {
-  // Prevent multiple clicks / duplicate PDF generation
-  if (pdfGeneratingRef.current) return;
+  const downloadOrderPDF = async (order) => {
+    if (pdfGeneratingRef.current) return;
 
-  pdfGeneratingRef.current = true;
-
-  try {
-    setPdfOrderId(order?._id);
-
-    const doc = new jsPDF();
-
-    const orderId = order?._id || "N/A";
-    const orderStatus = order?.orderStatus || "Pending";
-
-    const subtotal = calculateSubtotal(order);
-    const grandTotal = calculateGrandTotal(order);
-
-    const customerName =
-      order?.customerName ||
-      order?.user?.name ||
-      "N/A";
-
-    const phone = order?.phone || "N/A";
-    const email = order?.user?.email || "N/A";
-    const address = getAddress(order);
-    const paymentMethod =
-      order?.paymentMethod || "Cash on Delivery";
-
-    // -----------------------------------------
-    // PDF HEADER
-    // -----------------------------------------
-
-    doc.setFontSize(20);
-    doc.setFont("helvetica", "bold");
-    doc.text("ORDER INVOICE", 14, 20);
-
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "normal");
-
-    doc.text(
-      `Order ID: #${orderId}`,
-      14,
-      29
-    );
-
-    doc.text(
-      `Order Date: ${formatDate(order?.createdAt)}`,
-      14,
-      35
-    );
-
-    doc.text(
-      `Status: ${orderStatus}`,
-      14,
-      41
-    );
-
-    // -----------------------------------------
-    // CUSTOMER INFORMATION
-    // -----------------------------------------
-
-    doc.setFontSize(12);
-    doc.setFont("helvetica", "bold");
-    doc.text("Customer Information", 14, 53);
-
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "normal");
-
-    doc.text(`Name: ${customerName}`, 14, 61);
-    doc.text(`Phone: ${phone}`, 14, 67);
-    doc.text(`Email: ${email}`, 14, 73);
-
-    // Address may be long
-    const addressLines = doc.splitTextToSize(
-      `Address: ${address}`,
-      180
-    );
-
-    doc.text(addressLines, 14, 79);
-
-    // -----------------------------------------
-    // PAYMENT INFORMATION
-    // -----------------------------------------
-
-    const paymentStartY = 79 + addressLines.length * 5 + 8;
-
-    doc.setFontSize(12);
-    doc.setFont("helvetica", "bold");
-
-    doc.text(
-      "Payment Information",
-      14,
-      paymentStartY
-    );
-
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "normal");
-
-    doc.text(
-      `Payment Method: ${paymentMethod}`,
-      14,
-      paymentStartY + 8
-    );
-
-    doc.text(
-      `Payment Status: ${
-        order?.isPaid || order?.paymentStatus === "Paid"
-          ? "Paid"
-          : order?.paymentStatus || "Pending"
-      }`,
-      14,
-      paymentStartY + 14
-    );
-
-    if (
-      paymentMethod !== "Cash on Delivery"
-    ) {
-      doc.text(
-        `Sender Number: ${order?.senderNumber || "N/A"}`,
-        14,
-        paymentStartY + 20
-      );
-
-      doc.text(
-        `Transaction ID: ${
-          order?.transactionId || "N/A"
-        }`,
-        14,
-        paymentStartY + 26
-      );
+    if (!order) {
+      toast.error("Order information not found");
+      return;
     }
 
-    // -----------------------------------------
-    // ORDER ITEMS
-    // -----------------------------------------
+    pdfGeneratingRef.current = true;
 
-    const itemsStartY =
-      paymentStartY +
-      (paymentMethod !== "Cash on Delivery" ? 34 : 22);
+    try {
+      setPdfOrderId(order?._id);
 
-    const tableData = Array.isArray(order?.orderItems)
-      ? order.orderItems.map((item, index) => {
-          const price = Number(item?.price || 0);
-          const quantity = Number(item?.quantity || 0);
-          const itemTotal = price * quantity;
+      const doc = new jsPDF();
 
-          return [
-            index + 1,
-            item?.name || "Unnamed Product",
-            item?.size || "-",
-            item?.color || "-",
-            quantity,
-            `BDT ${formatMoney(price)}`,
-            `BDT ${formatMoney(itemTotal)}`,
-          ];
-        })
-      : [];
+      const orderId = order?._id || "N/A";
+      const orderStatus = order?.orderStatus || "Pending";
 
-    autoTable(doc, {
-      startY: itemsStartY,
-      head: [
-        [
-          "#",
-          "Product",
-          "Size",
-          "Color",
-          "Qty",
-          "Price",
-          "Total",
-        ],
-      ],
-      body: tableData,
-      theme: "grid",
-      styles: {
-        fontSize: 8,
-        cellPadding: 3,
-      },
-      headStyles: {
-        fontStyle: "bold",
-      },
-      columnStyles: {
-        0: {
-          cellWidth: 10,
+      const subtotal = calculateSubtotal(order);
+      const shippingFee = Number(order?.shippingFee || 0);
+      const grandTotal = calculateGrandTotal(order);
+
+      const customerName = order?.customerName || order?.user?.name || "N/A";
+
+      const phone = order?.phone || "N/A";
+
+      const email = order?.email || order?.user?.email || "N/A";
+
+      const address = getAddress(order);
+
+      const deliveryArea = order?.deliveryArea || "N/A";
+
+      const paymentMethod = order?.paymentMethod || "Cash on Delivery";
+
+      // --------------------------------------------------
+      // HEADER
+      // --------------------------------------------------
+
+      doc.setFontSize(20);
+      doc.setFont("helvetica", "bold");
+      doc.text("ORDER INVOICE", 14, 20);
+
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+
+      doc.text(`Order ID: #${orderId}`, 14, 29);
+      doc.text(`Order Date: ${formatDate(order?.createdAt)}`, 14, 35);
+      doc.text(`Status: ${orderStatus}`, 14, 41);
+
+      // --------------------------------------------------
+      // CUSTOMER INFORMATION
+      // --------------------------------------------------
+
+      doc.setFontSize(12);
+      doc.setFont("helvetica", "bold");
+      doc.text("Customer Information", 14, 53);
+
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+
+      doc.text(`Name: ${customerName}`, 14, 61);
+      doc.text(`Phone: ${phone}`, 14, 67);
+      doc.text(`Email: ${email}`, 14, 73);
+
+      const addressLines = doc.splitTextToSize(`Address: ${address}`, 180);
+
+      doc.text(addressLines, 14, 79);
+
+      const customerEndY = 79 + addressLines.length * 5;
+
+      // --------------------------------------------------
+      // PAYMENT INFORMATION
+      // --------------------------------------------------
+
+      const paymentStartY = customerEndY + 10;
+
+      doc.setFontSize(12);
+      doc.setFont("helvetica", "bold");
+      doc.text("Payment Information", 14, paymentStartY);
+
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+
+      doc.text(`Payment Method: ${paymentMethod}`, 14, paymentStartY + 8);
+
+      doc.text(`Delivery Area: ${deliveryArea}`, 14, paymentStartY + 14);
+
+      if (paymentMethod !== "Cash on Delivery") {
+        doc.text(
+          `Sender Number: ${order?.senderNumber || "N/A"}`,
+          14,
+          paymentStartY + 20,
+        );
+
+        doc.text(
+          `Transaction ID: ${order?.transactionId || "N/A"}`,
+          14,
+          paymentStartY + 26,
+        );
+      }
+
+      // --------------------------------------------------
+      // ORDER ITEMS
+      // --------------------------------------------------
+
+      const paymentRows = paymentMethod !== "Cash on Delivery" ? 32 : 20;
+
+      const itemsStartY = paymentStartY + paymentRows;
+
+      const tableData = Array.isArray(order?.orderItems)
+        ? order.orderItems.map((item, index) => {
+            const price = Number(item?.price || 0);
+            const quantity = Number(item?.quantity || 0);
+
+            const itemTotal = price * quantity;
+
+            return [
+              index + 1,
+              item?.name || "Unnamed Product",
+              item?.size || "-",
+              item?.color || "-",
+              quantity,
+              `BDT ${formatMoney(price)}`,
+              `BDT ${formatMoney(itemTotal)}`,
+            ];
+          })
+        : [];
+
+      autoTable(doc, {
+        startY: itemsStartY,
+        head: [["#", "Product", "Size", "Color", "Qty", "Price", "Total"]],
+        body: tableData,
+        theme: "grid",
+
+        styles: {
+          fontSize: 8,
+          cellPadding: 3,
         },
-        1: {
-          cellWidth: 45,
+
+        headStyles: {
+          fontStyle: "bold",
         },
-        2: {
-          cellWidth: 18,
+
+        columnStyles: {
+          0: {
+            cellWidth: 10,
+          },
+
+          1: {
+            cellWidth: 45,
+          },
+
+          2: {
+            cellWidth: 18,
+          },
+
+          3: {
+            cellWidth: 22,
+          },
+
+          4: {
+            cellWidth: 15,
+            halign: "center",
+          },
+
+          5: {
+            cellWidth: 30,
+            halign: "right",
+          },
+
+          6: {
+            cellWidth: 30,
+            halign: "right",
+          },
         },
-        3: {
-          cellWidth: 22,
+
+        margin: {
+          left: 14,
+          right: 14,
         },
-        4: {
-          cellWidth: 15,
-          halign: "center",
-        },
-        5: {
-          cellWidth: 30,
-          halign: "right",
-        },
-        6: {
-          cellWidth: 30,
-          halign: "right",
-        },
-      },
-    });
+      });
 
-    // -----------------------------------------
-    // ORDER SUMMARY
-    // -----------------------------------------
+      // --------------------------------------------------
+      // SUMMARY
+      // --------------------------------------------------
 
-    const finalY =
-      doc.lastAutoTable?.finalY || itemsStartY + 20;
+      const finalY = doc.lastAutoTable?.finalY || itemsStartY + 20;
 
-    const summaryX = 135;
+      const summaryX = 135;
 
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
 
-    doc.text(
-      "Subtotal:",
-      summaryX,
-      finalY + 12
-    );
+      doc.text("Subtotal:", summaryX, finalY + 12);
 
-    doc.text(
-      `BDT ${formatMoney(subtotal)}`,
-      195,
-      finalY + 12,
-      { align: "right" }
-    );
+      doc.text(`BDT ${formatMoney(subtotal)}`, 195, finalY + 12, {
+        align: "right",
+      });
 
-    doc.setFont("helvetica", "bold");
+      doc.text("Shipping Fee:", summaryX, finalY + 20);
 
-    doc.text(
-      "Grand Total:",
-      summaryX,
-      finalY + 21
-    );
+      doc.text(`BDT ${formatMoney(shippingFee)}`, 195, finalY + 20, {
+        align: "right",
+      });
 
-    doc.text(
-      `BDT ${formatMoney(grandTotal)}`,
-      195,
-      finalY + 21,
-      { align: "right" }
-    );
+      doc.setFont("helvetica", "bold");
 
-    // -----------------------------------------
-    // FOOTER
-    // -----------------------------------------
+      doc.text("Grand Total:", summaryX, finalY + 30);
 
-    doc.setFontSize(9);
-    doc.setFont("helvetica", "normal");
+      doc.text(`BDT ${formatMoney(grandTotal)}`, 195, finalY + 30, {
+        align: "right",
+      });
 
-    doc.text(
-      "Thank you for your order!",
-      105,
-      finalY + 38,
-      { align: "center" }
-    );
+      // --------------------------------------------------
+      // FOOTER
+      // --------------------------------------------------
 
-    doc.text(
-      "This is a computer-generated invoice.",
-      105,
-      finalY + 44,
-      { align: "center" }
-    );
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "normal");
 
-    // -----------------------------------------
-    // SAVE PDF
-    // -----------------------------------------
+      doc.text("Thank you for your order!", 105, finalY + 44, {
+        align: "center",
+      });
 
-    const safeOrderId = String(orderId).replace(
-      /[^a-zA-Z0-9-_]/g,
-      ""
-    );
+      doc.text("This is a computer-generated invoice.", 105, finalY + 50, {
+        align: "center",
+      });
 
-    doc.save(`Order-${safeOrderId}.pdf`);
+      // --------------------------------------------------
+      // SAVE
+      // --------------------------------------------------
 
-    toast.success(
-      "Order PDF downloaded successfully!"
-    );
-  } catch (error) {
-    console.error(
-      "PDF generation error:",
-      error
-    );
+      const safeOrderId = String(orderId).replace(/[^a-zA-Z0-9-_]/g, "");
 
-    toast.error(
-      "Failed to generate order PDF"
-    );
-  } finally {
-    setPdfOrderId(null);
+      doc.save(`Order-${safeOrderId || "Invoice"}.pdf`);
 
-    // Unlock PDF generation
-    pdfGeneratingRef.current = false;
-  }
-};
+      toast.success("Order PDF downloaded successfully!");
+    } catch (error) {
+      console.error("PDF generation error:", error);
+
+      toast.error("Failed to generate order PDF");
+    } finally {
+      setPdfOrderId(null);
+      pdfGeneratingRef.current = false;
+    }
+  };
 
   // --------------------------------------------------
   // CLEAR FILTERS
@@ -768,10 +730,10 @@ const downloadOrderPDF = async (order) => {
   };
 
   const hasFilters =
-    searchTerm ||
+    Boolean(searchTerm) ||
     statusFilter !== "All" ||
     paymentFilter !== "All" ||
-    dateFilter;
+    Boolean(dateFilter);
 
   // --------------------------------------------------
   // ORDER CARD
@@ -801,7 +763,7 @@ const downloadOrderPDF = async (order) => {
               </span>
 
               <span className="font-mono text-xs font-bold text-white break-all">
-                #{order?._id}
+                #{order?._id || "N/A"}
               </span>
 
               {getStatusBadge(orderStatus)}
@@ -911,243 +873,225 @@ const downloadOrderPDF = async (order) => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0f1115] text-white p-5 md:p-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex items-center justify-center min-h-[50vh]">
-            <div className="flex flex-col items-center gap-3">
-              <div className="w-8 h-8 border-2 border-purple-500/30 border-t-purple-500 rounded-full animate-spin" />
+      <div className="min-h-[70vh] bg-[#0f1115] flex items-center justify-center p-6">
+        <div className="text-center">
+          <div className="w-10 h-10 border-4 border-purple-500/30 border-t-purple-500 rounded-full animate-spin mx-auto" />
 
-              <p className="text-xs text-gray-400">Loading orders...</p>
-            </div>
-          </div>
+          <p className="text-sm text-gray-400 mt-4">Loading orders...</p>
         </div>
       </div>
     );
   }
 
   // --------------------------------------------------
-  // UI
+  // MAIN UI
   // --------------------------------------------------
 
   return (
-    <div className="min-h-screen bg-[#0f1115] text-white p-4 md:p-6">
-      <div className="max-w-7xl mx-auto space-y-5">
-        {/* -------------------------------------------
-            HEADER
-        -------------------------------------------- */}
+    <div className="min-h-screen bg-[#0f1115] text-white p-4 md:p-6 space-y-5">
+      {/* HEADER */}
 
-        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-gray-800 pb-4">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => navigate(-1)}
-              className="p-2.5 bg-[#161920] border border-gray-800 hover:bg-gray-800 text-white rounded-xl transition cursor-pointer"
-              title="Go Back"
-            >
-              <HiArrowLeft className="text-lg" />
-            </button>
-
-            <div>
-              <h1 className="text-xl md:text-2xl font-black text-white flex items-center gap-2">
-                <HiClipboardList className="text-purple-400" />
-                Admin Orders
-              </h1>
-
-              <p className="text-[11px] text-gray-500 mt-1">
-                {filteredOrders.length} matching order
-                {filteredOrders.length !== 1 ? "s" : ""}
-              </p>
-            </div>
-          </div>
-
+      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-gray-800 pb-4">
+        <div className="flex items-center gap-3">
           <button
-            onClick={fetchAllOrders}
-            disabled={loading}
-            className="flex items-center gap-2 px-4 py-2 bg-purple-600/20 border border-purple-500/30 text-purple-400 hover:bg-purple-600/30 text-xs font-bold rounded-xl transition cursor-pointer disabled:opacity-50"
+            onClick={() => navigate(-1)}
+            className="p-2.5 bg-[#161920] border border-gray-800 hover:bg-gray-800 text-white rounded-xl transition cursor-pointer"
+            title="Go Back"
           >
-            <HiRefresh className={loading ? "animate-spin" : ""} />
-            Refresh
+            <HiArrowLeft className="text-lg" />
           </button>
+
+          <div>
+            <h1 className="text-xl md:text-2xl font-black text-white flex items-center gap-2">
+              <HiClipboardList className="text-purple-400" />
+              Admin Orders
+            </h1>
+
+            <p className="text-[11px] text-gray-500 mt-1">
+              {filteredOrders.length} matching order
+              {filteredOrders.length !== 1 ? "s" : ""}
+            </p>
+          </div>
         </div>
 
-        {/* -------------------------------------------
-            SEARCH + FILTERS
-        -------------------------------------------- */}
+        <button
+          onClick={fetchAllOrders}
+          disabled={loading}
+          className="flex items-center gap-2 px-4 py-2 bg-purple-600/20 border border-purple-500/30 text-purple-400 hover:bg-purple-600/30 text-xs font-bold rounded-xl transition cursor-pointer disabled:opacity-50"
+        >
+          <HiRefresh className={loading ? "animate-spin" : ""} />
+          Refresh
+        </button>
+      </div>
 
-        <div className="bg-[#161920] p-4 rounded-2xl border border-gray-800">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-            {/* SEARCH */}
+      {/* SEARCH + FILTERS */}
 
-            <div className="relative">
-              <HiSearch className="absolute left-3.5 top-3.5 text-gray-400 text-base" />
+      <div className="bg-[#161920] p-4 rounded-2xl border border-gray-800">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+          {/* SEARCH */}
 
-              <input
-                type="text"
-                placeholder="Search Order ID, Name, Phone..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full bg-[#0f1115] border border-gray-800 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder:text-gray-600 focus:outline-none focus:border-purple-500 transition"
-              />
-            </div>
+          <div className="relative">
+            <HiSearch className="absolute left-3.5 top-3.5 text-gray-400 text-base" />
 
-            {/* DATE */}
-
-            <div className="relative">
-              <HiCalendar className="absolute left-3.5 top-3.5 text-gray-400 text-base pointer-events-none" />
-
-              <input
-                type="date"
-                value={dateFilter}
-                onChange={(e) => setDateFilter(e.target.value)}
-                className="w-full bg-[#0f1115] border border-gray-800 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white focus:outline-none focus:border-purple-500 transition cursor-pointer"
-              />
-            </div>
-
-            {/* STATUS */}
-
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full bg-[#0f1115] border border-gray-800 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-purple-500 transition cursor-pointer"
-            >
-              <option value="All">All Statuses</option>
-
-              <option value="Pending">Pending</option>
-
-              <option value="Confirmed">Confirmed</option>
-
-              <option value="Processing">Processing</option>
-
-              <option value="Shipped">Shipped</option>
-
-              <option value="Delivered">Delivered</option>
-
-              <option value="Cancelled">Cancelled</option>
-            </select>
-
-            {/* PAYMENT */}
-
-            <select
-              value={paymentFilter}
-              onChange={(e) => setPaymentFilter(e.target.value)}
-              className="w-full bg-[#0f1115] border border-gray-800 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-purple-500 transition cursor-pointer"
-            >
-              <option value="All">All Payment Methods</option>
-
-              <option value="Cash on Delivery">Cash on Delivery</option>
-
-              <option value="bKash">bKash</option>
-
-              <option value="Nagad">Nagad</option>
-            </select>
+            <input
+              type="text"
+              placeholder="Search Order ID, Name, Phone..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full bg-[#0f1115] border border-gray-800 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white placeholder:text-gray-600 focus:outline-none focus:border-purple-500 transition"
+            />
           </div>
 
-          {/* FILTER ACTIONS */}
+          {/* DATE */}
 
-          {hasFilters && (
-            <div className="flex flex-wrap items-center justify-between gap-3 mt-3 pt-3 border-t border-gray-800">
-              <div className="text-[11px] text-gray-500">Filters applied</div>
+          <div className="relative">
+            <HiCalendar className="absolute left-3.5 top-3.5 text-gray-400 text-base pointer-events-none" />
 
-              <button
-                onClick={clearFilters}
-                className="text-[11px] font-bold text-purple-400 hover:text-purple-300 transition"
-              >
-                Clear All Filters
-              </button>
-            </div>
-          )}
+            <input
+              type="date"
+              value={dateFilter}
+              onChange={(e) => setDateFilter(e.target.value)}
+              className="w-full bg-[#0f1115] border border-gray-800 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white focus:outline-none focus:border-purple-500 transition cursor-pointer"
+            />
+          </div>
+
+          {/* STATUS */}
+
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="w-full bg-[#0f1115] border border-gray-800 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-purple-500 transition cursor-pointer"
+          >
+            <option value="All">All Statuses</option>
+
+            <option value="Pending">Pending</option>
+
+            <option value="Confirmed">Confirmed</option>
+
+            <option value="Processing">Processing</option>
+
+            <option value="Shipped">Shipped</option>
+
+            <option value="Delivered">Delivered</option>
+
+            <option value="Cancelled">Cancelled</option>
+          </select>
+
+          {/* PAYMENT */}
+
+          <select
+            value={paymentFilter}
+            onChange={(e) => setPaymentFilter(e.target.value)}
+            className="w-full bg-[#0f1115] border border-gray-800 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-purple-500 transition cursor-pointer"
+          >
+            <option value="All">All Payment Methods</option>
+
+            <option value="Cash on Delivery">Cash on Delivery</option>
+
+            <option value="bKash">bKash</option>
+
+            <option value="Nagad">Nagad</option>
+          </select>
         </div>
 
-        {/* -------------------------------------------
-            QUICK DATE INFO
-        -------------------------------------------- */}
+        {/* FILTER ACTIONS */}
 
-        {!dateFilter && !searchTerm && (
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div className="bg-[#161920] border border-gray-800 rounded-xl px-4 py-3">
-              <p className="text-[10px] text-gray-500 uppercase tracking-wider">
-                Today
-              </p>
+        {hasFilters && (
+          <div className="flex flex-wrap items-center justify-between gap-3 mt-3 pt-3 border-t border-gray-800">
+            <div className="text-[11px] text-gray-500">Filters applied</div>
 
-              <p className="text-lg font-black text-white mt-1">
-                {groupedOrders.today.length}
-              </p>
-            </div>
-
-            <div className="bg-[#161920] border border-gray-800 rounded-xl px-4 py-3">
-              <p className="text-[10px] text-gray-500 uppercase tracking-wider">
-                Yesterday
-              </p>
-
-              <p className="text-lg font-black text-white mt-1">
-                {groupedOrders.yesterday.length}
-              </p>
-            </div>
-
-            <div className="bg-[#161920] border border-gray-800 rounded-xl px-4 py-3">
-              <p className="text-[10px] text-gray-500 uppercase tracking-wider">
-                Previous
-              </p>
-
-              <p className="text-lg font-black text-white mt-1">
-                {groupedOrders.previous.length}
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* -------------------------------------------
-            EMPTY STATE
-        -------------------------------------------- */}
-
-        {filteredOrders.length === 0 ? (
-          <div className="bg-[#161920] border border-gray-800 rounded-2xl p-12 text-center space-y-4">
-            <HiClipboardList className="mx-auto text-4xl text-gray-700" />
-
-            <div>
-              <p className="text-sm text-gray-300 font-bold">
-                No matching orders found
-              </p>
-
-              <p className="text-xs text-gray-500 mt-1">
-                Try changing your search or filters.
-              </p>
-            </div>
-
-            {hasFilters && (
-              <button
-                onClick={clearFilters}
-                className="px-5 py-2 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-xl transition"
-              >
-                Clear Filters
-              </button>
-            )}
-          </div>
-        ) : (
-          /* -------------------------------------------
-              ORDER GROUPS
-          -------------------------------------------- */
-
-          <div className="space-y-7">
-            <OrderGroup
-              title="Today"
-              orders={groupedOrders.today}
-              icon={<HiClock className="text-purple-400" />}
-            />
-
-            <OrderGroup
-              title="Yesterday"
-              orders={groupedOrders.yesterday}
-              icon={<HiCalendar className="text-blue-400" />}
-            />
-
-            <OrderGroup
-              title="Previous Orders"
-              orders={groupedOrders.previous}
-              icon={<HiClipboardList className="text-gray-400" />}
-            />
+            <button
+              onClick={clearFilters}
+              className="text-[11px] font-bold text-purple-400 hover:text-purple-300 transition"
+            >
+              Clear All Filters
+            </button>
           </div>
         )}
       </div>
+
+      {/* QUICK DATE INFO */}
+
+      {!dateFilter && !searchTerm && (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="bg-[#161920] border border-gray-800 rounded-xl px-4 py-3">
+            <p className="text-[10px] text-gray-500 uppercase tracking-wider">
+              Today
+            </p>
+
+            <p className="text-lg font-black text-white mt-1">
+              {groupedOrders.today.length}
+            </p>
+          </div>
+
+          <div className="bg-[#161920] border border-gray-800 rounded-xl px-4 py-3">
+            <p className="text-[10px] text-gray-500 uppercase tracking-wider">
+              Yesterday
+            </p>
+
+            <p className="text-lg font-black text-white mt-1">
+              {groupedOrders.yesterday.length}
+            </p>
+          </div>
+
+          <div className="bg-[#161920] border border-gray-800 rounded-xl px-4 py-3">
+            <p className="text-[10px] text-gray-500 uppercase tracking-wider">
+              Previous
+            </p>
+
+            <p className="text-lg font-black text-white mt-1">
+              {groupedOrders.previous.length}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* EMPTY STATE */}
+
+      {filteredOrders.length === 0 ? (
+        <div className="bg-[#161920] border border-gray-800 rounded-2xl p-12 text-center space-y-4">
+          <HiClipboardList className="mx-auto text-4xl text-gray-700" />
+
+          <div>
+            <p className="text-sm text-gray-300 font-bold">
+              No matching orders found
+            </p>
+
+            <p className="text-xs text-gray-500 mt-1">
+              Try changing your search or filters.
+            </p>
+          </div>
+
+          {hasFilters && (
+            <button
+              onClick={clearFilters}
+              className="px-5 py-2 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-xl transition"
+            >
+              Clear Filters
+            </button>
+          )}
+        </div>
+      ) : (
+        <div className="space-y-7">
+          <OrderGroup
+            title="Today"
+            orders={groupedOrders.today}
+            icon={<HiClock className="text-purple-400" />}
+          />
+
+          <OrderGroup
+            title="Yesterday"
+            orders={groupedOrders.yesterday}
+            icon={<HiCalendar className="text-blue-400" />}
+          />
+
+          <OrderGroup
+            title="Previous Orders"
+            orders={groupedOrders.previous}
+            icon={<HiClipboardList className="text-gray-400" />}
+          />
+        </div>
+      )}
 
       {/* ==================================================
           ORDER DETAILS MODAL
@@ -1166,9 +1110,7 @@ const downloadOrderPDF = async (order) => {
             className="w-full max-w-4xl max-h-[92vh] overflow-hidden bg-[#161920] border border-gray-800 rounded-3xl shadow-2xl"
             onMouseDown={(e) => e.stopPropagation()}
           >
-            {/* ---------------------------------------
-                MODAL HEADER
-            ---------------------------------------- */}
+            {/* MODAL HEADER */}
 
             <div className="flex items-center justify-between gap-4 px-5 md:px-6 py-4 border-b border-gray-800 bg-[#161920]">
               <div className="min-w-0">
@@ -1177,7 +1119,7 @@ const downloadOrderPDF = async (order) => {
                 </p>
 
                 <h2 className="text-sm md:text-base font-black text-white font-mono break-all mt-1">
-                  #{selectedOrder?._id}
+                  #{selectedOrder?._id || "N/A"}
                 </h2>
               </div>
 
@@ -1190,9 +1132,7 @@ const downloadOrderPDF = async (order) => {
               </button>
             </div>
 
-            {/* ---------------------------------------
-                MODAL BODY
-            ---------------------------------------- */}
+            {/* MODAL BODY */}
 
             <div className="overflow-y-auto max-h-[calc(92vh-73px)] p-5 md:p-6 space-y-5">
               {/* ORDER TOP */}
@@ -1220,7 +1160,7 @@ const downloadOrderPDF = async (order) => {
                   Customer Information
                 </h3>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                   {/* NAME */}
 
                   <div className="space-y-1">
@@ -1229,9 +1169,21 @@ const downloadOrderPDF = async (order) => {
                       Customer Name
                     </p>
 
-                    <p className="text-sm font-bold text-white">
+                    <p className="text-sm font-bold text-white break-words">
                       {selectedOrder?.customerName ||
                         selectedOrder?.user?.name ||
+                        "N/A"}
+                    </p>
+                  </div>
+
+                  {/* EMAIL */}
+
+                  <div className="space-y-1">
+                    <p className="text-[10px] text-gray-500">Email Address</p>
+
+                    <p className="text-sm font-bold text-white break-all">
+                      {selectedOrder?.email ||
+                        selectedOrder?.user?.email ||
                         "N/A"}
                     </p>
                   </div>
@@ -1249,15 +1201,28 @@ const downloadOrderPDF = async (order) => {
                     </p>
                   </div>
 
-                  {/* ADDRESS */}
+                  {/* DELIVERY AREA */}
 
                   <div className="space-y-1">
+                    <p className="text-[10px] text-gray-500 flex items-center gap-1.5">
+                      <HiLocationMarker className="text-purple-400" />
+                      Delivery Area
+                    </p>
+
+                    <p className="text-sm font-bold text-white">
+                      {selectedOrder?.deliveryArea || "N/A"}
+                    </p>
+                  </div>
+
+                  {/* ADDRESS */}
+
+                  <div className="space-y-1 sm:col-span-2 lg:col-span-4">
                     <p className="text-[10px] text-gray-500 flex items-center gap-1.5">
                       <HiLocationMarker className="text-purple-400" />
                       Shipping Address
                     </p>
 
-                    <p className="text-sm font-bold text-white">
+                    <p className="text-sm font-bold text-white break-words">
                       {getAddress(selectedOrder)}
                     </p>
                   </div>
@@ -1285,6 +1250,7 @@ const downloadOrderPDF = async (order) => {
                 </div>
 
                 {Array.isArray(selectedOrder?.orderItems) &&
+                selectedOrder.orderItems.length > 0 ? (
                   selectedOrder.orderItems.map((item, index) => {
                     const imageUrl = getImageUrl(item?.image);
 
@@ -1301,7 +1267,7 @@ const downloadOrderPDF = async (order) => {
                       >
                         <div className="flex items-center gap-4 min-w-0">
                           <img
-                            src={imageUrl}
+                            src={imageUrl || "/placeholder.png"}
                             alt={item?.name || "Product"}
                             className="w-16 h-16 object-cover rounded-xl bg-gray-900 border border-gray-800 shrink-0"
                             onError={(e) => {
@@ -1359,7 +1325,14 @@ const downloadOrderPDF = async (order) => {
                         </div>
                       </div>
                     );
-                  })}
+                  })
+                ) : (
+                  <div className="bg-[#0f1115] border border-gray-800 rounded-2xl p-6 text-center">
+                    <p className="text-xs text-gray-500">
+                      No order items found.
+                    </p>
+                  </div>
+                )}
               </div>
 
               {/* PAYMENT */}
@@ -1401,7 +1374,7 @@ const downloadOrderPDF = async (order) => {
                             Transaction ID
                           </p>
 
-                          <p className="text-xs font-mono font-bold text-purple-400 mt-1">
+                          <p className="text-xs font-mono font-bold text-purple-400 mt-1 break-all">
                             {selectedOrder?.transactionId || "N/A"}
                           </p>
                         </div>
@@ -1417,22 +1390,40 @@ const downloadOrderPDF = async (order) => {
                   Order Summary
                 </h3>
 
-                <div className="flex items-center justify-between py-2">
-                  <span className="text-xs text-gray-400">Subtotal</span>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-400">Subtotal</span>
 
-                  <span className="text-sm font-bold text-white">
-                    BDT {formatMoney(calculateSubtotal(selectedOrder))}
-                  </span>
-                </div>
+                    <span className="text-sm font-bold text-white">
+                      BDT {formatMoney(calculateSubtotal(selectedOrder))}
+                    </span>
+                  </div>
 
-                <div className="border-t border-gray-800 mt-2 pt-3 flex items-center justify-between">
-                  <span className="text-xs font-bold text-gray-300">
-                    Grand Total
-                  </span>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-400">Delivery Area</span>
 
-                  <span className="text-lg font-black text-purple-400">
-                    BDT {formatMoney(calculateGrandTotal(selectedOrder))}
-                  </span>
+                    <span className="text-xs font-bold text-gray-300">
+                      {selectedOrder?.deliveryArea || "N/A"}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-400">Shipping Fee</span>
+
+                    <span className="text-sm font-bold text-white">
+                      BDT {formatMoney(selectedOrder?.shippingFee)}
+                    </span>
+                  </div>
+
+                  <div className="border-t border-gray-800 mt-2 pt-3 flex items-center justify-between">
+                    <span className="text-xs font-bold text-gray-300">
+                      Grand Total
+                    </span>
+
+                    <span className="text-lg font-black text-purple-400">
+                      BDT {formatMoney(calculateGrandTotal(selectedOrder))}
+                    </span>
+                  </div>
                 </div>
               </div>
 
@@ -1505,17 +1496,14 @@ const downloadOrderPDF = async (order) => {
                 </div>
               </div>
 
-              {/* ---------------------------------------
-                  MODAL ACTIONS
-              ---------------------------------------- */}
+              {/* MODAL ACTIONS */}
 
               <div className="flex flex-col sm:flex-row gap-3 pt-2">
-                {/* PDF */}
-
                 <button
-  onClick={() => downloadOrderPDF(selectedOrder)}
-  disabled={pdfOrderId === selectedOrder?._id}
-  className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl text-xs font-bold transition shadow-lg shadow-purple-600/20">
+                  onClick={() => downloadOrderPDF(selectedOrder)}
+                  disabled={pdfOrderId === selectedOrder?._id}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl text-xs font-bold transition shadow-lg shadow-purple-600/20"
+                >
                   {pdfOrderId === selectedOrder?._id ? (
                     <>
                       <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -1528,8 +1516,6 @@ const downloadOrderPDF = async (order) => {
                     </>
                   )}
                 </button>
-
-                {/* CLOSE */}
 
                 <button
                   onClick={() => setSelectedOrder(null)}

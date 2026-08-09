@@ -11,6 +11,7 @@ const orderItemSchema = new mongoose.Schema(
     name: {
       type: String,
       required: true,
+      trim: true,
     },
 
     image: {
@@ -21,6 +22,7 @@ const orderItemSchema = new mongoose.Schema(
     price: {
       type: Number,
       required: true,
+      min: 0,
     },
 
     quantity: {
@@ -39,21 +41,36 @@ const orderItemSchema = new mongoose.Schema(
       default: "N/A",
     },
   },
-  { _id: false },
+  {
+    _id: false,
+  },
 );
 
 const orderSchema = new mongoose.Schema(
   {
+    // =========================
+    // User
+    // =========================
     user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: false,
     },
 
+    // =========================
+    // Customer Information
+    // =========================
     customerName: {
       type: String,
       required: true,
       trim: true,
+    },
+
+    email: {
+      type: String,
+      required: true,
+      trim: true,
+      lowercase: true,
     },
 
     phone: {
@@ -68,18 +85,42 @@ const orderSchema = new mongoose.Schema(
       trim: true,
     },
 
+    // =========================
+    // Delivery Information
+    // =========================
+    deliveryArea: {
+      type: String,
+      enum: ["Inside Dhaka", "Outside Dhaka"],
+      required: true,
+    },
+
+    shippingFee: {
+      type: Number,
+      required: true,
+      default: 100,
+      min: 0,
+    },
+
+    // =========================
+    // Products
+    // =========================
     orderItems: {
       type: [orderItemSchema],
       required: true,
+
       validate: {
-        validator: (items) => items.length > 0,
+        validator: (items) => Array.isArray(items) && items.length > 0,
+
         message: "Order must contain at least one item",
       },
     },
 
+    // =========================
+    // Payment
+    // =========================
     paymentMethod: {
       type: String,
-      enum: ["Cash on Delivery", "bKash", "Nagad"],
+      enum: ["Cash on Delivery"],
       default: "Cash on Delivery",
       required: true,
     },
@@ -110,16 +151,12 @@ const orderSchema = new mongoose.Schema(
       default: null,
     },
 
+    // =========================
+    // Price Information
+    // =========================
     subtotal: {
       type: Number,
       required: true,
-      min: 0,
-    },
-
-    shippingFee: {
-      type: Number,
-      required: true,
-      default: 100,
       min: 0,
     },
 
@@ -129,6 +166,9 @@ const orderSchema = new mongoose.Schema(
       min: 0,
     },
 
+    // =========================
+    // Order Status
+    // =========================
     orderStatus: {
       type: String,
       enum: [
