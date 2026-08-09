@@ -9,15 +9,17 @@ import { Product } from "../models/Product.js";
 export const createOrder = async (req, res) => {
   try {
     const {
-      orderItems,
-      shippingAddress,
-      phone,
-      customerName,
-      paymentMethod,
-      senderNumber,
-      transactionId,
-      shippingFee,
-    } = req.body;
+  orderItems,
+  shippingAddress,
+  phone,
+  customerName,
+  email,
+  deliveryArea,
+  paymentMethod,
+  senderNumber,
+  transactionId,
+  shippingFee,
+} = req.body;
 
     // Check order items
     if (!orderItems || orderItems.length === 0) {
@@ -106,40 +108,36 @@ export const createOrder = async (req, res) => {
      * Online payment automatically Paid করা হচ্ছে না।
      * আপাতত সব নতুন order Pending থাকবে।
      */
-    const order = await Order.create({
-      user: req.user?._id || null,
+const order = await Order.create({
+  user: req.user?._id || null,
 
-      customerName,
+  customerName,
+  email,
+  phone,
+  deliveryArea,
 
-      phone,
+  shippingAddress:
+    typeof shippingAddress === "object"
+      ? `${shippingAddress.street || ""}, ${shippingAddress.city || ""}`
+      : shippingAddress,
 
-      shippingAddress:
-        typeof shippingAddress === "object"
-          ? `${shippingAddress.street || ""}, ${shippingAddress.city || ""}`
-          : shippingAddress,
+  orderItems: processedOrderItems,
 
-      orderItems: processedOrderItems,
+  paymentMethod: paymentMethod || "Cash on Delivery",
 
-      paymentMethod: paymentMethod || "Cash on Delivery",
+  senderNumber: isCashOnDelivery ? "" : senderNumber || "",
+  transactionId: isCashOnDelivery ? "" : transactionId || "",
 
-      senderNumber: isCashOnDelivery ? "" : senderNumber || "",
+  paymentStatus: "Pending",
+  isPaid: false,
+  paidAt: null,
 
-      transactionId: isCashOnDelivery ? "" : transactionId || "",
+  subtotal,
+  shippingFee: deliveryFee,
+  totalAmount,
 
-      paymentStatus: "Pending",
-
-      isPaid: false,
-
-      paidAt: null,
-
-      subtotal,
-
-      shippingFee: deliveryFee,
-
-      totalAmount,
-
-      orderStatus: "Pending",
-    });
+  orderStatus: "Pending",
+});
 
     return res.status(201).json({
       success: true,
