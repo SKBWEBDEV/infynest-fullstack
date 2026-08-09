@@ -8,7 +8,7 @@ import { Product } from "../models/Product.js";
 
 export const createOrder = async (req, res) => {
   try {
-    const {
+const {
   orderItems,
   shippingAddress,
   phone,
@@ -30,12 +30,36 @@ export const createOrder = async (req, res) => {
     }
 
     // Check shipping information
-    if (!customerName || !phone || !shippingAddress) {
-      return res.status(400).json({
-        success: false,
-        message: "Customer name, phone and shipping address are required",
-      });
-    }
+ if (!customerName || !email || !phone || !shippingAddress) {
+  return res.status(400).json({
+    success: false,
+    message: "Name, email, phone and shipping address are required",
+  });
+}
+
+if (!deliveryArea) {
+  return res.status(400).json({
+    success: false,
+    message: "Delivery area is required",
+  });
+}
+
+
+// ==========================================
+// BANGLADESH PHONE VALIDATION
+// Must start with 01 and contain exactly 11 digits
+// Example: 01712345678
+// ==========================================
+
+const phoneRegex = /^01[0-9]{9}$/;
+
+if (!phoneRegex.test(phone)) {
+  return res.status(400).json({
+    success: false,
+    message:
+      "Please enter a valid 11-digit Bangladesh mobile number starting with 01",
+  });
+}
 
     // Calculate subtotal
     let subtotal = 0;

@@ -52,10 +52,10 @@ const orderSchema = new mongoose.Schema(
     // User
     // =========================
     user: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: false,
-    },
+  type: mongoose.Schema.Types.ObjectId,
+  ref: "User",
+  default: null,
+},
 
     // =========================
     // Customer Information

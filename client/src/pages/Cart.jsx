@@ -449,6 +449,8 @@ export default function Cart() {
                     </div>
 
                     {/* Phone */}
+
+                    {/* Phone */}
                     <div className="space-y-1.5">
                       <label className="text-[10px] font-bold text-gray-400">
                         Phone Number
@@ -456,12 +458,29 @@ export default function Cart() {
 
                       <input
                         type="tel"
+                        inputMode="numeric"
                         placeholder="01XXXXXXXXX"
                         value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
+                        onChange={(e) => {
+                          // শুধু number রাখবে
+                          const value = e.target.value.replace(/\D/g, "");
+
+                          // সর্বোচ্চ 11 digit
+                          if (value.length <= 11) {
+                            setPhone(value);
+                          }
+                        }}
                         required
+                        minLength={11}
+                        maxLength={11}
+                        pattern="01[0-9]{9}"
+                        title="Enter a valid 11-digit Bangladesh mobile number starting with 01"
                         className="w-full bg-[#0f1115] border border-gray-800 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-purple-500 transition"
                       />
+
+                      <p className="text-[9px] text-gray-500">
+                        Example: 01712345678
+                      </p>
                     </div>
 
                     {/* Address */}
