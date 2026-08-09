@@ -109,24 +109,24 @@ export default function Cart() {
       return;
     }
 
-    // let userInfo = null;
+    let userInfo = null;
 
-    // try {
-    //   const storedUser = localStorage.getItem("userInfo");
+    try {
+      const storedUser = localStorage.getItem("userInfo");
 
-    //   if (storedUser) {
-    //     userInfo = JSON.parse(storedUser);
-    //   }
-    // } catch (error) {
-    //   console.error("User info error:", error);
-    // }
+      if (storedUser) {
+        userInfo = JSON.parse(storedUser);
+      }
+    } catch (error) {
+      console.error("User info error:", error);
+    }
 
-    // if (!userInfo?.token) {
-    //   toast.error("Please login first to place an order!");
+    if (!userInfo?.token) {
+      toast.error("অর্ডার করার জন্য আগে লগইন বা রেজিস্টার করুন!");
 
-    //   navigate("/login");
-    //   return;
-    // }
+      navigate("/login");
+      return;
+    }
 
     // =========================
     // Order Data
