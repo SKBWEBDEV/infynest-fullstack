@@ -1,3 +1,4 @@
+
 import express from "express";
 
 import {
@@ -10,7 +11,6 @@ import {
 
 import {
   protect,
-  optionalAuth,
   adminOnly,
 } from "../middleware/authMiddleware.js";
 
@@ -20,12 +20,13 @@ const router = express.Router();
 // USER ROUTES
 // ==========================================
 
-// Guest + Logged-in দুজনই Order করতে পারবে
-router.post("/", optionalAuth, createOrder);
+// শুধু Logged-in user order করতে পারবে
+router.post("/", protect, createOrder);
 
 // শুধু Logged-in user নিজের orders দেখতে পারবে
 router.get("/myorders", protect, getMyOrders);
 
+// Get single order
 router.get("/:id", protect, getOrderById);
 
 // ==========================================
@@ -39,3 +40,4 @@ router.get("/", protect, adminOnly, getAllOrders);
 router.put("/:id/status", protect, adminOnly, updateOrderStatus);
 
 export default router;
+

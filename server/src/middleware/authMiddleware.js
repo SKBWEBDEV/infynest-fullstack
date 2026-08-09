@@ -1,3 +1,4 @@
+
 import jwt from "jsonwebtoken";
 import { User } from "../models/User.js";
 
@@ -46,42 +47,6 @@ export const protect = async (req, res, next) => {
 };
 
 // ==========================================
-// OPTIONAL AUTH
-// Guest + Logged-in দুই ধরনের order-এর জন্য
-// ==========================================
-export const optionalAuth = async (req, res, next) => {
-  const authHeader = req.headers.authorization;
-
-  // Token নেই → Guest user
-  if (!authHeader || !authHeader.startsWith("Bearer")) {
-    req.user = null;
-    return next();
-  }
-
-  try {
-    const token = authHeader.split(" ")[1];
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-    const user = await User.findById(decoded.id).select("-password");
-
-    if (user) {
-      req.user = user;
-    } else {
-      req.user = null;
-    }
-
-    next();
-  } catch (error) {
-    console.error("Optional auth error:", error);
-
-    // Invalid token হলেও order creation বন্ধ হবে না
-    req.user = null;
-    next();
-  }
-};
-
-// ==========================================
 // ADMIN
 // ==========================================
 export const admin = (req, res, next) => {
@@ -95,5 +60,8 @@ export const admin = (req, res, next) => {
   }
 };
 
-// adminOnly নাম দিয়েও export
+// ==========================================
+// ADMIN ONLY
+// ==========================================
 export const adminOnly = admin;
+0
