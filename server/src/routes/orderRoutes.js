@@ -1,4 +1,3 @@
-
 import express from "express";
 
 import {
@@ -9,7 +8,11 @@ import {
   updateOrderStatus,
 } from "../controllers/orderController.js";
 
-import { protect, adminOnly } from "../middleware/authMiddleware.js";
+import {
+  protect,
+  optionalAuth,
+  adminOnly,
+} from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
@@ -17,8 +20,10 @@ const router = express.Router();
 // USER ROUTES
 // ==========================================
 
-router.post("/", createOrder);
+// Guest + Logged-in দুজনই Order করতে পারবে
+router.post("/", optionalAuth, createOrder);
 
+// শুধু Logged-in user নিজের orders দেখতে পারবে
 router.get("/myorders", protect, getMyOrders);
 
 router.get("/:id", protect, getOrderById);
@@ -34,4 +39,3 @@ router.get("/", protect, adminOnly, getAllOrders);
 router.put("/:id/status", protect, adminOnly, updateOrderStatus);
 
 export default router;
-
