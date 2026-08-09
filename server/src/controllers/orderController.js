@@ -1,304 +1,304 @@
-import { Order } from '../models/Order.js';
-import { Product } from '../models/Product.js';
-import { Notification } from '../models/Notification.js';
+import { Order } from "../models/Order.js";
+import { Product } from "../models/Product.js";
 
-// @desc    Create new order (with stock check, reduction & dynamic pricing B2B/B2C)
-// @route   POST /api/v1/orders
+// ==========================================
+// CREATE ORDER
+// POST /api/v1/orders
+// ==========================================
+
 export const createOrder = async (req, res) => {
   try {
-    const { 
-      orderItems, 
-      shippingAddress, 
-      phone, 
-      customerName, 
-      paymentMethod, 
-      senderNumber, 
+    const {
+      orderItems,
+      shippingAddress,
+      phone,
+      customerName,
+      paymentMethod,
+      senderNumber,
       transactionId,
-      shippingFee
+      shippingFee,
     } = req.body;
 
+    // Check order items
     if (!orderItems || orderItems.length === 0) {
-      return res.status(400).json({ success: false, message: 'No order items' });
+      return res.status(400).json({
+        success: false,
+        message: "No order items",
+      });
     }
 
-    let itemsPrice = 0;
-    let isB2BOrder = false;
+    // Check shipping information
+    if (!customerName || !phone || !shippingAddress) {
+      return res.status(400).json({
+        success: false,
+        message: "Customer name, phone and shipping address are required",
+      });
+    }
+
+    // Calculate subtotal
+    let subtotal = 0;
+
     const processedOrderItems = [];
 
     for (const item of orderItems) {
       const productId = item.product || item.productId;
-      const product = await Product.findById(productId);
-      
-      if (!product) {
-        return res.status(404).json({ success: false, message: `Product not found` });
-      }
 
-      const orderQty = Number(item.quantity || item.qty) || 1;
-
-      // ১. স্টক পর্যাপ্ত আছে কিনা চেক করা
-      if (product.stock < orderQty) {
-        return res.status(400).json({ 
-          success: false, 
-          message: `Insufficient stock for ${product.name}. Available: ${product.stock} items` 
+      if (!productId) {
+        return res.status(400).json({
+          success: false,
+          message: "Product ID is missing",
         });
       }
 
-      // ২. B2B বা B2C দাম নির্ধারণ
-      let itemPrice = product.retailPrice || item.price;
-      if (req.user && req.user.role === 'wholesaler' && orderQty >= product.minWholesaleQty) {
-        itemPrice = product.wholesalePrice || product.retailPrice;
-        isB2BOrder = true;
+      const product = await Product.findById(productId);
+
+      if (!product) {
+        return res.status(404).json({
+          success: false,
+          message: `Product not found`,
+        });
       }
 
-      itemsPrice += itemPrice * orderQty;
+      const quantity = Number(item.quantity) || 1;
 
-      // ৩. স্কিমা অনুযায়ী quantity নাম ব্যবহার করা হলো
+      /*
+       * IMPORTANT:
+       * এখানে stock কমানো হচ্ছে না।
+       * শুধু order-এর জন্য product পাওয়া যাচ্ছে কিনা
+       * সেটা check করা হচ্ছে।
+       */
+
+      const price =
+        Number(item.price) ||
+        Number(product.price) ||
+        Number(product.retailPrice) ||
+        0;
+
+      subtotal += price * quantity;
+
       processedOrderItems.push({
         product: product._id,
-        name: product.name,
-        image: item.image || product.image || '',
-        price: itemPrice,
-        quantity: orderQty,
-        size: item.size || item.selectedSize || 'N/A',
-        color: item.color || item.selectedColor || 'N/A',
+
+        name: item.name || product.name || product.title || "Product",
+
+        image: item.image || product.image || "",
+
+        price,
+
+        quantity,
+
+        size: item.size || item.selectedSize || "N/A",
+
+        color: item.color || item.selectedColor || "N/A",
       });
     }
 
-   
+    // Simple delivery charge
+    const deliveryFee = shippingFee !== undefined ? Number(shippingFee) : 100;
 
-    const taxPrice = itemsPrice * 0.05; // ৫% ভ্যাট
-    const deliveryFee = shippingFee !== undefined ? Number(shippingFee) : (itemsPrice > 5000 ? 0 : 100);
-    const calculatedTotalAmount = itemsPrice + taxPrice + deliveryFee;
+    // Final total
+    const totalAmount = subtotal + deliveryFee;
 
-    // 💳 পেমেন্ট মেথড চেক: ক্যাশ অন ডেলিভারি না হলে অটো Paid হবে
-    const isOnlinePayment = paymentMethod && paymentMethod !== 'Cash on Delivery';
+    // Payment information
+    const isCashOnDelivery = paymentMethod === "Cash on Delivery";
 
-    // ৫. স্কিমা অনুযায়ী totalAmount এবং সঠিক ফিল্ড দিয়ে অর্ডার ক্রিয়েট করা
+    /*
+     * Online payment automatically Paid করা হচ্ছে না।
+     * আপাতত সব নতুন order Pending থাকবে।
+     */
     const order = await Order.create({
-      user: req.user._id,
-      customerName: customerName || req.user.name,
-      phone: phone || '',
-        orderStatus: 'Pending',
+      user: req.user?._id || null,
 
-  statusHistory: [
-    {
-      status: 'Pending',
-      changedAt: new Date(),
-    },
-  ],
-      shippingAddress: typeof shippingAddress === 'object' 
-        ? `${shippingAddress.street || ''}, ${shippingAddress.city || ''}` 
-        : shippingAddress,
+      customerName,
+
+      phone,
+
+      shippingAddress:
+        typeof shippingAddress === "object"
+          ? `${shippingAddress.street || ""}, ${shippingAddress.city || ""}`
+          : shippingAddress,
+
       orderItems: processedOrderItems,
-      paymentMethod: paymentMethod || 'Cash on Delivery',
-      senderNumber: senderNumber || '',
-      transactionId: transactionId || '',
-      
-      // পেমেন্ট স্ট্যাটাস ফিল্ডসমূহ
-      paymentStatus: isOnlinePayment ? 'Paid' : 'Pending',
-      isPaid: isOnlinePayment,
-      paidAt: isOnlinePayment ? Date.now() : null,
 
-      itemsPrice,
-      taxPrice,
-      shippingPrice: deliveryFee,
-      totalAmount: calculatedTotalAmount, 
-      totalPrice: calculatedTotalAmount,  
-      orderType: isB2BOrder ? 'B2B' : 'B2C',
+      paymentMethod: paymentMethod || "Cash on Delivery",
+
+      senderNumber: isCashOnDelivery ? "" : senderNumber || "",
+
+      transactionId: isCashOnDelivery ? "" : transactionId || "",
+
+      paymentStatus: "Pending",
+
+      isPaid: false,
+
+      paidAt: null,
+
+      subtotal,
+
+      shippingFee: deliveryFee,
+
+      totalAmount,
+
+      orderStatus: "Pending",
     });
 
-    res.status(201).json({ 
-      success: true, 
-      message: 'Order created successfully',
-      data: order 
-    });
-
-  } catch (error) {
-    console.error('Order creation error:', error);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-// @desc    Get logged in user's orders
-// @route   GET /api/v1/orders/myorders
-export const getMyOrders = async (req, res) => {
-  try {
-    const orders = await Order.find({ user: req.user._id }).sort({ createdAt: -1 });
-    res.status(200).json({ success: true, count: orders.length, data: orders });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-// @desc    Get order by ID
-// @route   GET /api/v1/orders/:id
-export const getOrderById = async (req, res) => {
-  try {
-    const order = await Order.findById(req.params.id).populate('user', 'name email');
-    if (!order) {
-      return res.status(404).json({ success: false, message: 'Order not found' });
-    }
-    res.status(200).json({ success: true, data: order });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-// @desc    Update order to delivered (Admin only)
-// @route   PUT /api/v1/orders/:id/deliver
-export const updateOrderToDelivered = async (req, res) => {
-  try {
-    const order = await Order.findById(req.params.id);
-    if (!order) {
-      return res.status(404).json({ success: false, message: 'Order not found' });
-    }
-
-    order.isDelivered = true;
-    order.deliveredAt = Date.now();
-    const updatedOrder = await order.save();
-
-    res.status(200).json({ success: true, message: 'Order marked as delivered', data: updatedOrder });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-// @desc    Update order status (Admin only)
-// @route   PUT /api/v1/orders/:id/status
-export const updateOrderStatus = async (req, res) => {
-  try {
-    const { status } = req.body;
-
-    const order = await Order.findById(req.params.id);
-
-    if (!order) {
-      return res.status(404).json({
-        success: false,
-        message: 'Order not found',
-      });
-    }
-
-    // Previous status
-    const previousStatus = order.orderStatus;
-
-    // -----------------------------------------
-    // STOCK REDUCTION
-    // Only when Pending -> Confirmed
-    // -----------------------------------------
-    if (
-      previousStatus === 'Pending' &&
-      status === 'Confirmed' &&
-      !order.stockReduced
-    ) {
-      // আগে সব product-এর stock check
-      for (const item of order.orderItems) {
-        const product = await Product.findById(item.product);
-
-        if (!product) {
-          return res.status(404).json({
-            success: false,
-            message: `Product not found: ${item.name}`,
-          });
-        }
-
-        if (product.stock < item.quantity) {
-          return res.status(400).json({
-            success: false,
-            message: `Insufficient stock for ${product.name}. Available: ${product.stock}, Required: ${item.quantity}`,
-          });
-        }
-      }
-
-      // Stock কমানো
-      for (const item of order.orderItems) {
-        const product = await Product.findById(item.product);
-
-        if (product) {
-          product.stock -= item.quantity;
-
-          await product.save();
-        }
-      }
-
-      // Prevent duplicate stock reduction
-      order.stockReduced = true;
-    }
-
-    // -----------------------------------------
-    // UPDATE ORDER STATUS
-    // -----------------------------------------
-
-
-
-    order.orderStatus = status;
-
-// Save status change history
-order.statusHistory.push({
-  status: status,
-  changedAt: new Date(),
-});
-
-
-
-    // Delivered হলে payment update
-    if (status === 'Delivered') {
-      order.isDelivered = true;
-      order.deliveredAt = Date.now();
-
-      // Cash on Delivery হলে Delivered হওয়ার পর Paid
-      order.isPaid = true;
-      order.paymentStatus = 'Paid';
-      order.paidAt = Date.now();
-    } else {
-      order.isDelivered = false;
-    }
-
-    const updatedOrder = await order.save();
-
-    // -----------------------------------------
-    // USER NOTIFICATION
-    // -----------------------------------------
-
-    if (order.user) {
-      try {
-        await Notification.create({
-          user: order.user,
-          message: `আপনার অর্ডার #${order._id
-            .toString()
-            .slice(-8)} এর স্ট্যাটাস আপডেট হয়েছে: ${status}`,
-          orderId: order._id,
-        });
-      } catch (notifError) {
-        console.error('Notification error:', notifError);
-      }
-    }
-
-    res.status(200).json({
+    return res.status(201).json({
       success: true,
-      message:
-        status === 'Confirmed' && order.stockReduced
-          ? 'Order confirmed and stock updated successfully'
-          : `Order status updated to ${status}`,
-      data: updatedOrder,
+      message: "Order created successfully",
+      data: order,
     });
-
   } catch (error) {
-    console.error('Update order status error:', error);
+    console.error("Order creation error:", error);
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: error.message,
     });
   }
 };
 
-// @desc    Get all orders (Admin only)
-// @route   GET /api/v1/orders
+// ==========================================
+// GET MY ORDERS
+// GET /api/v1/orders/myorders
+// ==========================================
+
+export const getMyOrders = async (req, res) => {
+  try {
+    const orders = await Order.find({
+      user: req.user._id,
+    }).sort({
+      createdAt: -1,
+    });
+
+    return res.status(200).json({
+      success: true,
+      count: orders.length,
+      data: orders,
+    });
+  } catch (error) {
+    console.error("Get my orders error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// ==========================================
+// GET SINGLE ORDER
+// GET /api/v1/orders/:id
+// ==========================================
+
+export const getOrderById = async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id).populate(
+      "user",
+      "name email",
+    );
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: order,
+    });
+  } catch (error) {
+    console.error("Get order error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// ==========================================
+// UPDATE ORDER STATUS
+// PUT /api/v1/orders/:id/status
+// ==========================================
+
+export const updateOrderStatus = async (req, res) => {
+  try {
+    const { status } = req.body;
+
+    const allowedStatuses = [
+      "Pending",
+      "Confirmed",
+      "Processing",
+      "Shipped",
+      "Delivered",
+      "Cancelled",
+    ];
+
+    if (!allowedStatuses.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid order status",
+      });
+    }
+
+    const order = await Order.findById(req.params.id);
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found",
+      });
+    }
+
+    order.orderStatus = status;
+
+    // COD order becomes paid when delivered
+    if (status === "Delivered" && order.paymentMethod === "Cash on Delivery") {
+      order.isPaid = true;
+      order.paymentStatus = "Paid";
+      order.paidAt = new Date();
+    }
+
+    const updatedOrder = await order.save();
+
+    return res.status(200).json({
+      success: true,
+      message: `Order status updated to ${status}`,
+      data: updatedOrder,
+    });
+  } catch (error) {
+    console.error("Update order status error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// ==========================================
+// GET ALL ORDERS
+// GET /api/v1/orders
+// ==========================================
+
 export const getAllOrders = async (req, res) => {
   try {
-    const orders = await Order.find({}).populate('user', 'id name email').sort({ createdAt: -1 });
-    res.status(200).json({ success: true, count: orders.length, data: orders });
+    const orders = await Order.find({}).populate("user", "name email").sort({
+      createdAt: -1,
+    });
+
+    return res.status(200).json({
+      success: true,
+      count: orders.length,
+      data: orders,
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error("Get all orders error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
   }
 };

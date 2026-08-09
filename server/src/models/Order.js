@@ -1,110 +1,151 @@
-// File Path: models/orderModel.js
+import mongoose from "mongoose";
 
-import mongoose from 'mongoose';
+const orderItemSchema = new mongoose.Schema(
+  {
+    product: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Product",
+      required: true,
+    },
 
-const orderItemSchema = new mongoose.Schema({
-  product: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Product',
-    required: true,
+    name: {
+      type: String,
+      required: true,
+    },
+
+    image: {
+      type: String,
+      default: "",
+    },
+
+    price: {
+      type: Number,
+      required: true,
+    },
+
+    quantity: {
+      type: Number,
+      required: true,
+      min: 1,
+    },
+
+    size: {
+      type: String,
+      default: "N/A",
+    },
+
+    color: {
+      type: String,
+      default: "N/A",
+    },
   },
-  name: { type: String, required: true },
-  image: { type: String, required: true },
-  price: { type: Number, required: true },
-  quantity: { type: Number, required: true },
-  size: { type: String, default: 'N/A' },
-  color: { type: String, default: 'N/A' },
-});
+  { _id: false },
+);
 
 const orderSchema = new mongoose.Schema(
   {
     user: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
+      ref: "User",
       required: false,
     },
-    customerName: { type: String, required: true },
-    phone: { type: String, required: true },
-    shippingAddress: { type: String, required: true },
-    
-    orderItems: [orderItemSchema],
-    
-    paymentMethod: {
+
+    customerName: {
       type: String,
       required: true,
-      enum: ['Cash on Delivery', 'bKash', 'Nagad'],
-      default: 'Cash on Delivery',
+      trim: true,
     },
 
-    // বিকাশ বা নগদের জন্য সেন্ডার ও ট্রানজ্যাকশন আইডি
-    senderNumber: { type: String, default: '' },
-    transactionId: { type: String, default: '' },
-    
-    // 💳 পেমেন্ট স্ট্যাটাস ট্র্যাকিং ফিল্ডস
+    phone: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
+    shippingAddress: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
+    orderItems: {
+      type: [orderItemSchema],
+      required: true,
+      validate: {
+        validator: (items) => items.length > 0,
+        message: "Order must contain at least one item",
+      },
+    },
+
+    paymentMethod: {
+      type: String,
+      enum: ["Cash on Delivery", "bKash", "Nagad"],
+      default: "Cash on Delivery",
+      required: true,
+    },
+
+    senderNumber: {
+      type: String,
+      default: "",
+    },
+
+    transactionId: {
+      type: String,
+      default: "",
+    },
+
     paymentStatus: {
       type: String,
-      enum: ['Pending', 'Paid', 'Failed'],
-      default: 'Pending',
+      enum: ["Pending", "Paid", "Failed"],
+      default: "Pending",
     },
+
     isPaid: {
       type: Boolean,
       default: false,
     },
+
     paidAt: {
       type: Date,
+      default: null,
     },
 
-    totalAmount: { type: Number, required: true },
-    shippingFee: { type: Number, required: true, default: 100 },
-    
-    orderStatus: {
-      type: String,
+    subtotal: {
+      type: Number,
       required: true,
-      enum: ['Pending', 'Confirmed', 'Processing', 'Shipped', 'Delivered', 'Cancelled'], 
-      default: 'Pending',
+      min: 0,
     },
-    orderStatus: {
-  type: String,
-  required: true,
-  enum: [
-    'Pending',
-    'Confirmed',
-    'Processing',
-    'Shipped',
-    'Delivered',
-    'Cancelled'
-  ],
-  default: 'Pending',
-},
 
-// Order status change history
-statusHistory: [
-  {
-    status: {
+    shippingFee: {
+      type: Number,
+      required: true,
+      default: 100,
+      min: 0,
+    },
+
+    totalAmount: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
+
+    orderStatus: {
       type: String,
       enum: [
-        'Pending',
-        'Confirmed',
-        'Processing',
-        'Shipped',
-        'Delivered',
-        'Cancelled'
+        "Pending",
+        "Confirmed",
+        "Processing",
+        "Shipped",
+        "Delivered",
+        "Cancelled",
       ],
+      default: "Pending",
       required: true,
     },
-    changedAt: {
-      type: Date,
-      default: Date.now,
-    },
   },
-],
-
-    stockReduced: {
-  type: Boolean,
-  default: false,
-},
+  {
+    timestamps: true,
   },
-  { timestamps: true }
 );
 
-export const Order = mongoose.model('Order', orderSchema);
+export const Order = mongoose.model("Order", orderSchema);

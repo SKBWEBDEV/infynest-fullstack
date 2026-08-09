@@ -9,7 +9,9 @@ import {
   HiCheck,
   HiHeart,
   HiEye,
+  HiLightningBolt,
 } from "react-icons/hi";
+
 import { useCart } from "../context/CartContext";
 
 const API_URL = import.meta.env.VITE_API_URL;
@@ -48,7 +50,7 @@ export default function ProductDetails() {
         setProduct(productData);
 
         // ==========================================
-        // SELECT FIRST IMAGE
+        // FIRST IMAGE
         // ==========================================
         if (
           Array.isArray(productData?.images) &&
@@ -60,14 +62,14 @@ export default function ProductDetails() {
         }
 
         // ==========================================
-        // SELECT FIRST SIZE
+        // FIRST SIZE
         // ==========================================
         if (Array.isArray(productData?.sizes) && productData.sizes.length > 0) {
           setSelectedSize(productData.sizes[0]);
         }
 
         // ==========================================
-        // SELECT FIRST COLOR
+        // FIRST COLOR
         // ==========================================
         if (
           Array.isArray(productData?.colors) &&
@@ -174,7 +176,6 @@ export default function ProductDetails() {
       ? Number(product.discountPrice)
       : null;
 
-  // Discount is valid only if it is lower than retail
   const hasDiscount =
     discountPrice !== null &&
     !Number.isNaN(discountPrice) &&
@@ -182,15 +183,12 @@ export default function ProductDetails() {
     retailPrice > 0 &&
     discountPrice < retailPrice;
 
-  // Customer's actual price
   const finalPrice = hasDiscount ? discountPrice : retailPrice;
 
-  // Discount percentage
   const discountPercentage = hasDiscount
     ? Math.round(((retailPrice - discountPrice) / retailPrice) * 100)
     : 0;
 
-  // Saved amount
   const savedAmount = hasDiscount ? retailPrice - discountPrice : 0;
 
   // ==========================================
@@ -238,20 +236,35 @@ export default function ProductDetails() {
   };
 
   // ==========================================
-  // ADD TO CART
+  // VALIDATE PRODUCT OPTIONS
   // ==========================================
-  const handleAddToCart = () => {
+  const validateProductOptions = () => {
     if (product.sizes && product.sizes.length > 0 && !selectedSize) {
-      alert("Please select a size before adding to cart.");
-      return;
+      alert("Please select a size before continuing.");
+
+      return false;
     }
 
     if (product.colors && product.colors.length > 0 && !selectedColor) {
-      alert("Please select a color before adding to cart.");
-      return;
+      alert("Please select a color before continuing.");
+
+      return false;
     }
 
-    const cartItem = {
+    if (!product.stock || product.stock <= 0) {
+      alert("This product is currently out of stock.");
+
+      return false;
+    }
+
+    return true;
+  };
+
+  // ==========================================
+  // CREATE CART ITEM
+  // ==========================================
+  const createCartItem = () => {
+    return {
       cartId: `${product._id}-${
         selectedSize || "nosize"
       }-${selectedColor || "nocolor"}`,
@@ -260,14 +273,13 @@ export default function ProductDetails() {
 
       name: product.name,
 
-      // IMPORTANT:
-      // Discount price থাকলে সেটাই cart price হবে
+      // Discount price becomes actual price
       price: finalPrice,
 
-      // Original retail price রাখা হলো
+      // Original price
       retailPrice: retailPrice,
 
-      // Discount price থাকলে সেটাও রাখা হলো
+      // Discount price
       discountPrice: hasDiscount ? discountPrice : null,
 
       image: selectedImage,
@@ -280,6 +292,17 @@ export default function ProductDetails() {
 
       stock: product.stock || 10,
     };
+  };
+
+  // ==========================================
+  // ADD TO CART
+  // ==========================================
+  const handleAddToCart = () => {
+    if (!validateProductOptions()) {
+      return;
+    }
+
+    const cartItem = createCartItem();
 
     addToCart(cartItem);
 
@@ -288,6 +311,23 @@ export default function ProductDetails() {
     setTimeout(() => {
       setSuccessMessage("");
     }, 3000);
+  };
+
+  // ==========================================
+  // BUY NOW
+  // ==========================================
+  const handleBuyNow = () => {
+    if (!validateProductOptions()) {
+      return;
+    }
+
+    const cartItem = createCartItem();
+
+    // Add product to cart first
+    addToCart(cartItem);
+
+    // Then directly go to checkout/order page
+    navigate("/cart");
   };
 
   // ==========================================
@@ -412,23 +452,23 @@ export default function ProductDetails() {
               </h1>
 
               {/* =================================
-                  PRICE SECTION
+                  PRICE
               ================================= */}
               <div className="space-y-2">
                 <div className="flex flex-wrap items-center gap-3">
-                  {/* FINAL / DISCOUNT PRICE */}
+                  {/* FINAL PRICE */}
                   <span className="text-2xl md:text-3xl font-black text-purple-400">
                     ৳{finalPrice}
                   </span>
 
-                  {/* ORIGINAL RETAIL PRICE */}
+                  {/* ORIGINAL PRICE */}
                   {hasDiscount && (
                     <span className="text-base md:text-lg text-gray-500 line-through font-semibold">
                       ৳{retailPrice}
                     </span>
                   )}
 
-                  {/* DISCOUNT BADGE */}
+                  {/* DISCOUNT */}
                   {hasDiscount && (
                     <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-green-500/10 border border-green-500/20 text-green-400 text-[10px] font-black">
                       {discountPercentage}% OFF
@@ -436,7 +476,7 @@ export default function ProductDetails() {
                   )}
                 </div>
 
-                {/* SAVING MESSAGE */}
+                {/* SAVING */}
                 {hasDiscount && (
                   <div className="flex items-center gap-2">
                     <span className="text-[11px] text-green-400 font-bold">
@@ -451,7 +491,6 @@ export default function ProductDetails() {
                   </div>
                 )}
 
-                {/* NO DISCOUNT */}
                 {!hasDiscount && (
                   <p className="text-[10px] text-gray-500">Regular price</p>
                 )}
@@ -519,13 +558,12 @@ export default function ProductDetails() {
               {/* =================================
                   STOCK
               ================================= */}
-
               <div className="flex items-center gap-2 text-xs font-medium pt-1">
                 <span
                   className={`w-2 h-2 rounded-full ${
                     product.stock > 0 ? "bg-green-500" : "bg-red-500"
                   }`}
-                ></span>
+                />
 
                 <span
                   className={
@@ -581,20 +619,38 @@ export default function ProductDetails() {
                 </div>
               </div>
 
-              {/* Add To Cart */}
-              <button
-                onClick={handleAddToCart}
-                disabled={product.stock <= 0}
-                className={`w-full py-3.5 rounded-2xl text-xs font-bold flex items-center justify-center gap-2 shadow-lg transition cursor-pointer ${
-                  product.stock > 0
-                    ? "bg-purple-600 hover:bg-purple-700 text-white shadow-purple-600/20"
-                    : "bg-gray-800 text-gray-500 cursor-not-allowed"
-                }`}
-              >
-                <HiShoppingBag size={18} />
-                Add to Cart
-                <span className="ml-1 opacity-80">• ৳{finalPrice}</span>
-              </button>
+              {/* ====================================
+                  BUTTONS
+              ==================================== */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* ADD TO CART */}
+                <button
+                  onClick={handleAddToCart}
+                  disabled={product.stock <= 0}
+                  className={`w-full py-3.5 rounded-2xl text-xs font-bold flex items-center justify-center gap-2 shadow-lg transition cursor-pointer ${
+                    product.stock > 0
+                      ? "bg-gray-800 hover:bg-gray-700 text-white border border-gray-700"
+                      : "bg-gray-800 text-gray-500 cursor-not-allowed"
+                  }`}
+                >
+                  <HiShoppingBag size={18} />
+                  Add to Cart
+                </button>
+
+                {/* BUY NOW */}
+                <button
+                  onClick={handleBuyNow}
+                  disabled={product.stock <= 0}
+                  className={`w-full py-3.5 rounded-2xl text-xs font-bold flex items-center justify-center gap-2 shadow-lg transition cursor-pointer ${
+                    product.stock > 0
+                      ? "bg-purple-600 hover:bg-purple-700 text-white shadow-purple-600/20"
+                      : "bg-gray-800 text-gray-500 cursor-not-allowed"
+                  }`}
+                >
+                  <HiLightningBolt size={18} />
+                  Buy Now
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -670,7 +726,7 @@ export default function ProductDetails() {
                         </span>
                       )}
 
-                      {/* Related Discount Badge */}
+                      {/* DISCOUNT */}
                       {itemHasDiscount && (
                         <span className="absolute top-2 right-2 bg-red-500 text-white text-[8px] font-black px-2 py-1 rounded-md">
                           {itemDiscountPercentage}% OFF
@@ -678,7 +734,7 @@ export default function ProductDetails() {
                       )}
                     </div>
 
-                    {/* PRODUCT INFO */}
+                    {/* INFO */}
                     <div className="space-y-1.5">
                       <h3 className="font-bold text-white text-[11px] md:text-xs truncate group-hover:text-purple-400 transition">
                         {item.name}
