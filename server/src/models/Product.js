@@ -76,23 +76,18 @@ const productSchema = new mongoose.Schema(
       min: [1, "Minimum wholesale quantity must be at least 1"],
     },
 
-    // ==========================================
-    // CATEGORY
-    // ==========================================
-    category: {
-      type: String,
-      required: [true, "Design category is required"],
-      enum: [
-        "spider-man",
-        "chainsaw-man",
-        "stranger-things",
-        "ghost-rider",
-        "essentials",
-        "anime",
-        "venom",
-      ],
-      trim: true,
-    },
+// ==========================================
+// CATEGORY
+// ==========================================
+category: {
+  type: String,
+  required: [true, "Design category is required"],
+  enum: [
+    "regular-fit",
+  ],
+  default: "regular-fit",
+  trim: true,
+},
 
     // ==========================================
     // SIZES
@@ -151,6 +146,13 @@ const productSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    // ==========================================
+// NEW ARRIVAL
+// ==========================================
+isNewArrival: {
+  type: Boolean,
+  default: false,
+},
   },
   {
     timestamps: true,

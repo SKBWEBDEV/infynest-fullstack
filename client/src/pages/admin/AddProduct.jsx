@@ -17,9 +17,10 @@ export default function AddProduct() {
   const [stock, setStock] = useState("");
 
   // Design Category
-  const [category, setCategory] = useState("spider-man");
+  const [category, setCategory] = useState("regular-fit");
+const [isNewArrival, setIsNewArrival] = useState(false);
 
-  const [sizes, setSizes] = useState("");
+const [sizes, setSizes] = useState("");
   const [colors, setColors] = useState("");
   const [tags, setTags] = useState("");
   const [description, setDescription] = useState("");
@@ -121,6 +122,7 @@ export default function AddProduct() {
       data.append("category", category);
       data.append("stock", Number(stock));
       data.append("isFeatured", String(isFeatured));
+      data.append("isNewArrival", String(isNewArrival));
 
       // ==========================================
       // DISCOUNT PRICE
@@ -352,21 +354,13 @@ export default function AddProduct() {
                 </label>
 
                 <select
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  required
-                  className="w-full p-3.5 bg-[#1e222d] border border-gray-800 rounded-xl text-white focus:outline-none focus:border-purple-500 transition cursor-pointer"
-                >
-                  <option value="spider-man">Regular Fit</option>
-                  <option value="chainsaw-man">Drop Shoulder</option>
-                  <option value="stranger-things">
-                    Stranger Things
-                  </option>
-                  {/* <option value="ghost-rider">Ghost Rider</option> */}
-                  <option value="essentials">Essentials</option>
-                  {/* <option value="anime">Anime</option> */}
-                  {/* <option value="venom">Venom</option> */}
-                </select>
+  value={category}
+  onChange={(e) => setCategory(e.target.value)}
+  required
+  className="w-full p-3.5 bg-[#1e222d] border border-gray-800 rounded-xl text-white focus:outline-none focus:border-purple-500 transition cursor-pointer"
+>
+  <option value="regular-fit">Regular Fit</option>
+</select>
               </div>
             </div>
 
@@ -522,32 +516,57 @@ export default function AddProduct() {
               />
             </div>
 
-            {/* ==========================================
-                FEATURED
-            ========================================== */}
-            <div className="bg-[#1e222d] border border-gray-800 rounded-xl p-4">
-              <label className="flex items-center gap-3 cursor-pointer">
 
-                <input
-                  type="checkbox"
-                  id="isFeatured"
-                  checked={isFeatured}
-                  onChange={(e) => setIsFeatured(e.target.checked)}
-                  className="w-4 h-4 accent-purple-600 cursor-pointer"
-                />
+{/* ==========================================
+    FEATURED
+========================================== */}
+<div className="bg-[#1e222d] border border-gray-800 rounded-xl p-4">
+  <label className="flex items-center gap-3 cursor-pointer">
+    <input
+      type="checkbox"
+      id="isFeatured"
+      checked={isFeatured}
+      onChange={(e) => setIsFeatured(e.target.checked)}
+      className="w-4 h-4 accent-purple-600 cursor-pointer"
+    />
 
-                <div>
-                  <p className="text-xs font-semibold text-gray-200">
-                    Mark as Featured Product
-                  </p>
+    <div>
+      <p className="text-xs font-semibold text-gray-200">
+        Mark as Featured Product
+      </p>
 
-                  <p className="text-[10px] text-gray-500 mt-0.5">
-                    Show this product in featured sections.
-                  </p>
-                </div>
+      <p className="text-[10px] text-gray-500 mt-0.5">
+        Show this product in featured sections.
+      </p>
+    </div>
+  </label>
+</div>
 
-              </label>
-            </div>
+{/* ==========================================
+    NEW ARRIVAL
+========================================== */}
+<div className="bg-[#1e222d] border border-gray-800 rounded-xl p-4">
+  <label className="flex items-center gap-3 cursor-pointer">
+    <input
+      type="checkbox"
+      id="isNewArrival"
+      checked={isNewArrival}
+      onChange={(e) => setIsNewArrival(e.target.checked)}
+      className="w-4 h-4 accent-purple-600 cursor-pointer"
+    />
+
+    <div>
+      <p className="text-xs font-semibold text-gray-200">
+        Mark as New Arrival
+      </p>
+
+      <p className="text-[10px] text-gray-500 mt-0.5">
+        Show this product in the New Arrivals section on Home.
+      </p>
+    </div>
+  </label>
+</div>
+
 
             {/* ==========================================
                 ACTION BUTTONS

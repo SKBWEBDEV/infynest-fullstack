@@ -7,18 +7,31 @@ import { Product } from "../models/Product.js";
 // ==========================================
 export const getProducts = async (req, res) => {
   try {
-    const { category, isFeatured } = req.query;
+    const { category, isFeatured, isNewArrival } = req.query;
 
+    // ==========================================
+    // BUILD QUERY
+    // ==========================================
     const query = {};
 
+    // CATEGORY FILTER
     if (category) {
       query.category = category;
     }
 
+    // FEATURED FILTER
     if (isFeatured !== undefined) {
       query.isFeatured = isFeatured === "true";
     }
 
+    // NEW ARRIVAL FILTER
+    if (isNewArrival !== undefined) {
+      query.isNewArrival = isNewArrival === "true";
+    }
+
+    // ==========================================
+    // GET PRODUCTS
+    // ==========================================
     const products = await Product.find(query).sort({
       createdAt: -1,
     });
@@ -84,6 +97,7 @@ export const createProduct = async (req, res) => {
       tags,
       stock,
       isFeatured,
+      isNewArrival,
       imageUrls,
     } = req.body;
 
@@ -94,6 +108,9 @@ export const createProduct = async (req, res) => {
       ? req.files.map((file) => `/uploads/${file.filename}`)
       : [];
 
+    // ==========================================
+    // IMAGE URLS
+    // ==========================================
     if (imageUrls) {
       try {
         const parsedUrls = JSON.parse(imageUrls);
@@ -118,7 +135,9 @@ export const createProduct = async (req, res) => {
         ? Number(discountPrice)
         : null;
 
-    // Backend validation
+    // ==========================================
+    // PRICE VALIDATION
+    // ==========================================
     if (
       parsedDiscountPrice !== null &&
       parsedDiscountPrice >= parsedRetailPrice
@@ -130,11 +149,11 @@ export const createProduct = async (req, res) => {
     }
 
     // ==========================================
-    // CREATE
+    // CREATE PRODUCT
     // ==========================================
     const product = await Product.create({
-      name,
-      description,
+      name: name?.trim(),
+      description: description?.trim(),
 
       retailPrice: parsedRetailPrice,
 
@@ -150,21 +169,32 @@ export const createProduct = async (req, res) => {
           ? Number(minWholesaleQty)
           : 1,
 
+      // CATEGORY
       category,
 
+      // ARRAYS
       sizes: sizes ? JSON.parse(sizes) : [],
 
       colors: colors ? JSON.parse(colors) : [],
 
       tags: tags ? JSON.parse(tags) : [],
 
+      // IMAGES
       images,
 
+      // STOCK
       stock: Number(stock),
 
+      // FEATURED
       isFeatured: isFeatured === true || isFeatured === "true",
+
+      // NEW ARRIVAL
+      isNewArrival: isNewArrival === true || isNewArrival === "true",
     });
 
+    // ==========================================
+    // RESPONSE
+    // ==========================================
     res.status(201).json({
       success: true,
       message: "Product created successfully",
@@ -198,6 +228,7 @@ export const updateProduct = async (req, res) => {
       tags,
       stock,
       isFeatured,
+      isNewArrival,
       imageUrls,
     } = req.body;
 
@@ -247,14 +278,18 @@ export const updateProduct = async (req, res) => {
     // ==========================================
     let images = Array.isArray(product.images) ? [...product.images] : [];
 
-    // New uploaded files
+    // ==========================================
+    // NEW UPLOADED FILES
+    // ==========================================
     if (req.files && req.files.length > 0) {
       const newImages = req.files.map((file) => `/uploads/${file.filename}`);
 
       images = [...images, ...newImages];
     }
 
-    // Image URLs
+    // ==========================================
+    // IMAGE URLS
+    // ==========================================
     if (imageUrls) {
       try {
         const parsedUrls = JSON.parse(imageUrls);
@@ -268,10 +303,11 @@ export const updateProduct = async (req, res) => {
     }
 
     // ==========================================
-    // UPDATE DOCUMENT
+    // UPDATE PRODUCT DATA
     // ==========================================
-    product.name = name;
-    product.description = description;
+    product.name = name?.trim();
+
+    product.description = description?.trim();
 
     product.retailPrice = parsedRetailPrice;
 
@@ -287,31 +323,58 @@ export const updateProduct = async (req, res) => {
         ? Number(minWholesaleQty)
         : 1;
 
+    // CATEGORY
     product.category = category;
 
+    // ==========================================
+    // SIZES
+    // ==========================================
     if (sizes !== undefined) {
       product.sizes = sizes ? JSON.parse(sizes) : [];
     }
 
+    // ==========================================
+    // COLORS
+    // ==========================================
     if (colors !== undefined) {
       product.colors = colors ? JSON.parse(colors) : [];
     }
 
+    // ==========================================
+    // TAGS
+    // ==========================================
     if (tags !== undefined) {
       product.tags = tags ? JSON.parse(tags) : [];
     }
 
+    // ==========================================
+    // IMAGES
+    // ==========================================
     product.images = images;
 
+    // ==========================================
+    // STOCK
+    // ==========================================
     product.stock = Number(stock);
 
+    // ==========================================
+    // FEATURED
+    // ==========================================
     product.isFeatured = isFeatured === true || isFeatured === "true";
+
+    // ==========================================
+    // NEW ARRIVAL
+    // ==========================================
+    product.isNewArrival = isNewArrival === true || isNewArrival === "true";
 
     // ==========================================
     // SAVE
     // ==========================================
     const updatedProduct = await product.save();
 
+    // ==========================================
+    // RESPONSE
+    // ==========================================
     res.status(200).json({
       success: true,
       message: "Product updated successfully",
