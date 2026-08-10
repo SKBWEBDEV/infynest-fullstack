@@ -70,13 +70,65 @@ export default function Layout() {
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
-      {/* ==================================================
-          ANNOUNCEMENT BAR
-      ================================================== */}
 
-      <div className="bg-gray-900 text-white text-xs sm:text-sm py-2 px-4 text-center tracking-wider">
-        🎉 Free Shipping on all orders over ৳2,000! | Hotline: +880 1234 567890
-      </div>
+
+{/* ==================================================
+    ANNOUNCEMENT BAR
+================================================== */}
+
+<div className="bg-gray-900 text-white overflow-hidden py-2">
+  <div className="flex w-max animate-marquee">
+    
+    <div className="flex shrink-0">
+      <span className="mx-8 text-xs sm:text-sm font-medium tracking-wide">
+        🎉 Free Shipping on all orders over ৳2,000! | Hotline: +880 19724-201770
+      </span>
+
+      <span className="mx-8 text-xs sm:text-sm font-medium tracking-wide">
+        🎉 Free Shipping on all orders over ৳2,000! | Hotline: +880 19724-201770
+      </span>
+
+      <span className="mx-8 text-xs sm:text-sm font-medium tracking-wide">
+        🎉 Free Shipping on all orders over ৳2,000! | Hotline: +880 19724-201770
+      </span>
+    </div>
+
+    {/* EXACT COPY */}
+    <div className="flex shrink-0">
+      <span className="mx-8 text-xs sm:text-sm font-medium tracking-wide">
+        🎉 Free Shipping on all orders over ৳2,000! | Hotline: +880 19724-201770
+      </span>
+
+      <span className="mx-8 text-xs sm:text-sm font-medium tracking-wide">
+        🎉 Free Shipping on all orders over ৳2,000! | Hotline: +880 19724-201770
+      </span>
+
+      <span className="mx-8 text-xs sm:text-sm font-medium tracking-wide">
+        🎉 Free Shipping on all orders over ৳2,000! | Hotline: +880 19724-201770
+      </span>
+    </div>
+
+  </div>
+
+  <style>{`
+    @keyframes marquee {
+      from {
+        transform: translateX(0);
+      }
+
+      to {
+        transform: translateX(-50%);
+      }
+    }
+
+    .animate-marquee {
+      animation: marquee 18s linear infinite;
+    }
+  `}</style>
+</div>
+
+
+      
 
       {/* ==================================================
           NAVBAR
@@ -88,6 +140,33 @@ export default function Layout() {
               LOGO
           ================================================== */}
 
+          <Link
+  to="/"
+  className="flex items-center py-2 select-none"
+>
+  <div className="inline-flex items-center font-black tracking-tight text-3xl sm:text-4xl md:text-5xl text-slate-700 font-sans">
+        
+    {/* INFY */}
+    <span className="tracking-tighter">INFY</span>
+
+    {/* N */}
+    <span className="text-blue-900 rounded-bl-xl">N</span>
+
+    {/* E - Perfect 5-line structured E matching exact height */}
+    <div className="inline-flex flex-col justify-between h-[0.72em] w-[0.52em] mx-[0.04em] self-center">
+      <div className="w-full h-[15%] bg-blue-900 rounded-full"></div>
+      <div className="w-[75%] h-[15%] bg-blue-900 rounded-full"></div>
+      <div className="w-full h-[15%] bg-blue-900 rounded-full"></div>
+      <div className="w-[75%] h-[15%] bg-blue-900 rounded-full"></div>
+      <div className="w-full h-[15%] bg-blue-900 rounded-full"></div>
+    </div>
+
+    {/* ST */}
+    <span>ST</span>
+
+  </div>
+</Link>
+{/* 
           <Link
             to="/"
             className="flex items-center text-2xl font-black tracking-wider py-2"
@@ -141,7 +220,7 @@ export default function Layout() {
                 </span>
               ))}
             </div>
-          </Link>
+          </Link> */}
 
           {/* ==================================================
               DESKTOP MENU

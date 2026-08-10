@@ -250,8 +250,7 @@ const filteredProducts =
                       <button
                         type="button"
                         onClick={() => handleBuyNow(item._id)}
-                        className="px-2.5 sm:px-3.5 py-2 bg-purple-600 hover:bg-purple-700 text-white text-[9px] sm:text-xs font-bold rounded-lg sm:rounded-xl transition flex items-center justify-center gap-1.5 shadow-md shadow-purple-600/30 cursor-pointer shrink-0"
-                      >
+                        className="px-2.5 sm:px-3.5 py-2 bg-purple-600 hover:bg-purple-700 text-white text-[9px] sm:text-xs font-bold rounded-lg sm:rounded-xl transition flex items-center justify-center gap-1.5 shadow-md shadow-purple-600/30 cursor-pointer shrink-0">
                         <HiShoppingBag size={13} />
 
                         <span>Buy Now</span>
