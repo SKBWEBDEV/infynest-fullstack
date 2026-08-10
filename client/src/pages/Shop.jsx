@@ -49,24 +49,24 @@ export default function Shop() {
   // ==========================================
   // CATEGORIES
   // ==========================================
-  const categories = [
-    "All",
-    ...new Set(
-      products
-        .map((product) => product.category)
-        .filter(Boolean)
-        .map((category) => category.trim()),
-    ),
-  ];
+const categoryOptions = [ 
+  { name: "Regular Fit", value: "spider-man", }, 
+  { name: "Drop Shoulder", value: "chainsaw-man", }, 
+  { name: "Stranger Things", value: "stranger-things", }, 
+  { name: "Essentials", value: "essentials", }, ];
 
-  const filteredProducts =
-    selectedCategory === "All"
-      ? products
-      : products.filter(
-          (item) =>
-            item.category?.trim().toLowerCase() ===
-            selectedCategory.toLowerCase(),
-        );
+
+const filteredProducts =
+  selectedCategory === "All"
+    ? products
+    : products.filter(
+        (item) =>
+          item.category?.trim().toLowerCase() ===
+          selectedCategory.toLowerCase(),
+      );
+
+
+
 
   // ==========================================
   // LOADING
@@ -105,26 +105,39 @@ export default function Shop() {
         {/* ======================================
             CATEGORY FILTER
         ====================================== */}
-        <div className="flex flex-wrap gap-2">
-          {categories.map((category) => (
-            <button
-              key={category}
-              type="button"
-              onClick={() => setSelectedCategory(category)}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
-                selectedCategory === category
-                  ? "bg-purple-600 text-white shadow-lg shadow-purple-600/30"
-                  : "bg-[#161920] text-gray-400 border border-gray-800 hover:text-white hover:border-gray-700"
-              }`}
-            >
-              {category === "All"
-                ? "All"
-                : category
-                    .replace(/-/g, " ")
-                    .replace(/\b\w/g, (char) => char.toUpperCase())}
-            </button>
-          ))}
-        </div>
+
+<div className="flex flex-wrap gap-2">
+  {/* ALL */}
+  <button
+    type="button"
+    onClick={() => setSelectedCategory("All")}
+    className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
+      selectedCategory === "All"
+        ? "bg-purple-600 text-white shadow-lg shadow-purple-600/30"
+        : "bg-[#161920] text-gray-400 border border-gray-800 hover:text-white hover:border-gray-700"
+    }`}
+  >
+    All
+  </button>
+
+  {/* FIXED DESIGN CATEGORIES */}
+  {categoryOptions.map((category) => (
+    <button
+      key={category.value}
+      type="button"
+      onClick={() => setSelectedCategory(category.value)}
+      className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
+        selectedCategory === category.value
+          ? "bg-purple-600 text-white shadow-lg shadow-purple-600/30"
+          : "bg-[#161920] text-gray-400 border border-gray-800 hover:text-white hover:border-gray-700"
+      }`}
+    >
+      {category.name}
+    </button>
+  ))}
+</div>
+
+
 
         {/* ======================================
             PRODUCT COUNT
