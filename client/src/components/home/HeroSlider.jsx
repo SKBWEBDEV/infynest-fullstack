@@ -9,28 +9,28 @@ export default function HeroSlider() {
   const slides = [
     {
       id: 1,
-      title: "Elegance In Every Single Thread.",
-      subtitle: "New Arrival 2026",
-      description:
-        "Explore our latest premium collection designed for your absolute comfort and style.",
+      // title: "Elegance In Every Single Thread.",
+      // subtitle: "New Arrival 2026",
+      // description:
+      //   "Explore our latest premium collection designed for your absolute comfort and style.",
       image: heroImage,
       link: "/shop",
     },
     {
       id: 2,
-      title: "Elegance In Every Single Thread.",
-      subtitle: "New Arrival 2026",
-      description:
-        "Explore our latest premium collection designed for your absolute comfort and style.",
+      // title: "Elegance In Every Single Thread.",
+      // subtitle: "New Arrival 2026",
+      // description:
+      //   "Explore our latest premium collection designed for your absolute comfort and style.",
       image: heroImageTwo,
       link: "/shop",
     },
     {
       id: 3,
-      title: "Elegance In Every Single Thread.",
-      subtitle: "New Arrival 2026",
-      description:
-        "Explore our latest premium collection designed for your absolute comfort and style.",
+      // title: "Elegance In Every Single Thread.",
+      // subtitle: "New Arrival 2026",
+      // description:
+      //   "Explore our latest premium collection designed for your absolute comfort and style.",
       image: heroImageThree,
       link: "/shop",
     },
@@ -69,7 +69,7 @@ export default function HeroSlider() {
               DARK OVERLAY
           ========================================= */}
 
-          <div className="absolute inset-0 bg-black/0" />
+          <div className="absolute inset-0 " />
 
           {/* =========================================
               EXTRA GRADIENT
@@ -92,7 +92,7 @@ export default function HeroSlider() {
               <div className="max-w-2xl">
                 {/* SUBTITLE */}
 
-                <div className="inline-flex items-center mb-4 sm:mb-5">
+                {/* <div className="inline-flex items-center mb-4 sm:mb-5">
                   <span className="px-3.5 py-1.5 rounded-full bg-indigo-600 text-white text-[11px] sm:text-xs font-bold tracking-wider uppercase shadow-lg shadow-indigo-900/30">
                     {slide.subtitle}
                   </span>
@@ -100,26 +100,25 @@ export default function HeroSlider() {
 
                 {/* TITLE */}
 
-                <h1 className="text-3xl leading-tight sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight text-white drop-shadow-2xl">
+                {/* <h1 className="text-3xl leading-tight sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight text-white drop-shadow-2xl">
                   {slide.title}
-                </h1>
+                </h1> */}
 
                 {/* DESCRIPTION */}
 
-                <p className="mt-4 sm:mt-5 max-w-xl text-sm sm:text-base md:text-lg leading-relaxed text-white/90 font-medium drop-shadow-lg">
+                {/* <p className="mt-4 sm:mt-5 max-w-xl text-sm sm:text-base md:text-lg leading-relaxed text-white/90 font-medium drop-shadow-lg">
                   {slide.description}
-                </p>
+                </p> */}
 
                 {/* BUTTON */}
 
-                <div className="mt-6 sm:mt-8">
-                  <Link
-                    to={slide.link}
-                    className="inline-flex items-center justify-center rounded-full bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 px-6 sm:px-7 py-3 sm:py-3.5 text-sm sm:text-base font-bold text-white shadow-xl shadow-black/30 transition-all duration-300 hover:-translate-y-0.5"
-                  >
-                    Shop Collection
-                  </Link>
-                </div>
+                <div className="absolute inset-0 z-10 flex items-center justify-center">
+  <Link
+    to={slide.link}
+    className="rounded-full bg-indigo-600 hover:bg-indigo-700 px-7 py-3.5 text-white font-bold shadow-xl transition-all">
+    Shop Collection
+  </Link>
+</div>
               </div>
             </div>
           </div>

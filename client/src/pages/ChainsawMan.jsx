@@ -151,7 +151,7 @@ export default function ChainsawMan() {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="mb-6">
             <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
-              Chainsaw Man
+              Drop Shoulder
             </h1>
 
             <div className="mt-2 h-1 w-12 bg-indigo-600 rounded-full" />
@@ -208,7 +208,7 @@ export default function ChainsawMan() {
           <div className="flex items-center justify-between gap-4">
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
-                Chainsaw Man
+                Drop Shoulder
               </h1>
 
               <div className="mt-2 h-1 w-12 bg-indigo-600 rounded-full" />

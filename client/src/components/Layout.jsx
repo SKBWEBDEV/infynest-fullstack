@@ -7,6 +7,8 @@ import { HiShoppingBag, HiClipboardList, HiMenu, HiX } from "react-icons/hi";
 import { useCart } from "../context/CartContext";
 import NotificationBell from "./NotificationBell";
 
+import logo from "../assets/inf.png";
+
 // ======================================================
 // DESIGN CATEGORIES
 // ======================================================
@@ -140,32 +142,48 @@ export default function Layout() {
               LOGO
           ================================================== */}
 
-          <Link
+
+
+
+
+<Link
   to="/"
-  className="flex items-center py-2 select-none"
+  className="
+    group
+    flex
+    items-center
+    py-2
+    select-none
+    shrink-0
+  "
 >
-  <div className="inline-flex items-center font-black tracking-tight text-3xl sm:text-4xl md:text-5xl text-slate-700 font-sans">
-        
-    {/* INFY */}
-    <span className="tracking-tighter">INFY</span>
+  <img
+    src={logo}
+    alt="INFYNEST"
+    className="
+      h-9
+      sm:h-10
+      md:h-11
+      lg:h-15
+      w-auto
+      max-w-[170px]
+      sm:max-w-[190px]
+      md:max-w-[210px]
+      object-contain
 
-    {/* N */}
-    <span className="text-blue-900 rounded-bl-xl">N</span>
+      transition-all
+      duration-300
+      ease-out
 
-    {/* E - Perfect 5-line structured E matching exact height */}
-    <div className="inline-flex flex-col justify-between h-[0.72em] w-[0.52em] mx-[0.04em] self-center">
-      <div className="w-full h-[15%] bg-blue-900 rounded-full"></div>
-      <div className="w-[75%] h-[15%] bg-blue-900 rounded-full"></div>
-      <div className="w-full h-[15%] bg-blue-900 rounded-full"></div>
-      <div className="w-[75%] h-[15%] bg-blue-900 rounded-full"></div>
-      <div className="w-full h-[15%] bg-blue-900 rounded-full"></div>
-    </div>
-
-    {/* ST */}
-    <span>ST</span>
-
-  </div>
+      group-hover:scale-105
+    "
+  />
 </Link>
+
+
+
+
+
 {/* 
           <Link
             to="/"
@@ -524,13 +542,13 @@ export default function Layout() {
               </li>
 
               <li>
-                <Link to="/about" className="hover:text-white">
+                <Link to="" className="hover:text-white">
                   About Us
                 </Link>
               </li>
 
               <li>
-                <Link to="/contact" className="hover:text-white">
+                <Link to="" className="hover:text-white">
                   Contact
                 </Link>
               </li>
@@ -542,19 +560,19 @@ export default function Layout() {
 
             <ul className="space-y-2 text-sm text-gray-400">
               <li>
-                <a href="#faq" className="hover:text-white">
+                <a href="" className="hover:text-white">
                   FAQ
                 </a>
               </li>
 
               <li>
-                <a href="#shipping" className="hover:text-white">
+                <a href="" className="hover:text-white">
                   Shipping & Returns
                 </a>
               </li>
 
               <li>
-                <a href="#privacy" className="hover:text-white">
+                <a href="" className="hover:text-white">
                   Privacy Policy
                 </a>
               </li>
