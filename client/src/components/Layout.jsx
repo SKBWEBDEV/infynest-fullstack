@@ -162,7 +162,7 @@ export default function Layout() {
     alt="INFYNEST"
     className="
       h-9
-      sm:h-10
+      sm:h-5
       md:h-11
       lg:h-15
       w-auto

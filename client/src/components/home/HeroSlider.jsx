@@ -18,19 +18,11 @@ export default function HeroSlider() {
     },
     {
       id: 2,
-      // title: "Elegance In Every Single Thread.",
-      // subtitle: "New Arrival 2026",
-      // description:
-      //   "Explore our latest premium collection designed for your absolute comfort and style.",
       image: heroImageTwo,
       link: "/shop",
     },
     {
       id: 3,
-      // title: "Elegance In Every Single Thread.",
-      // subtitle: "New Arrival 2026",
-      // description:
-      //   "Explore our latest premium collection designed for your absolute comfort and style.",
       image: heroImageThree,
       link: "/shop",
     },
@@ -47,7 +39,7 @@ export default function HeroSlider() {
   }, [slides.length]);
 
   return (
-    <section className="relative w-full h-[520px] sm:h-[560px] md:h-[620px] overflow-hidden bg-gray-900">
+    <section className="relative w-full h-[220px] sm:h-[350px] md:h-[500px] lg:h-[600px] overflow-hidden">
       {slides.map((slide, index) => (
         <div
           key={slide.id}
@@ -59,11 +51,16 @@ export default function HeroSlider() {
               BACKGROUND IMAGE
           ========================================= */}
 
-          <img
-            src={slide.image}
-            alt={slide.title}
-            className="absolute inset-0 w-full h-full object-cover object-center"
-          />
+<img
+  src={slide.image}
+  alt={slide.title || "INFYNEST Banner"}
+  className="
+    absolute inset-0
+    w-full h-full
+    object-cover
+    object-center
+  "
+/>
 
           {/* =========================================
               DARK OVERLAY
@@ -113,11 +110,36 @@ export default function HeroSlider() {
                 {/* BUTTON */}
 
                 <div className="absolute inset-0 z-10 flex items-center justify-center">
-  <Link
-    to={slide.link}
-    className="rounded-full bg-indigo-600 hover:bg-indigo-700 px-7 py-3.5 text-white font-bold shadow-xl transition-all">
-    Shop Collection
-  </Link>
+<Link
+  to={slide.link}
+  className="
+    inline-flex
+    items-center
+    justify-center
+
+    px-4 py-2
+    sm:px-5 sm:py-2.5
+    md:px-6 md:py-3
+
+    rounded-lg
+    bg-indigo-600
+    text-white
+
+    text-[10px]
+    sm:text-xs
+    md:text-sm
+
+    font-semibold
+
+    shadow-lg
+    hover:bg-indigo-700
+    active:scale-95
+
+    transition
+  "
+>
+  Shop Collection
+</Link>
 </div>
               </div>
             </div>
