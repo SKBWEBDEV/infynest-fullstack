@@ -1,18 +1,22 @@
 // File Path: client/src/components/home/NewArrivals.jsx
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+
+import { Swiper, SwiperSlide } from "swiper/react";
+import { Autoplay, Navigation } from "swiper/modules";
+
+import "swiper/css";
+import "swiper/css/navigation";
+
 import API from "../../services/api";
 
 export default function NewArrivals() {
-  const scrollRef = useRef(null);
-
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [isPaused, setIsPaused] = useState(false);
 
   // ==========================================
-  // FETCH NEW ARRIVALS FROM DATABASE
+  // FETCH NEW ARRIVALS
   // ==========================================
   useEffect(() => {
     const fetchNewArrivals = async () => {
@@ -30,6 +34,7 @@ export default function NewArrivals() {
         setProducts(Array.isArray(productList) ? productList : []);
       } catch (error) {
         console.error("Failed to load new arrivals:", error);
+
         setProducts([]);
       } finally {
         setLoading(false);
@@ -40,7 +45,7 @@ export default function NewArrivals() {
   }, []);
 
   // ==========================================
-  // GET PRODUCT IMAGE
+  // GET IMAGE
   // ==========================================
   const getImage = (product) => {
     if (Array.isArray(product.images) && product.images.length > 0) {
@@ -52,17 +57,6 @@ export default function NewArrivals() {
     }
 
     return "/placeholder-product.jpg";
-  };
-
-  // ==========================================
-  // GET HOVER IMAGE
-  // ==========================================
-  const getHoverImage = (product) => {
-    if (Array.isArray(product.images) && product.images.length > 1) {
-      return product.images[1];
-    }
-
-    return getImage(product);
   };
 
   // ==========================================
@@ -87,105 +81,41 @@ export default function NewArrivals() {
   };
 
   // ==========================================
-  // CARD WIDTH
-  // ==========================================
-  const getCardWidth = () => {
-    if (window.innerWidth < 640) {
-      return 280 + 16;
-    }
-
-    return 320 + 24;
-  };
-
-  // ==========================================
-  // PREVIOUS
-  // ==========================================
-  const handlePrev = () => {
-    if (!scrollRef.current) return;
-
-    scrollRef.current.scrollBy({
-      left: -getCardWidth(),
-      behavior: "smooth",
-    });
-  };
-
-  // ==========================================
-  // NEXT
-  // ==========================================
-  const handleNext = () => {
-    if (!scrollRef.current) return;
-
-    scrollRef.current.scrollBy({
-      left: getCardWidth(),
-      behavior: "smooth",
-    });
-  };
-
-  // ==========================================
-  // AUTO SLIDE
-  // ==========================================
-  useEffect(() => {
-    if (isPaused || products.length <= 1) return;
-
-    const interval = setInterval(() => {
-      if (!scrollRef.current) return;
-
-      const container = scrollRef.current;
-
-      const maxScroll = container.scrollWidth - container.clientWidth;
-
-      if (container.scrollLeft >= maxScroll - 10) {
-        container.scrollTo({
-          left: 0,
-          behavior: "smooth",
-        });
-      } else {
-        container.scrollBy({
-          left: getCardWidth(),
-          behavior: "smooth",
-        });
-      }
-    }, 3000);
-
-    return () => clearInterval(interval);
-  }, [isPaused, products.length]);
-
-  // ==========================================
   // LOADING
   // ==========================================
   if (loading) {
     return (
-      <section className="py-10 sm:py-14">
+      <section className="py-8 sm:py-10">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-end justify-between mb-6">
+          {/* HEADER SKELETON */}
+          <div className="flex items-end justify-between mb-5">
             <div>
               <div className="h-7 w-40 bg-gray-200 rounded animate-pulse" />
+
               <div className="h-4 w-56 bg-gray-200 rounded mt-2 animate-pulse" />
             </div>
           </div>
 
-          <div className="flex gap-4 overflow-hidden">
-            {[1, 2, 3, 4].map((item) => (
+          {/* PRODUCT SKELETON */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+            {[1, 2, 3, 4, 5, 6].map((item) => (
               <div
                 key={item}
                 className="
-                  flex-none
-                  w-[280px]
-                  sm:w-[320px]
-                  bg-white
-                  rounded-lg
+                  bg-gray-100
+                  rounded-xl
                   overflow-hidden
-                  border
-                  border-gray-100
                   animate-pulse
                 "
               >
-                <div className="h-72 bg-gray-200" />
+                <div className="aspect-[3/4] bg-gray-200" />
 
-                <div className="p-4">
-                  <div className="h-4 bg-gray-200 rounded" />
-                  <div className="h-5 w-24 bg-gray-200 rounded mt-3" />
-                  <div className="h-10 bg-gray-200 rounded mt-4" />
+                <div className="p-3">
+                  <div className="h-3 bg-gray-200 rounded mb-2" />
+
+                  <div className="h-4 bg-gray-200 rounded w-3/4 mb-3" />
+
+                  <div className="h-8 bg-gray-200 rounded" />
                 </div>
               </div>
             ))}
@@ -196,19 +126,20 @@ export default function NewArrivals() {
   }
 
   // ==========================================
-  // NO NEW ARRIVALS
+  // NO PRODUCTS
   // ==========================================
   if (products.length === 0) {
     return null;
   }
 
   return (
-    <section className="py-10 sm:py-14">
+    <section className="py-8 sm:py-10">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        {/* ==========================================
+        {/* ======================================
             HEADER
-        ========================================== */}
-        <div className="flex items-end justify-between mb-6">
+        ====================================== */}
+        <div className="flex items-center justify-between gap-4 mb-5">
+          {/* TITLE */}
           <div>
             <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">
               New Arrivals
@@ -219,70 +150,85 @@ export default function NewArrivals() {
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
-            {/* DESKTOP ARROWS */}
-            <div className="hidden sm:flex gap-2">
-              <button
-                onClick={handlePrev}
-                className="
-                  p-2.5
-                  rounded-full
-                  border
-                  border-gray-300
-                  bg-white
-                  hover:bg-gray-900
-                  hover:text-white
-                  transition
-                  shadow-sm
-                "
-                aria-label="Previous"
+          {/* RIGHT SIDE */}
+          <div className="flex items-center gap-2">
+            {/* PREVIOUS */}
+            <button
+              type="button"
+              className="new-arrivals-prev hidden sm:flex
+                items-center
+                justify-center
+                w-8
+                h-8
+                sm:w-9
+                sm:h-9
+                rounded-full
+                border
+                border-gray-300
+                bg-white
+                text-gray-700
+                shadow-sm
+                hover:bg-gray-900
+                hover:text-white
+                hover:border-gray-900
+                transition
+              "
+              aria-label="Previous products"
+            >
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
               >
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M15 19l-7-7 7-7"
-                  />
-                </svg>
-              </button>
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M15 19l-7-7 7-7"
+                />
+              </svg>
+            </button>
 
-              <button
-                onClick={handleNext}
-                className="
-                  p-2.5
-                  rounded-full
-                  border
-                  border-gray-300
-                  bg-white
-                  hover:bg-gray-900
-                  hover:text-white
-                  transition
-                  shadow-sm
-                "
-                aria-label="Next"
+            {/* NEXT */}
+            <button
+              type="button"
+              className="new-arrivals-next hidden sm:flex
+                items-center
+                justify-center
+                w-8
+                h-8
+                sm:w-9
+                sm:h-9
+                rounded-full
+                border
+                border-gray-300
+                bg-white
+                text-gray-700
+                shadow-sm
+                hover:bg-gray-900
+                hover:text-white
+                hover:border-gray-900
+                transition
+              "
+              aria-label="Next products"
+            >
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
               >
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M9 5l7 7-7 7"
-                  />
-                </svg>
-              </button>
-            </div>
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M9 5l7 7-7 7"
+                />
+              </svg>
+            </button>
 
+            {/* VIEW ALL */}
             <Link
               to="/shop"
               className="
@@ -291,6 +237,7 @@ export default function NewArrivals() {
                 font-semibold
                 text-indigo-600
                 hover:text-indigo-800
+                transition
                 whitespace-nowrap
               "
             >
@@ -299,198 +246,247 @@ export default function NewArrivals() {
           </div>
         </div>
 
-        {/* ==========================================
-            PRODUCTS SLIDER
-        ========================================== */}
-        <div
-          ref={scrollRef}
-          onMouseEnter={() => setIsPaused(true)}
-          onMouseLeave={() => setIsPaused(false)}
-          className="
-            flex
-            gap-4
-            sm:gap-6
-            overflow-x-auto
-            py-2
-            scroll-smooth
-            no-scrollbar
-            w-full
-          "
-          style={{
-            scrollbarWidth: "none",
-            msOverflowStyle: "none",
+        {/* ======================================
+            PRODUCT SLIDER
+        ====================================== */}
+        <Swiper
+          modules={[Autoplay, Navigation]}
+          navigation={{
+            prevEl: ".new-arrivals-prev",
+            nextEl: ".new-arrivals-next",
           }}
+          loop={products.length >= 4}
+          autoplay={{
+            delay: 2500,
+            disableOnInteraction: false,
+            pauseOnMouseEnter: true,
+          }}
+          speed={700}
+          slidesPerView={2}
+          spaceBetween={10}
+          breakpoints={{
+            0: {
+              slidesPerView: 2,
+              spaceBetween: 10,
+            },
+
+            640: {
+              slidesPerView: 3,
+              spaceBetween: 14,
+            },
+
+            1024: {
+              slidesPerView: 6,
+              spaceBetween: 14,
+            },
+
+            1280: {
+              slidesPerView: 7,
+              spaceBetween: 16,
+            },
+          }}
+          className="!px-0 !pb-2"
         >
           {products.map((product) => {
             const productId = product._id || product.id;
 
             const image = getImage(product);
-            const hoverImage = getHoverImage(product);
 
             const { retailPrice, discountPrice, hasDiscount, finalPrice } =
               getPrice(product);
 
             return (
-              <div
-                key={productId}
-                className="
-                  group
-                  flex-none
-                  w-[280px]
-                  sm:w-[320px]
-                  bg-white
-                  rounded-lg
-                  shadow-sm
-                  border
-                  border-gray-100
-                  overflow-hidden
-                  hover:shadow-md
-                  transition
-                  flex
-                  flex-col
-                "
-              >
-                {/* ==================================
-                    IMAGE
-                ================================== */}
-                <Link to={`/product/${productId}`} className="block">
+              <SwiperSlide key={productId} className="!h-auto">
+                {/* =================================
+                    PRODUCT CARD
+                ================================= */}
+                <div
+                  className="
+                    group
+                    h-full
+                    bg-white
+                    rounded-xl
+                    overflow-hidden
+                    border
+                    border-gray-200
+                    shadow-sm
+                    hover:shadow-lg
+                    transition
+                  "
+                >
+                  {/* IMAGE */}
+                  <Link to={`/product/${productId}`} className="block">
+                    <div
+                      className="
+                        relative
+                        aspect-[3/4]
+                        overflow-hidden
+                        bg-gray-100
+                      "
+                    >
+                      {/* NEW BADGE */}
+                      <span
+                        className="
+                          absolute
+                          top-2
+                          left-2
+                          z-10
+                          bg-indigo-600
+                          text-white
+                          text-[8px]
+                          sm:text-[9px]
+                          font-bold
+                          px-1.5
+                          py-1
+                          rounded
+                        "
+                      >
+                        NEW
+                      </span>
+
+                      {/* PRODUCT IMAGE */}
+                      <img
+                        src={image}
+                        alt={product.name || "Product"}
+                        loading="lazy"
+                        className="
+                          w-full
+                          h-full
+                          object-cover
+                          transition-transform
+                          duration-500
+                          group-hover:scale-105
+                        "
+                        onError={(e) => {
+                          e.currentTarget.src = "/placeholder-product.jpg";
+                        }}
+                      />
+                    </div>
+                  </Link>
+
+                  {/* PRODUCT INFO */}
                   <div
                     className="
-                      relative
-                      h-72
-                      overflow-hidden
-                      bg-gray-100
+                      p-2
+                      sm:p-2.5
+                      lg:p-3
                     "
                   >
-                    {/* NEW ARRIVAL BADGE */}
-                    <span
+                    {/* PRODUCT TYPE */}
+                    <p
                       className="
-                        absolute
-                        top-3
-                        left-3
-                        z-20
-                        px-2.5
-                        py-1
-                        rounded-full
-                        bg-indigo-600
-                        text-white
-                        text-[9px]
-                        font-bold
+                        text-[8px]
+                        sm:text-[9px]
+                        font-semibold
+                        text-gray-500
                         uppercase
-                        tracking-wider
+                        mb-1
                       "
                     >
-                      New
-                    </span>
+                      T-SHIRT
+                    </p>
 
-                    {/* MAIN IMAGE */}
-                    <img
-                      src={image}
-                      alt={product.name || "Product"}
-                      loading="lazy"
-                      className="
-                        absolute
-                        inset-0
-                        w-full
-                        h-full
-                        object-cover
-                        transition-opacity
-                        duration-500
-                        group-hover:opacity-0
-                      "
-                      onError={(e) => {
-                        e.currentTarget.src = "/placeholder-product.jpg";
-                      }}
-                    />
+                    {/* PRODUCT NAME */}
+                    <Link to={`/product/${productId}`}>
+                      <h3
+                        className="
+                          text-[10px]
+                          sm:text-xs
+                          lg:text-sm
+                          font-semibold
+                          text-gray-900
+                          line-clamp-2
+                          min-h-[28px]
+                          hover:text-indigo-600
+                          transition
+                        "
+                      >
+                        {product.name}
+                      </h3>
+                    </Link>
 
-                    {/* HOVER IMAGE */}
-                    <img
-                      src={hoverImage}
-                      alt=""
-                      loading="lazy"
-                      className="
-                        absolute
-                        inset-0
-                        w-full
-                        h-full
-                        object-cover
-                        opacity-0
-                        transition-all
-                        duration-500
-                        group-hover:opacity-100
-                        group-hover:scale-105
-                      "
-                      onError={(e) => {
-                        e.currentTarget.src = "/placeholder-product.jpg";
-                      }}
-                    />
-                  </div>
-                </Link>
+                    {/* PRICE */}
+                    <div className="mt-1.5">
+                      {hasDiscount ? (
+                        <div
+                          className="
+                            flex
+                            items-center
+                            gap-1.5
+                            flex-wrap
+                          "
+                        >
+                          {/* RETAIL PRICE */}
+                          <span
+                            className="
+                              text-[9px]
+                              sm:text-[10px]
+                              text-gray-400
+                              line-through
+                            "
+                          >
+                            ৳{retailPrice}
+                          </span>
 
-                {/* ==================================
-                    PRODUCT INFO
-                ================================== */}
-                <div className="p-4 flex flex-col flex-grow">
-                  <Link to={`/product/${productId}`}>
-                    <h3
-                      className="
-                        text-sm
-                        font-medium
-                        text-gray-800
-                        line-clamp-2
-                        min-h-[40px]
-                        hover:text-indigo-600
-                        transition
-                      "
-                    >
-                      {product.name}
-                    </h3>
-                  </Link>
-
-                  {/* PRICE */}
-                  <div className="mt-2">
-                    {hasDiscount ? (
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm text-gray-400 line-through">
-                          ৳{retailPrice}
+                          {/* DISCOUNT PRICE */}
+                          <span
+                            className="
+                              text-xs
+                              sm:text-sm
+                              font-bold
+                              text-gray-900
+                            "
+                          >
+                            ৳{discountPrice}
+                          </span>
+                        </div>
+                      ) : (
+                        <span
+                          className="
+                            text-xs
+                            sm:text-sm
+                            font-bold
+                            text-gray-900
+                          "
+                        >
+                          ৳{finalPrice}
                         </span>
+                      )}
+                    </div>
 
-                        <span className="text-lg font-bold text-gray-900">
-                          ৳{discountPrice}
-                        </span>
-                      </div>
-                    ) : (
-                      <span className="text-lg font-bold text-gray-900">
-                        ৳{finalPrice}
-                      </span>
-                    )}
+                    {/* VIEW PRODUCT */}
+                    <div className="mt-2">
+                      <Link
+                        to={`/product/${productId}`}
+                        className="
+                          flex
+                          items-center
+                          justify-center
+                          w-full
+                          py-2
+                          px-2
+                          rounded-md
+                          bg-indigo-600
+                          text-white
+                          text-[8px]
+                          sm:text-[9px]
+                          lg:text-[10px]
+                          font-semibold
+                          hover:bg-indigo-700
+                          active:scale-95
+                          transition
+                          whitespace-nowrap
+                        "
+                      >
+                        View Product
+                      </Link>
+                    </div>
                   </div>
-
-                  {/* ADD TO CART / DETAILS */}
-                  <Link
-                    to={`/product/${productId}`}
-                    className="
-                      mt-4
-                      w-full
-                      bg-gray-900
-                      text-white
-                      py-2.5
-                      text-xs
-                      font-semibold
-                      uppercase
-                      tracking-wider
-                      text-center
-                      hover:bg-indigo-600
-                      transition
-                    "
-                  >
-                    View Product
-                  </Link>
                 </div>
-              </div>
+              </SwiperSlide>
             );
           })}
-        </div>
+        </Swiper>
       </div>
     </section>
   );

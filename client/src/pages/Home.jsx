@@ -11,15 +11,15 @@ export default function Home() {
       {/* HERO */}
       <HeroSlider />
 
-      {/* NEW ARRIVALS */}
-      <NewArrivals />
+{/* NEW ARRIVALS */}
+<NewArrivals />
 
-      {/* REGULAR FIT */}
-      <CategoryProducts
-        title="Regular Fit"
-        categorySlug="Regular Fit"
-        badge="HOT"
-      />
+{/* REGULAR FIT */}
+<CategoryProducts
+  title="Regular Fit"
+  categorySlug="regular-fit"
+  badge="HOT"
+/>
     </div>
   );
 }

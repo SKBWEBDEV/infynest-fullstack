@@ -1,5 +1,3 @@
-// File Path: src/App.jsx
-
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 // ==========================================
@@ -24,6 +22,7 @@ import GhostRider from "./pages/GhostRider";
 import Essentials from "./pages/Essentials";
 import Anime from "./pages/Anime";
 import Venom from "./pages/Venom";
+
 // ==========================================
 // AUTH PAGES
 // ==========================================
@@ -64,8 +63,14 @@ function App() {
           {/* HOME */}
           <Route path="/" element={<Home />} />
 
-          {/* SHOP / ALL PRODUCTS */}
+          {/* SHOP - ALL PRODUCTS */}
           <Route path="/shop" element={<Shop />} />
+
+          {/* REGULAR FIT - ONLY REGULAR FIT PRODUCTS */}
+          <Route
+            path="/regular-fit"
+            element={<Shop category="Regular Fit" />}
+          />
 
           {/* MEN */}
           <Route path="/men" element={<Men />} />
@@ -82,11 +87,15 @@ function App() {
           {/* ORDERS */}
           <Route path="/orders" element={<Orders />} />
 
+          {/* DESIGN CATEGORIES */}
           <Route path="/spider-man" element={<SpiderMan />} />
 
           <Route path="/chainsaw-man" element={<ChainsawMan />} />
 
-          <Route path="/stranger-things" element={<StrangerThings />} />
+          <Route
+            path="/stranger-things"
+            element={<StrangerThings />}
+          />
 
           <Route path="/ghost-rider" element={<GhostRider />} />
 
@@ -99,7 +108,6 @@ function App() {
 
         {/* ================================================================
             AUTH PAGES
-            এগুলোতে সাধারণত Navbar/Footer দরকার হয় না
         ================================================================= */}
 
         {/* REGISTER */}
@@ -109,10 +117,16 @@ function App() {
         <Route path="/login" element={<Login />} />
 
         {/* FORGOT PASSWORD */}
-        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route
+          path="/forgot-password"
+          element={<ForgotPassword />}
+        />
 
         {/* RESET PASSWORD */}
-        <Route path="/reset-password/:token" element={<ResetPassword />} />
+        <Route
+          path="/reset-password/:token"
+          element={<ResetPassword />}
+        />
 
         {/* ================================================================
             PROTECTED USER ROUTES
@@ -120,7 +134,10 @@ function App() {
 
         <Route element={<ProtectedRoute />}>
           {/* EDIT PRODUCT */}
-          <Route path="/admin/edit-product/:id" element={<EditProduct />} />
+          <Route
+            path="/admin/edit-product/:id"
+            element={<EditProduct />}
+          />
         </Route>
 
         {/* ================================================================

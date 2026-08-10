@@ -1,3 +1,4 @@
+
 // File Path: src/pages/Shop.jsx
 
 import React, { useState, useEffect } from "react";
@@ -10,10 +11,9 @@ export default function Shop() {
 
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedCategory, setSelectedCategory] = useState("All");
 
   // ==========================================
-  // FETCH PRODUCTS
+  // FETCH ALL PRODUCTS
   // ==========================================
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -26,11 +26,12 @@ export default function Shop() {
 
         const productList = Array.isArray(data)
           ? data
-          : data.products || data.data || [];
+          : data?.products || data?.data || data?.results || [];
 
-        setProducts(productList);
+        setProducts(Array.isArray(productList) ? productList : []);
       } catch (error) {
         console.error("Error fetching products:", error);
+        setProducts([]);
       } finally {
         setLoading(false);
       }
@@ -47,28 +48,6 @@ export default function Shop() {
   };
 
   // ==========================================
-  // CATEGORIES
-  // ==========================================
-const categoryOptions = [ 
-  { name: "Regular Fit", value: "spider-man", }, 
-  { name: "Drop Shoulder", value: "chainsaw-man", }, 
-  { name: "Stranger Things", value: "stranger-things", }, 
-  { name: "Essentials", value: "essentials", }, ];
-
-
-const filteredProducts =
-  selectedCategory === "All"
-    ? products
-    : products.filter(
-        (item) =>
-          item.category?.trim().toLowerCase() ===
-          selectedCategory.toLowerCase(),
-      );
-
-
-
-
-  // ==========================================
   // LOADING
   // ==========================================
   if (loading) {
@@ -77,7 +56,9 @@ const filteredProducts =
         <div className="text-center">
           <div className="w-10 h-10 border-4 border-purple-500/30 border-t-purple-500 rounded-full animate-spin mx-auto" />
 
-          <p className="text-xs text-gray-400 mt-4">Loading products...</p>
+          <p className="text-xs text-gray-400 mt-4">
+            Loading products...
+          </p>
         </div>
       </div>
     );
@@ -89,6 +70,7 @@ const filteredProducts =
   return (
     <div className="min-h-screen bg-[#0f1115] text-white px-4 sm:px-6 lg:px-8 py-8 md:py-10">
       <div className="max-w-7xl mx-auto space-y-7">
+
         {/* ======================================
             HEADER
         ====================================== */}
@@ -104,62 +86,62 @@ const filteredProducts =
 
         {/* ======================================
             CATEGORY FILTER
+            ONLY ALL
         ====================================== */}
-
-<div className="flex flex-wrap gap-2">
-  {/* ALL */}
-  <button
-    type="button"
-    onClick={() => setSelectedCategory("All")}
-    className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
-      selectedCategory === "All"
-        ? "bg-purple-600 text-white shadow-lg shadow-purple-600/30"
-        : "bg-[#161920] text-gray-400 border border-gray-800 hover:text-white hover:border-gray-700"
-    }`}
-  >
-    All
-  </button>
-
-  {/* FIXED DESIGN CATEGORIES */}
-  {categoryOptions.map((category) => (
-    <button
-      key={category.value}
-      type="button"
-      onClick={() => setSelectedCategory(category.value)}
-      className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
-        selectedCategory === category.value
-          ? "bg-purple-600 text-white shadow-lg shadow-purple-600/30"
-          : "bg-[#161920] text-gray-400 border border-gray-800 hover:text-white hover:border-gray-700"
-      }`}
-    >
-      {category.name}
-    </button>
-  ))}
-</div>
-
-
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            className="
+              px-4
+              py-2
+              rounded-xl
+              text-xs
+              font-bold
+              bg-purple-600
+              text-white
+              shadow-lg
+              shadow-purple-600/30
+              cursor-default
+            "
+          >
+            All
+          </button>
+        </div>
 
         {/* ======================================
             PRODUCT COUNT
         ====================================== */}
         <div className="flex items-center justify-between">
           <p className="text-xs text-gray-500">
-            {filteredProducts.length}{" "}
-            {filteredProducts.length === 1 ? "Product" : "Products"}
+            {products.length}{" "}
+            {products.length === 1 ? "Product" : "Products"}
           </p>
         </div>
 
         {/* ======================================
             PRODUCTS GRID
         ====================================== */}
-        {filteredProducts.length === 0 ? (
+        {products.length === 0 ? (
           <div className="bg-[#161920] border border-gray-800 rounded-3xl p-12 text-center">
-            <p className="text-sm text-gray-400">No products found.</p>
+            <p className="text-sm text-gray-400">
+              No products found.
+            </p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
-            {filteredProducts.map((item) => {
-              const itemImg = item?.images?.[0] || item?.image;
+          <div
+            className="
+              grid
+              grid-cols-2
+              md:grid-cols-3
+              lg:grid-cols-4
+              gap-3
+              sm:gap-4
+              md:gap-6
+            "
+          >
+            {products.map((item) => {
+              const itemImg =
+                item?.images?.[0] || item?.image;
 
               const formattedImg = getImageUrl(itemImg);
 
@@ -167,39 +149,112 @@ const filteredProducts =
                 item.discountPrice !== null &&
                 item.discountPrice !== undefined &&
                 Number(item.discountPrice) > 0 &&
-                Number(item.discountPrice) < Number(item.retailPrice);
+                Number(item.discountPrice) <
+                  Number(item.retailPrice);
 
               return (
                 <div
                   key={item._id}
-                  className="bg-[#161920] border border-gray-800 rounded-2xl sm:rounded-3xl overflow-hidden hover:border-purple-500/50 transition duration-300 flex flex-col justify-between group p-2.5 sm:p-3 md:p-4 shadow-xl"
+                  className="
+                    bg-[#161920]
+                    border
+                    border-gray-800
+                    rounded-2xl
+                    sm:rounded-3xl
+                    overflow-hidden
+                    hover:border-purple-500/50
+                    transition
+                    duration-300
+                    flex
+                    flex-col
+                    justify-between
+                    group
+                    p-2.5
+                    sm:p-3
+                    md:p-4
+                    shadow-xl
+                  "
                 >
                   {/* ======================================
                       PRODUCT IMAGE
                   ====================================== */}
                   <div>
-                    <div className="relative aspect-[4/5] rounded-xl sm:rounded-2xl overflow-hidden bg-gray-900 mb-3">
+                    <div
+                      className="
+                        relative
+                        aspect-[4/5]
+                        rounded-xl
+                        sm:rounded-2xl
+                        overflow-hidden
+                        bg-gray-900
+                        mb-3
+                      "
+                    >
                       <img
                         src={formattedImg}
-                        alt={item.name}
-                        className="w-full h-full object-cover object-center group-hover:scale-105 transition duration-500"
+                        alt={item.name || "Product"}
+                        className="
+                          w-full
+                          h-full
+                          object-cover
+                          object-center
+                          group-hover:scale-105
+                          transition
+                          duration-500
+                        "
+                        onError={(e) => {
+                          e.currentTarget.src =
+                            "/placeholder-product.jpg";
+                        }}
                       />
 
                       {/* CATEGORY */}
                       {item.category && (
-                        <span className="absolute top-2 left-2 bg-black/60 backdrop-blur-md text-purple-400 text-[8px] sm:text-[10px] font-bold px-2 py-1 rounded-md sm:rounded-lg uppercase">
+                        <span
+                          className="
+                            absolute
+                            top-2
+                            left-2
+                            bg-black/60
+                            backdrop-blur-md
+                            text-purple-400
+                            text-[8px]
+                            sm:text-[10px]
+                            font-bold
+                            px-2
+                            py-1
+                            rounded-md
+                            sm:rounded-lg
+                            uppercase
+                          "
+                        >
                           {item.category}
                         </span>
                       )}
 
                       {/* DISCOUNT BADGE */}
                       {hasDiscount && (
-                        <span className="absolute top-2 right-2 bg-green-500 text-white text-[8px] sm:text-[10px] font-black px-2 py-1 rounded-md sm:rounded-lg">
+                        <span
+                          className="
+                            absolute
+                            top-2
+                            right-2
+                            bg-green-500
+                            text-white
+                            text-[8px]
+                            sm:text-[10px]
+                            font-black
+                            px-2
+                            py-1
+                            rounded-md
+                            sm:rounded-lg
+                          "
+                        >
                           {Math.round(
                             ((Number(item.retailPrice) -
                               Number(item.discountPrice)) /
                               Number(item.retailPrice)) *
-                              100,
+                              100
                           )}
                           % OFF
                         </span>
@@ -209,38 +264,103 @@ const filteredProducts =
                     {/* ======================================
                         PRODUCT NAME
                     ====================================== */}
-                    <h3 className="font-bold text-white text-xs sm:text-sm truncate group-hover:text-purple-400 transition">
+                    <h3
+                      className="
+                        font-bold
+                        text-white
+                        text-xs
+                        sm:text-sm
+                        truncate
+                        group-hover:text-purple-400
+                        transition
+                      "
+                    >
                       {item.name}
                     </h3>
 
                     {/* DESCRIPTION */}
-                    <p className="text-[10px] sm:text-xs text-gray-400 line-clamp-1 mt-1">
-                      {item.description || "Best quality product for you."}
+                    <p
+                      className="
+                        text-[10px]
+                        sm:text-xs
+                        text-gray-400
+                        line-clamp-1
+                        mt-1
+                      "
+                    >
+                      {item.description ||
+                        "Best quality product for you."}
                     </p>
                   </div>
 
                   {/* ======================================
                       PRICE + BUY NOW
                   ====================================== */}
-                  <div className="pt-3 mt-3 border-t border-gray-800/80">
-                    <div className="flex items-center justify-between gap-2">
+                  <div
+                    className="
+                      pt-3
+                      mt-3
+                      border-t
+                      border-gray-800/80
+                    "
+                  >
+                    <div
+                      className="
+                        flex
+                        items-center
+                        justify-between
+                        gap-2
+                      "
+                    >
                       {/* PRICE */}
                       <div className="min-w-0">
                         {hasDiscount ? (
                           <div className="flex flex-col">
-                            <span className="text-xs sm:text-sm font-black text-green-400 whitespace-nowrap">
-                              ৳{Number(item.discountPrice).toLocaleString()}
+                            <span
+                              className="
+                                text-xs
+                                sm:text-sm
+                                font-black
+                                text-green-400
+                                whitespace-nowrap
+                              "
+                            >
+                              ৳
+                              {Number(
+                                item.discountPrice
+                              ).toLocaleString()}
                             </span>
 
-                            <span className="text-[9px] sm:text-[10px] text-gray-500 line-through whitespace-nowrap">
-                              ৳{Number(item.retailPrice).toLocaleString()}
+                            <span
+                              className="
+                                text-[9px]
+                                sm:text-[10px]
+                                text-gray-500
+                                line-through
+                                whitespace-nowrap
+                              "
+                            >
+                              ৳
+                              {Number(
+                                item.retailPrice
+                              ).toLocaleString()}
                             </span>
                           </div>
                         ) : (
-                          <span className="text-xs sm:text-sm font-black text-purple-400 whitespace-nowrap">
+                          <span
+                            className="
+                              text-xs
+                              sm:text-sm
+                              font-black
+                              text-purple-400
+                              whitespace-nowrap
+                            "
+                          >
                             ৳
                             {Number(
-                              item.retailPrice || item.price || 0,
+                              item.retailPrice ||
+                                item.price ||
+                                0
                             ).toLocaleString()}
                           </span>
                         )}
@@ -249,8 +369,32 @@ const filteredProducts =
                       {/* BUY NOW */}
                       <button
                         type="button"
-                        onClick={() => handleBuyNow(item._id)}
-                        className="px-2.5 sm:px-3.5 py-2 bg-purple-600 hover:bg-purple-700 text-white text-[9px] sm:text-xs font-bold rounded-lg sm:rounded-xl transition flex items-center justify-center gap-1.5 shadow-md shadow-purple-600/30 cursor-pointer shrink-0">
+                        onClick={() =>
+                          handleBuyNow(item._id)
+                        }
+                        className="
+                          px-2.5
+                          sm:px-3.5
+                          py-2
+                          bg-purple-600
+                          hover:bg-purple-700
+                          text-white
+                          text-[9px]
+                          sm:text-xs
+                          font-bold
+                          rounded-lg
+                          sm:rounded-xl
+                          transition
+                          flex
+                          items-center
+                          justify-center
+                          gap-1.5
+                          shadow-md
+                          shadow-purple-600/30
+                          cursor-pointer
+                          shrink-0
+                        "
+                      >
                         <HiShoppingBag size={13} />
 
                         <span>Buy Now</span>
@@ -266,3 +410,4 @@ const filteredProducts =
     </div>
   );
 }
+
