@@ -357,15 +357,15 @@ export default function AddProduct() {
                   required
                   className="w-full p-3.5 bg-[#1e222d] border border-gray-800 rounded-xl text-white focus:outline-none focus:border-purple-500 transition cursor-pointer"
                 >
-                  <option value="spider-man">Spider-Man</option>
-                  <option value="chainsaw-man">Chainsaw Man</option>
+                  <option value="spider-man">Regular Fit</option>
+                  <option value="chainsaw-man">Drop Shoulder</option>
                   <option value="stranger-things">
                     Stranger Things
                   </option>
-                  <option value="ghost-rider">Ghost Rider</option>
+                  {/* <option value="ghost-rider">Ghost Rider</option> */}
                   <option value="essentials">Essentials</option>
-                  <option value="anime">Anime</option>
-                  <option value="venom">Venom</option>
+                  {/* <option value="anime">Anime</option> */}
+                  {/* <option value="venom">Venom</option> */}
                 </select>
               </div>
             </div>

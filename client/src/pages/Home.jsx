@@ -15,14 +15,14 @@ export default function Home() {
 
       {/* Spider-Man */}
       <CategoryProducts
-        title="Spider-Man"
-        categorySlug="spider-man"
+        title="Regular Fit"
+        categorySlug="Regular Fit"
         badge="HOT"
       />
 
       {/* Chainsaw Man */}
       <CategoryProducts
-        title="Chainsaw Man"
+        title="Drop Shoulder"
         categorySlug="chainsaw-man"
         badge="HOT SALE"
       />
@@ -35,11 +35,11 @@ export default function Home() {
       />
 
       {/* Ghost Rider */}
-      <CategoryProducts
+      {/* <CategoryProducts
         title="Ghost Rider"
         categorySlug="ghost-rider"
         badge="HOT SALE"
-      />
+      /> */}
 
       {/* Essentials */}
       <CategoryProducts
@@ -49,18 +49,18 @@ export default function Home() {
       />
 
       {/* Anime */}
-      <CategoryProducts
+      {/* <CategoryProducts
         title="Anime"
         categorySlug="anime"
         badge="HOT SALE"
-      />
+      /> */}
 
       {/* Venom */}
-      <CategoryProducts
+      {/* <CategoryProducts
         title="Venom"
         categorySlug="venom"
         badge="HOT SALE"
-      />
+      /> */}
 
     </div>
   );
