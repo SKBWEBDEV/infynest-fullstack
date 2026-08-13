@@ -1,5 +1,8 @@
+// File Path: backend/controllers/orderController.js
+
 import { Order } from "../models/Order.js";
 import { Product } from "../models/Product.js";
+import { Notification } from "../models/Notification.js";
 
 // ==========================================
 // CREATE ORDER
@@ -8,20 +11,23 @@ import { Product } from "../models/Product.js";
 
 export const createOrder = async (req, res) => {
   try {
-const {
-  orderItems,
-  shippingAddress,
-  phone,
-  customerName,
-  email,
-  deliveryArea,
-  paymentMethod,
-  senderNumber,
-  transactionId,
-  shippingFee,
-} = req.body;
+    const {
+      orderItems,
+      shippingAddress,
+      phone,
+      customerName,
+      email,
+      deliveryArea,
+      paymentMethod,
+      senderNumber,
+      transactionId,
+      shippingFee,
+    } = req.body;
 
-    // Check order items
+    // ==========================================
+    // CHECK ORDER ITEMS
+    // ==========================================
+
     if (!orderItems || orderItems.length === 0) {
       return res.status(400).json({
         success: false,
@@ -29,39 +35,44 @@ const {
       });
     }
 
-    // Check shipping information
- if (!customerName || !email || !phone || !shippingAddress) {
-  return res.status(400).json({
-    success: false,
-    message: "Name, email, phone and shipping address are required",
-  });
-}
+    // ==========================================
+    // CHECK SHIPPING INFORMATION
+    // ==========================================
 
-if (!deliveryArea) {
-  return res.status(400).json({
-    success: false,
-    message: "Delivery area is required",
-  });
-}
+    if (!customerName || !email || !phone || !shippingAddress) {
+      return res.status(400).json({
+        success: false,
+        message: "Name, email, phone and shipping address are required",
+      });
+    }
 
+    if (!deliveryArea) {
+      return res.status(400).json({
+        success: false,
+        message: "Delivery area is required",
+      });
+    }
 
-// ==========================================
-// BANGLADESH PHONE VALIDATION
-// Must start with 01 and contain exactly 11 digits
-// Example: 01712345678
-// ==========================================
+    // ==========================================
+    // BANGLADESH PHONE VALIDATION
+    // Must start with 01 and contain exactly 11 digits
+    // Example: 01712345678
+    // ==========================================
 
-const phoneRegex = /^01[0-9]{9}$/;
+    const phoneRegex = /^01[0-9]{9}$/;
 
-if (!phoneRegex.test(phone)) {
-  return res.status(400).json({
-    success: false,
-    message:
-      "Please enter a valid 11-digit Bangladesh mobile number starting with 01",
-  });
-}
+    if (!phoneRegex.test(phone)) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Please enter a valid 11-digit Bangladesh mobile number starting with 01",
+      });
+    }
 
-    // Calculate subtotal
+    // ==========================================
+    // CALCULATE SUBTOTAL
+    // ==========================================
+
     let subtotal = 0;
 
     const processedOrderItems = [];
@@ -81,7 +92,7 @@ if (!phoneRegex.test(phone)) {
       if (!product) {
         return res.status(404).json({
           success: false,
-          message: `Product not found`,
+          message: "Product not found",
         });
       }
 
@@ -119,49 +130,103 @@ if (!phoneRegex.test(phone)) {
       });
     }
 
-    // Simple delivery charge
-    const deliveryFee = shippingFee !== undefined ? Number(shippingFee) : 100;
+    // ==========================================
+    // DELIVERY CHARGE
+    // ==========================================
 
-    // Final total
+    const deliveryFee =
+      shippingFee !== undefined ? Number(shippingFee) : 100;
+
+    // ==========================================
+    // FINAL TOTAL
+    // ==========================================
+
     const totalAmount = subtotal + deliveryFee;
 
-    // Payment information
+    // ==========================================
+    // PAYMENT INFORMATION
+    // ==========================================
+
     const isCashOnDelivery = paymentMethod === "Cash on Delivery";
 
     /*
      * Online payment automatically Paid করা হচ্ছে না।
      * আপাতত সব নতুন order Pending থাকবে।
      */
-const order = await Order.create({
-  user: req.user?._id || null,
 
-  customerName,
-  email,
-  phone,
-  deliveryArea,
+    // ==========================================
+    // CREATE ORDER
+    // ==========================================
 
-  shippingAddress:
-    typeof shippingAddress === "object"
-      ? `${shippingAddress.street || ""}, ${shippingAddress.city || ""}`
-      : shippingAddress,
+    const order = await Order.create({
+      user: req.user?._id || null,
 
-  orderItems: processedOrderItems,
+      customerName,
+      email,
+      phone,
+      deliveryArea,
 
-  paymentMethod: paymentMethod || "Cash on Delivery",
+      shippingAddress:
+        typeof shippingAddress === "object"
+          ? `${shippingAddress.street || ""}, ${shippingAddress.city || ""}`
+          : shippingAddress,
 
-  senderNumber: isCashOnDelivery ? "" : senderNumber || "",
-  transactionId: isCashOnDelivery ? "" : transactionId || "",
+      orderItems: processedOrderItems,
 
-  paymentStatus: "Pending",
-  isPaid: false,
-  paidAt: null,
+      paymentMethod: paymentMethod || "Cash on Delivery",
 
-  subtotal,
-  shippingFee: deliveryFee,
-  totalAmount,
+      senderNumber: isCashOnDelivery ? "" : senderNumber || "",
 
-  orderStatus: "Pending",
-});
+      transactionId: isCashOnDelivery ? "" : transactionId || "",
+
+      paymentStatus: "Pending",
+
+      isPaid: false,
+
+      paidAt: null,
+
+      subtotal,
+
+      shippingFee: deliveryFee,
+
+      totalAmount,
+
+      orderStatus: "Pending",
+    });
+
+    // ==========================================
+// CREATE ORDER PLACED NOTIFICATION
+// ==========================================
+
+if (order.user) {
+  try {
+    await Notification.create({
+      user: order.user,
+
+      title: "Order Placed",
+
+      message: `Your order #${order._id} has been placed successfully.`,
+
+      type: "order",
+
+      isRead: false,
+    });
+
+    console.log(
+      `Order notification created for user ${order.user} - Order ${order._id}`,
+    );
+  } catch (notificationError) {
+    // Notification fail করলেও order fail করবে না
+    console.error(
+      "Order notification creation error:",
+      notificationError,
+    );
+  }
+}
+
+    // ==========================================
+    // RESPONSE
+    // ==========================================
 
     return res.status(201).json({
       success: true,
@@ -248,6 +313,10 @@ export const updateOrderStatus = async (req, res) => {
   try {
     const { status } = req.body;
 
+    // ==========================================
+    // ALLOWED STATUSES
+    // ==========================================
+
     const allowedStatuses = [
       "Pending",
       "Confirmed",
@@ -264,6 +333,10 @@ export const updateOrderStatus = async (req, res) => {
       });
     }
 
+    // ==========================================
+    // FIND ORDER
+    // ==========================================
+
     const order = await Order.findById(req.params.id);
 
     if (!order) {
@@ -273,20 +346,89 @@ export const updateOrderStatus = async (req, res) => {
       });
     }
 
+    // ==========================================
+    // SAVE OLD STATUS
+    // ==========================================
+
+    const oldStatus = order.orderStatus;
+
+    // ==========================================
+    // UPDATE ORDER STATUS
+    // ==========================================
+
     order.orderStatus = status;
 
-    // COD order becomes paid when delivered
-    if (status === "Delivered" && order.paymentMethod === "Cash on Delivery") {
+    // ==========================================
+    // COD ORDER BECOMES PAID WHEN DELIVERED
+    // ==========================================
+
+    if (
+      status === "Delivered" &&
+      order.paymentMethod === "Cash on Delivery"
+    ) {
       order.isPaid = true;
+
       order.paymentStatus = "Paid";
+
       order.paidAt = new Date();
     }
 
+    // ==========================================
+    // SAVE UPDATED ORDER
+    // ==========================================
+
     const updatedOrder = await order.save();
+
+    // ==========================================
+    // CREATE USER NOTIFICATION
+    // ==========================================
+
+    /*
+     * Only create notification when:
+     *
+     * 1. Status actually changed
+     * 2. Order belongs to a logged-in user
+     */
+
+    if (oldStatus !== status && order.user) {
+      try {
+        await Notification.create({
+          user: order.user,
+
+          title: "Order Status Updated",
+
+          message: `Your order #${order._id} has been ${status.toLowerCase()}.`,
+
+          type: "order",
+
+          isRead: false,
+        });
+
+        console.log(
+          `Notification created for user ${order.user} - Order ${order._id}`,
+        );
+      } catch (notificationError) {
+        /*
+         * Notification fail করলেও
+         * order status update fail করবে না।
+         */
+
+        console.error(
+          "Notification creation error:",
+          notificationError,
+        );
+      }
+    }
+
+    // ==========================================
+    // RESPONSE
+    // ==========================================
 
     return res.status(200).json({
       success: true,
+
       message: `Order status updated to ${status}`,
+
       data: updatedOrder,
     });
   } catch (error) {
@@ -306,9 +448,11 @@ export const updateOrderStatus = async (req, res) => {
 
 export const getAllOrders = async (req, res) => {
   try {
-    const orders = await Order.find({}).populate("user", "name email").sort({
-      createdAt: -1,
-    });
+    const orders = await Order.find({})
+      .populate("user", "name email")
+      .sort({
+        createdAt: -1,
+      });
 
     return res.status(200).json({
       success: true,

@@ -1,20 +1,27 @@
-import express from 'express';
-import { 
-  getMyNotifications, 
-  markAsRead, 
-  deleteNotification, 
-  clearAllNotifications 
-} from '../controllers/notificationController.js';
-import { protect } from '../middleware/authMiddleware.js'; // আপনার প্রজেক্টের অথ মিডলওয়্যার
+import express from "express";
+
+import {
+  getMyNotifications,
+  markAsRead,
+  deleteNotification,
+  clearAllNotifications,
+} from "../controllers/notificationController.js";
+
+import { protect } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-router.get('/', protect, getMyNotifications);
-router.put('/:id/read', protect, markAsRead);
+// GET notifications
+router.get("/", protect, getMyNotifications);
 
-// ⚠️ '/clear/all' রুটটি অবশ্যই '('/:id')' এর উপরে দিতে হবে
-router.delete('/clear/all', protect, clearAllNotifications);
+// MARK AS READ
+router.put("/:id/read", protect, markAsRead);
 
-router.delete('/:id', protect, deleteNotification);
+// CLEAR ALL
+// এটা /:id এর আগে থাকতে হবে
+router.delete("/clear/all", protect, clearAllNotifications);
+
+// DELETE SINGLE
+router.delete("/:id", protect, deleteNotification);
 
 export default router;
