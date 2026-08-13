@@ -466,3 +466,89 @@ export const createOrderRefund = async ({
     session,
   });
 };
+
+// ======================================================
+// CREATE PRODUCT COST
+// ======================================================
+
+export const createProductCost = async ({
+  order,
+  createdBy = null,
+  session = null,
+}) => {
+  if (!order) {
+    throw new Error("Order is required");
+  }
+
+  const orderItems = Array.isArray(order.orderItems)
+    ? order.orderItems
+    : [];
+
+  let totalProductCost = 0;
+
+  for (const item of orderItems) {
+    const costPrice = Number(
+      item.costPrice || 0,
+    );
+
+    const quantity = Number(
+      item.quantity || 0,
+    );
+
+    if (
+      !Number.isFinite(costPrice) ||
+      costPrice < 0
+    ) {
+      continue;
+    }
+
+    if (
+      !Number.isInteger(quantity) ||
+      quantity <= 0
+    ) {
+      continue;
+    }
+
+    totalProductCost +=
+      costPrice * quantity;
+  }
+
+  if (totalProductCost <= 0) {
+    return null;
+  }
+
+  const payload = {
+    type: "product_cost",
+
+    category: "product-cost",
+
+    title: `Product Cost #${order._id}`,
+
+    amount: totalProductCost,
+
+    paymentMethod: "other",
+
+    order: order._id,
+
+    description:
+      `Product cost for delivered order #${order._id}`,
+
+    transactionDate:
+      order.paidAt ||
+      new Date(),
+
+    createdBy,
+
+    isAutomatic: true,
+  };
+
+  const result =
+    await FinancialTransaction.create(
+      [payload],
+      session
+        ? { session }
+        : undefined,
+    );
+
+  return result[0];
+};

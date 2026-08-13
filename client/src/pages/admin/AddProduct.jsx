@@ -10,20 +10,25 @@ export default function AddProduct() {
   // ==========================================
   // PRODUCT STATES
   // ==========================================
-  const [name, setName] = useState("");
-  const [retailPrice, setRetailPrice] = useState("");
-  const [discountPrice, setDiscountPrice] = useState("");
-  const [stock, setStock] = useState("");
+const [name, setName] = useState("");
+const [retailPrice, setRetailPrice] = useState("");
+const [costPrice, setCostPrice] = useState("");
+const [discountPrice, setDiscountPrice] = useState("");
 
-  const [category, setCategory] = useState("regular-fit");
-  const [isNewArrival, setIsNewArrival] = useState(false);
+const [wholesalePrice, setWholesalePrice] = useState("");
+const [minWholesaleQty, setMinWholesaleQty] = useState("1");
 
-  const [sizes, setSizes] = useState("");
-  const [colors, setColors] = useState("");
-  const [tags, setTags] = useState("");
-  const [description, setDescription] = useState("");
+const [stock, setStock] = useState("");
 
-  const [isFeatured, setIsFeatured] = useState(false);
+const [category, setCategory] = useState("regular-fit");
+const [isNewArrival, setIsNewArrival] = useState(false);
+
+const [sizes, setSizes] = useState("");
+const [colors, setColors] = useState("");
+const [tags, setTags] = useState("");
+const [description, setDescription] = useState("");
+
+const [isFeatured, setIsFeatured] = useState(false);
 
   // ==========================================
   // IMAGE STATES
@@ -103,6 +108,56 @@ export default function AddProduct() {
     }
 
     // ==========================================
+// COST PRICE VALIDATION
+// ==========================================
+if (
+  costPrice === "" ||
+  Number.isNaN(Number(costPrice)) ||
+  Number(costPrice) < 0
+) {
+  toast.error("Please enter a valid cost price.");
+  return;
+}
+
+if (Number(costPrice) > Number(retailPrice)) {
+  toast.error(
+    "Cost price cannot be greater than retail price.",
+  );
+  return;
+}
+
+
+// ==========================================
+// WHOLESALE PRICE VALIDATION
+// ==========================================
+if (wholesalePrice !== "") {
+  const wholesale = Number(wholesalePrice);
+  const retail = Number(retailPrice);
+
+  if (Number.isNaN(wholesale) || wholesale < 0) {
+    toast.error("Please enter a valid wholesale price.");
+    return;
+  }
+
+  if (wholesale >= retail) {
+    toast.error("Wholesale price should be less than retail price.");
+    return;
+  }
+}
+
+// ==========================================
+// MIN WHOLESALE QUANTITY VALIDATION
+// ==========================================
+if (
+  minWholesaleQty === "" ||
+  Number.isNaN(Number(minWholesaleQty)) ||
+  Number(minWholesaleQty) < 1
+) {
+  toast.error("Minimum wholesale quantity must be at least 1.");
+  return;
+}
+
+    // ==========================================
     // DISCOUNT VALIDATION
     // ==========================================
     if (discountPrice !== "") {
@@ -146,6 +201,20 @@ export default function AddProduct() {
       data.append("description", description.trim());
 
       data.append("retailPrice", Number(retailPrice));
+
+      data.append("costPrice", Number(costPrice));
+
+      // ==========================================
+// WHOLESALE DATA
+// ==========================================
+if (wholesalePrice !== "") {
+  data.append("wholesalePrice", Number(wholesalePrice));
+}
+
+data.append(
+  "minWholesaleQty",
+  Number(minWholesaleQty),
+);
 
       data.append("category", category);
 
@@ -349,63 +418,110 @@ export default function AddProduct() {
               />
             </div>
 
-            {/* ==========================================
-                PRICES
-            ========================================== */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* ==========================================
+    PRICES
+========================================== */}
 
-              {/* RETAIL PRICE */}
-              <div>
-                <label className="block text-gray-300 mb-2 font-semibold">
-                  Retail Price (৳)
-                </label>
+<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
 
-                <input
-                  type="number"
-                  min="0"
-                  step="1"
-                  value={retailPrice}
-                  onChange={(e) => setRetailPrice(e.target.value)}
-                  required
-                  placeholder="699"
-                  className="w-full p-3.5 bg-[#1e222d] border border-gray-800 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-purple-500 transition"
-                />
-              </div>
+  {/* RETAIL PRICE */}
+  <div>
+    <label className="block text-gray-300 mb-2 font-semibold">
+      Retail Price (৳)
+    </label>
 
-              {/* DISCOUNT PRICE */}
-              <div>
-                <label className="block text-gray-300 mb-2 font-semibold">
-                  Discount Price (৳)
+    <input
+      type="number"
+      min="0"
+      step="1"
+      value={retailPrice}
+      onChange={(e) => setRetailPrice(e.target.value)}
+      required
+      placeholder="699"
+      className="w-full p-3.5 bg-[#1e222d] border border-gray-800 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-purple-500 transition"
+    />
+  </div>
 
-                  <span className="text-gray-600 ml-1 font-normal">
-                    Optional
-                  </span>
-                </label>
+  {/* COST PRICE */}
+  <div>
+    <label className="block text-gray-300 mb-2 font-semibold">
+      Cost Price (৳)
+    </label>
 
-                <input
-                  type="number"
-                  min="0"
-                  step="1"
-                  value={discountPrice}
-                  onChange={(e) => setDiscountPrice(e.target.value)}
-                  placeholder="599"
-                  className="w-full p-3.5 bg-[#1e222d] border border-gray-800 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-purple-500 transition"
-                />
+    <input
+      type="number"
+      min="0"
+      step="1"
+      value={costPrice}
+      onChange={(e) => setCostPrice(e.target.value)}
+      required
+      placeholder="350"
+      className="w-full p-3.5 bg-[#1e222d] border border-gray-800 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-purple-500 transition"
+    />
 
-                {discountPrice &&
-                  retailPrice &&
-                  Number(discountPrice) < Number(retailPrice) && (
-                    <p className="text-green-400 text-[11px] mt-1.5 font-semibold">
-                      {Math.round(
-                        ((Number(retailPrice) - Number(discountPrice)) /
-                          Number(retailPrice)) *
-                          100,
-                      )}
-                      % OFF
-                    </p>
-                  )}
-              </div>
-            </div>
+    {costPrice &&
+      retailPrice &&
+      Number(costPrice) <= Number(retailPrice) && (
+        <p className="text-blue-400 text-[11px] mt-1.5 font-semibold">
+          Gross profit: ৳
+          {Number(retailPrice) - Number(costPrice)}
+        </p>
+      )}
+  </div>
+
+  {/* DISCOUNT PRICE */}
+  <div>
+    <label className="block text-gray-300 mb-2 font-semibold">
+      Discount Price (৳)
+    </label>
+
+    <input
+      type="number"
+      min="0"
+      step="1"
+      value={discountPrice}
+      onChange={(e) => setDiscountPrice(e.target.value)}
+      placeholder="599"
+      className="w-full p-3.5 bg-[#1e222d] border border-gray-800 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-purple-500 transition"
+    />
+  </div>
+
+  {/* WHOLESALE PRICE */}
+  <div>
+    <label className="block text-gray-300 mb-2 font-semibold">
+      Wholesale Price (৳)
+    </label>
+
+    <input
+      type="number"
+      min="0"
+      step="1"
+      value={wholesalePrice}
+      onChange={(e) => setWholesalePrice(e.target.value)}
+      placeholder="500"
+      className="w-full p-3.5 bg-[#1e222d] border border-gray-800 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-purple-500 transition"
+    />
+  </div>
+
+  {/* MIN WHOLESALE QTY */}
+  <div>
+    <label className="block text-gray-300 mb-2 font-semibold">
+      Min Wholesale Qty
+    </label>
+
+    <input
+      type="number"
+      min="1"
+      step="1"
+      value={minWholesaleQty}
+      onChange={(e) => setMinWholesaleQty(e.target.value)}
+      placeholder="5"
+      className="w-full p-3.5 bg-[#1e222d] border border-gray-800 rounded-xl text-white placeholder-gray-600 focus:outline-none focus:border-purple-500 transition"
+    />
+  </div>
+
+</div>
+
 
             {/* ==========================================
                 STOCK + CATEGORY

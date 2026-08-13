@@ -1,4 +1,5 @@
-// File Path: backend/models/Product.js
+// File Path:
+// server/src/models/Product.js
 
 import mongoose from "mongoose";
 
@@ -41,13 +42,14 @@ const productSchema = new mongoose.Schema(
 
       validate: {
         validator: function (value) {
-          // Empty/null discount is allowed
           if (value === null || value === undefined) {
             return true;
           }
 
-          // Retail price must exist
-          if (this.retailPrice === undefined || this.retailPrice === null) {
+          if (
+            this.retailPrice === undefined ||
+            this.retailPrice === null
+          ) {
             return false;
           }
 
@@ -56,6 +58,23 @@ const productSchema = new mongoose.Schema(
 
         message: "Discount price must be less than retail price",
       },
+    },
+
+    // ==========================================
+    // COST PRICE
+    // ==========================================
+    // তোমার নিজের product cost / purchase cost
+    //
+    // Example:
+    // Cost Price = ৳300
+    // Selling Price = ৳480
+    //
+    // Profit before other costs = ৳180
+    // ==========================================
+    costPrice: {
+      type: Number,
+      required: [true, "Cost price is required"],
+      min: [0, "Cost price cannot be negative"],
     },
 
     // ==========================================
@@ -76,18 +95,30 @@ const productSchema = new mongoose.Schema(
       min: [1, "Minimum wholesale quantity must be at least 1"],
     },
 
-// ==========================================
-// CATEGORY
-// ==========================================
-category: {
-  type: String,
-  required: [true, "Design category is required"],
-  enum: [
-    "regular-fit",
-  ],
-  default: "regular-fit",
-  trim: true,
-},
+    // ==========================================
+    // CATEGORY
+    // ==========================================
+    category: {
+      type: String,
+
+      required: [true, "Design category is required"],
+
+      enum: [
+        "regular-fit",
+        "oversized",
+        "spider-man",
+        "chainsaw-man",
+        "stranger-things",
+        "ghost-rider",
+        "essentials",
+        "anime",
+        "venom",
+      ],
+
+      default: "regular-fit",
+
+      trim: true,
+    },
 
     // ==========================================
     // SIZES
@@ -95,7 +126,14 @@ category: {
     sizes: [
       {
         type: String,
-        enum: ["S", "M", "L", "XL", "XXL", "Free Size"],
+        enum: [
+          "S",
+          "M",
+          "L",
+          "XL",
+          "XXL",
+          "Free Size",
+        ],
       },
     ],
 
@@ -146,17 +184,21 @@ category: {
       type: Boolean,
       default: false,
     },
+
     // ==========================================
-// NEW ARRIVAL
-// ==========================================
-isNewArrival: {
-  type: Boolean,
-  default: false,
-},
+    // NEW ARRIVAL
+    // ==========================================
+    isNewArrival: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,
   },
 );
 
-export const Product = mongoose.model("Product", productSchema);
+export const Product = mongoose.model(
+  "Product",
+  productSchema,
+);

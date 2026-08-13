@@ -14,18 +14,22 @@ const financialTransactionSchema =
       // TRANSACTION TYPE
       // ==================================================
 
-      type: {
-        type: String,
-        enum: [
-          "income",
-          "expense",
-          "shipping",
-          "payment_fee",
-          "refund",
-        ],
-        required: true,
-        trim: true,
-      },
+type: {
+  type: String,
+
+  enum: [
+    "income",
+    "expense",
+    "product_cost",
+    "shipping",
+    "payment_fee",
+    "refund",
+  ],
+
+  required: true,
+
+  trim: true,
+},
 
       // ==================================================
       // CATEGORY
@@ -205,10 +209,11 @@ financialTransactionSchema.index(
     partialFilterExpression: {
       type: {
         $in: [
-          "income",
-          "shipping",
-          "payment_fee",
-        ],
+  "income",
+  "product_cost",
+  "shipping",
+  "payment_fee",
+],
       },
 
       order: {

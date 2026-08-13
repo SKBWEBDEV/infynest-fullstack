@@ -119,17 +119,14 @@ export const getFinancialDashboard =
       // MAP RESULTS
       // ====================================================
 
-      const totals = {
-        income: 0,
-
-        expense: 0,
-
-        refund: 0,
-
-        payment_fee: 0,
-
-        shipping: 0,
-      };
+const totals = {
+  income: 0,
+  expense: 0,
+  product_cost: 0,
+  refund: 0,
+  payment_fee: 0,
+  shipping: 0,
+};
 
       for (
         const item of summary
@@ -192,35 +189,36 @@ export const getFinancialDashboard =
       return res.status(200).json({
         success: true,
 
-        data: {
-          totalIncome:
-            totals.income,
+data: {
+  totalIncome:
+    totals.income,
 
-          totalExpense:
-            totals.expense,
+  totalExpense:
+    totals.expense,
 
-          totalRefund:
-            totals.refund,
+  totalProductCost:
+    totals.product_cost,
 
-          totalPaymentFee:
-            totals.payment_fee,
+  totalRefund:
+    totals.refund,
 
-          totalShipping:
-            totals.shipping,
+  totalPaymentFee:
+    totals.payment_fee,
 
-          totalCosts,
+  totalShipping:
+    totals.shipping,
 
-          netProfit,
+  totalCosts,
 
-          profitMargin:
-            Number(
-              profitMargin.toFixed(
-                2,
-              ),
-            ),
+  netProfit,
 
-          transactionCount,
-        },
+  profitMargin:
+    Number(
+      profitMargin.toFixed(2),
+    ),
+
+  transactionCount,
+},
       });
     } catch (error) {
       console.error(

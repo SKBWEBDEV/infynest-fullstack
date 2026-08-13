@@ -9,6 +9,7 @@ import { Notification } from "../models/Notification.js";
 
 import {
   createOrderIncome,
+  createProductCost,
   createShippingCost,
   createPaymentFee,
   createOrderRefund,
@@ -345,35 +346,41 @@ export const createOrder = async (
       // SNAPSHOT
       // -----------------------------------------------
 
-      processedOrderItems.push({
-        product: product._id,
+processedOrderItems.push({
+  product: product._id,
 
-        name:
-          item.name ||
-          product.name ||
-          product.title ||
-          "Product",
+  name:
+    item.name ||
+    product.name ||
+    product.title ||
+    "Product",
 
-        image:
-          item.image ||
-          product.images?.[0] ||
-          product.image ||
-          "",
+  image:
+    item.image ||
+    product.images?.[0] ||
+    product.image ||
+    "",
 
-        price,
+  // Customer-এর selling price
+  price,
 
-        quantity,
+  // Business-এর actual product cost
+  costPrice: Number(
+    product.costPrice || 0,
+  ),
 
-        size:
-          item.size ||
-          item.selectedSize ||
-          "N/A",
+  quantity,
 
-        color:
-          item.color ||
-          item.selectedColor ||
-          "N/A",
-      });
+  size:
+    item.size ||
+    item.selectedSize ||
+    "N/A",
+
+  color:
+    item.color ||
+    item.selectedColor ||
+    "N/A",
+});
     }
 
     // ==================================================
@@ -851,6 +858,20 @@ export const updateOrderStatus =
 
           session,
         });
+
+        // ----------------------------------------------
+// PRODUCT COST
+// ----------------------------------------------
+
+await createProductCost({
+  order: updatedOrder,
+
+  createdBy:
+    req.user?._id ||
+    null,
+
+  session,
+});
 
         // ----------------------------------------------
         // SHIPPING COST
