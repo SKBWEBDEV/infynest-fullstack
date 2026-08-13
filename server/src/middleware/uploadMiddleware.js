@@ -1,36 +1,46 @@
-import multer from 'multer';
-import path from 'path';
+import multer from "multer";
 
-// ফাইল কোথায় সেভ হবে এবং নাম কী হবে তার কনফিগারেশন
-const storage = multer.diskStorage({
-  destination(req, file, cb) {
-    cb(null, 'uploads/'); // প্রজেক্টের রুট ফোল্ডারে uploads ফোল্ডার তৈরি হবে
-  },
-  filename(req, file, cb) {
-    cb(
-      null,
-      `${file.fieldname}-${Date.now()}${path.extname(file.originalname)}`
-    );
-  },
-});
+// ==========================================
+// MEMORY STORAGE
+// ==========================================
+// File আর server/uploads folder-এ save হবে না.
+// File সরাসরি memory-তে থাকবে এবং Cloudinary-তে যাবে.
 
-// শুধু ছবি (jpg, jpeg, png, webp) এলাও করার ফিল্টার
-function checkFileType(file, cb) {
-  const filetypes = /jpeg|jpg|png|webp/;
-  const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
-  const mimetype = filetypes.test(file.mimetype);
+const storage = multer.memoryStorage();
 
-  if (extname && mimetype) {
-    return cb(null, true);
+// ==========================================
+// FILE FILTER
+// ==========================================
+
+const checkFileType = (file, cb) => {
+  const allowedMimeTypes = [
+    "image/jpeg",
+    "image/jpg",
+    "image/png",
+    "image/webp",
+  ];
+
+  if (allowedMimeTypes.includes(file.mimetype)) {
+    cb(null, true);
   } else {
-    cb(new Error('Only image files are allowed!'));
+    cb(new Error("Only JPG, JPEG, PNG and WEBP images are allowed!"));
   }
-}
+};
+
+// ==========================================
+// MULTER
+// ==========================================
 
 const upload = multer({
   storage,
-  fileFilter: function (req, file, cb) {
+
+  fileFilter: (req, file, cb) => {
     checkFileType(file, cb);
+  },
+
+  limits: {
+    files: 5,
+    fileSize: 5 * 1024 * 1024, // 5MB per image
   },
 });
 

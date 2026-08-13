@@ -1,6 +1,7 @@
 // File Path: backend/controllers/productController.js
 
 import { Product } from "../models/Product.js";
+import cloudinary from "../config/cloudinary.js";
 
 // ==========================================
 // GET ALL PRODUCTS
@@ -102,15 +103,100 @@ export const createProduct = async (req, res) => {
     } = req.body;
 
     // ==========================================
+    // BASIC VALIDATION
+    // ==========================================
+
+    if (!name?.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: "Product name is required",
+      });
+    }
+
+    if (!description?.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: "Description is required",
+      });
+    }
+
+    const parsedRetailPrice = Number(retailPrice);
+
+    if (Number.isNaN(parsedRetailPrice) || parsedRetailPrice < 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid retail price",
+      });
+    }
+
+    const parsedDiscountPrice =
+      discountPrice !== undefined &&
+      discountPrice !== null &&
+      discountPrice !== ""
+        ? Number(discountPrice)
+        : null;
+
+    if (
+      parsedDiscountPrice !== null &&
+      (Number.isNaN(parsedDiscountPrice) ||
+        parsedDiscountPrice >= parsedRetailPrice)
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Discount price must be less than retail price",
+      });
+    }
+
+    // ==========================================
     // IMAGES
     // ==========================================
-    let images = req.files
-      ? req.files.map((file) => `/uploads/${file.filename}`)
-      : [];
+
+    let images = [];
+
+    // ==========================================
+    // UPLOAD FILES TO CLOUDINARY
+    // ==========================================
+
+    if (req.files && req.files.length > 0) {
+      const uploadedImages = await Promise.all(
+        req.files.map(
+          (file) =>
+            new Promise((resolve, reject) => {
+              const uploadStream = cloudinary.uploader.upload_stream(
+                {
+                  folder: "infynest/products",
+
+                  resource_type: "image",
+
+                  transformation: [
+                    {
+                      quality: "auto",
+                      fetch_format: "auto",
+                    },
+                  ],
+                },
+
+                (error, result) => {
+                  if (error) {
+                    reject(error);
+                  } else {
+                    resolve(result);
+                  }
+                }
+              );
+
+              uploadStream.end(file.buffer);
+            })
+        )
+      );
+
+      images = uploadedImages.map((result) => result.secure_url);
+    }
 
     // ==========================================
     // IMAGE URLS
     // ==========================================
+
     if (imageUrls) {
       try {
         const parsedUrls = JSON.parse(imageUrls);
@@ -124,36 +210,32 @@ export const createProduct = async (req, res) => {
     }
 
     // ==========================================
-    // PRICE VALUES
+    // PARSE ARRAYS
     // ==========================================
-    const parsedRetailPrice = Number(retailPrice);
 
-    const parsedDiscountPrice =
-      discountPrice !== undefined &&
-      discountPrice !== null &&
-      discountPrice !== ""
-        ? Number(discountPrice)
-        : null;
+    let parsedSizes = [];
+    let parsedColors = [];
+    let parsedTags = [];
 
-    // ==========================================
-    // PRICE VALIDATION
-    // ==========================================
-    if (
-      parsedDiscountPrice !== null &&
-      parsedDiscountPrice >= parsedRetailPrice
-    ) {
+    try {
+      parsedSizes = sizes ? JSON.parse(sizes) : [];
+      parsedColors = colors ? JSON.parse(colors) : [];
+      parsedTags = tags ? JSON.parse(tags) : [];
+    } catch (error) {
       return res.status(400).json({
         success: false,
-        message: "Discount price must be less than retail price",
+        message: "Invalid product array data",
       });
     }
 
     // ==========================================
     // CREATE PRODUCT
     // ==========================================
+
     const product = await Product.create({
-      name: name?.trim(),
-      description: description?.trim(),
+      name: name.trim(),
+
+      description: description.trim(),
 
       retailPrice: parsedRetailPrice,
 
@@ -169,33 +251,30 @@ export const createProduct = async (req, res) => {
           ? Number(minWholesaleQty)
           : 1,
 
-      // CATEGORY
       category,
 
-      // ARRAYS
-      sizes: sizes ? JSON.parse(sizes) : [],
+      sizes: parsedSizes,
 
-      colors: colors ? JSON.parse(colors) : [],
+      colors: parsedColors,
 
-      tags: tags ? JSON.parse(tags) : [],
+      tags: parsedTags,
 
-      // IMAGES
       images,
 
-      // STOCK
       stock: Number(stock),
 
-      // FEATURED
-      isFeatured: isFeatured === true || isFeatured === "true",
+      isFeatured:
+        isFeatured === true || isFeatured === "true",
 
-      // NEW ARRIVAL
-      isNewArrival: isNewArrival === true || isNewArrival === "true",
+      isNewArrival:
+        isNewArrival === true || isNewArrival === "true",
     });
 
     // ==========================================
     // RESPONSE
     // ==========================================
-    res.status(201).json({
+
+    return res.status(201).json({
       success: true,
       message: "Product created successfully",
       data: product,
@@ -203,7 +282,7 @@ export const createProduct = async (req, res) => {
   } catch (error) {
     console.error("Create product error:", error);
 
-    res.status(400).json({
+    return res.status(500).json({
       success: false,
       message: error.message,
     });
