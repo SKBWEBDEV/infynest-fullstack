@@ -21,6 +21,7 @@ import {
   HiHome,
   HiClipboardList,
   HiPhotograph,
+  HiCash,
 } from "react-icons/hi";
 
 export default function AdminDashboard() {
@@ -285,6 +286,25 @@ export default function AdminDashboard() {
       </span>
     )}
   </Link>
+
+
+{/* FINANCE */}
+
+<Link
+  to="/admin/finance"
+  className="flex items-center gap-4 p-3 rounded-xl text-gray-400 hover:bg-gray-800/50 hover:text-white transition"
+>
+  <HiCash
+    size={21}
+    className="flex-shrink-0 text-purple-400"
+  />
+
+  {isSidebarOpen && (
+    <span className="text-xs">
+      Finance
+    </span>
+  )}
+</Link>
 
 
   {/* BANNERS */}

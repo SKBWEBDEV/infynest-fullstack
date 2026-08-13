@@ -1,4 +1,11 @@
+// File Path:
+// server/src/models/Order.js
+
 import mongoose from "mongoose";
+
+// ======================================================
+// ORDER ITEM SCHEMA
+// ======================================================
 
 const orderItemSchema = new mongoose.Schema(
   {
@@ -17,6 +24,7 @@ const orderItemSchema = new mongoose.Schema(
     image: {
       type: String,
       default: "",
+      trim: true,
     },
 
     price: {
@@ -34,11 +42,13 @@ const orderItemSchema = new mongoose.Schema(
     size: {
       type: String,
       default: "N/A",
+      trim: true,
     },
 
     color: {
       type: String,
       default: "N/A",
+      trim: true,
     },
   },
   {
@@ -46,20 +56,26 @@ const orderItemSchema = new mongoose.Schema(
   },
 );
 
+// ======================================================
+// ORDER SCHEMA
+// ======================================================
+
 const orderSchema = new mongoose.Schema(
   {
-    // =========================
-    // User
-    // =========================
-    user: {
-  type: mongoose.Schema.Types.ObjectId,
-  ref: "User",
-  default: null,
-},
+    // ==================================================
+    // USER
+    // ==================================================
 
-    // =========================
-    // Customer Information
-    // =========================
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+
+    // ==================================================
+    // CUSTOMER INFORMATION
+    // ==================================================
+
     customerName: {
       type: String,
       required: true,
@@ -79,19 +95,24 @@ const orderSchema = new mongoose.Schema(
       trim: true,
     },
 
+    // ==================================================
+    // SHIPPING INFORMATION
+    // ==================================================
+
     shippingAddress: {
       type: String,
       required: true,
       trim: true,
     },
 
-    // =========================
-    // Delivery Information
-    // =========================
     deliveryArea: {
       type: String,
-      enum: ["Inside Dhaka", "Outside Dhaka"],
+      enum: [
+        "Inside Dhaka",
+        "Outside Dhaka",
+      ],
       required: true,
+      trim: true,
     },
 
     shippingFee: {
@@ -101,76 +122,141 @@ const orderSchema = new mongoose.Schema(
       min: 0,
     },
 
-    // =========================
-    // Products
-    // =========================
+    // ==================================================
+    // ORDER ITEMS
+    // ==================================================
+
     orderItems: {
       type: [orderItemSchema],
+
       required: true,
 
       validate: {
-        validator: (items) => Array.isArray(items) && items.length > 0,
+        validator: (items) =>
+          Array.isArray(items) &&
+          items.length > 0,
 
-        message: "Order must contain at least one item",
+        message:
+          "Order must contain at least one item",
       },
     },
 
-    // =========================
-    // Payment
-    // =========================
+    // ==================================================
+    // PAYMENT INFORMATION
+    // ==================================================
+
     paymentMethod: {
       type: String,
-      enum: ["Cash on Delivery"],
+
+      enum: [
+        "Cash on Delivery",
+        "bKash",
+        "Nagad",
+        "Rocket",
+        "Card",
+        "AamarPay",
+        "Bank",
+        "Other",
+      ],
+
       default: "Cash on Delivery",
+
       required: true,
+
+      trim: true,
     },
 
     senderNumber: {
       type: String,
       default: "",
+      trim: true,
     },
 
     transactionId: {
       type: String,
       default: "",
+      trim: true,
     },
 
     paymentStatus: {
       type: String,
-      enum: ["Pending", "Paid", "Failed"],
+
+      enum: [
+        "Pending",
+        "Paid",
+        "Failed",
+        "Refunded",
+        "Partially Refunded",
+      ],
+
       default: "Pending",
+
+      required: true,
     },
 
     isPaid: {
       type: Boolean,
+
       default: false,
     },
 
     paidAt: {
       type: Date,
+
       default: null,
     },
 
-    // =========================
-    // Price Information
-    // =========================
+    // ==================================================
+    // PRICE INFORMATION
+    // ==================================================
+
     subtotal: {
       type: Number,
+
       required: true,
+
       min: 0,
     },
 
     totalAmount: {
       type: Number,
+
       required: true,
+
       min: 0,
     },
 
-    // =========================
-    // Order Status
-    // =========================
+    // ==================================================
+    // FINANCIAL INFORMATION
+    // ==================================================
+
+    paymentFee: {
+      type: Number,
+
+      default: 0,
+
+      min: 0,
+    },
+
+    // ==================================================
+    // REFUND INFORMATION
+    // ==================================================
+
+    refundedAmount: {
+      type: Number,
+
+      default: 0,
+
+      min: 0,
+    },
+
+    // ==================================================
+    // ORDER STATUS
+    // ==================================================
+
     orderStatus: {
       type: String,
+
       enum: [
         "Pending",
         "Confirmed",
@@ -179,13 +265,68 @@ const orderSchema = new mongoose.Schema(
         "Delivered",
         "Cancelled",
       ],
+
       default: "Pending",
+
       required: true,
     },
+
+    // ==================================================
+    // CANCELLATION
+    // ==================================================
+
+    cancelledAt: {
+      type: Date,
+
+      default: null,
+    },
+
+    cancellationReason: {
+      type: String,
+
+      default: "",
+
+      trim: true,
+    },
   },
+
   {
     timestamps: true,
   },
 );
 
-export const Order = mongoose.model("Order", orderSchema);
+// ======================================================
+// INDEXES
+// ======================================================
+
+orderSchema.index({
+  createdAt: -1,
+});
+
+orderSchema.index({
+  user: 1,
+  createdAt: -1,
+});
+
+orderSchema.index({
+  orderStatus: 1,
+  createdAt: -1,
+});
+
+orderSchema.index({
+  paymentStatus: 1,
+  createdAt: -1,
+});
+
+orderSchema.index({
+  transactionId: 1,
+});
+
+// ======================================================
+// MODEL
+// ======================================================
+
+export const Order = mongoose.model(
+  "Order",
+  orderSchema,
+);

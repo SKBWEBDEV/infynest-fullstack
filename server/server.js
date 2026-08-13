@@ -4,20 +4,33 @@ import dotenv from "dotenv";
 
 import connectDB from "./src/config/db.js";
 
+// ======================================================
+// ROUTES
+// ======================================================
+
 import authRoutes from "./src/routes/authRoutes.js";
 import productRoutes from "./src/routes/productRoutes.js";
 import orderRoutes from "./src/routes/orderRoutes.js";
 import { adminRoutes } from "./src/routes/adminRoutes.js";
 import notificationRoutes from "./src/routes/notificationRoutes.js";
 import bannerRoutes from "./src/routes/bannerRoutes.js";
+import financialRoutes from "./src/routes/financialRoutes.js";
+
+// ======================================================
+// ENVIRONMENT
+// ======================================================
 
 dotenv.config();
 
+// ======================================================
+// APP
+// ======================================================
+
 const app = express();
 
-// ==========================================
+// ======================================================
 // CORS
-// ==========================================
+// ======================================================
 
 app.use(
   cors({
@@ -27,59 +40,138 @@ app.use(
       "https://infynest-fullstack-git-main-naj-muj-shakibs-projects.vercel.app",
     ],
     credentials: true,
-  })
+  }),
 );
 
-// ==========================================
+// ======================================================
 // BODY PARSER
-// ==========================================
+// ======================================================
 
-app.use(express.json({ limit: "16kb" }));
+app.use(
+  express.json({
+    limit: "16kb",
+  }),
+);
 
 app.use(
   express.urlencoded({
     extended: true,
     limit: "16kb",
-  })
+  }),
 );
 
-// ==========================================
+// ======================================================
 // HEALTH CHECK
-// ==========================================
+// ======================================================
 
 app.get("/", (req, res) => {
-  res.status(200).json({
+  return res.status(200).json({
     status: "OK",
     message: "INFYNEST API is running smoothly",
   });
 });
 
-// ==========================================
+// ======================================================
 // API ROUTES
-// ==========================================
+// ======================================================
 
-app.use("/api/v1/auth", authRoutes);
+// AUTH
+app.use(
+  "/api/v1/auth",
+  authRoutes,
+);
 
-app.use("/api/v1/products", productRoutes);
+// PRODUCTS
+app.use(
+  "/api/v1/products",
+  productRoutes,
+);
 
-app.use("/api/v1/orders", orderRoutes);
+// ORDERS
+app.use(
+  "/api/v1/orders",
+  orderRoutes,
+);
 
-app.use("/api/v1/admin", adminRoutes);
+// ADMIN
+app.use(
+  "/api/v1/admin",
+  adminRoutes,
+);
 
-app.use("/api/v1/notifications", notificationRoutes);
+// NOTIFICATIONS
+app.use(
+  "/api/v1/notifications",
+  notificationRoutes,
+);
 
-app.use("/api/v1/banners", bannerRoutes);
+// BANNERS
+app.use(
+  "/api/v1/banners",
+  bannerRoutes,
+);
 
-// ==========================================
-// SERVER
-// ==========================================
+// FINANCIAL
+app.use(
+  "/api/v1/financial",
+  financialRoutes,
+);
 
-const PORT = process.env.PORT || 8000;
+// ======================================================
+// 404 ROUTE
+// ======================================================
 
-connectDB().then(() => {
-  app.listen(PORT, () => {
-    console.log(
-      `[Server] INFYNEST Server running on port ${PORT}`
-    );
+app.use((req, res) => {
+  return res.status(404).json({
+    success: false,
+    message: `Route not found: ${req.method} ${req.originalUrl}`,
   });
 });
+
+// ======================================================
+// GLOBAL ERROR HANDLER
+// ======================================================
+
+app.use((error, req, res, next) => {
+  console.error(
+    "Global server error:",
+    error,
+  );
+
+  return res.status(
+    error.statusCode || 500,
+  ).json({
+    success: false,
+    message:
+      error.message ||
+      "Internal server error",
+  });
+});
+
+// ======================================================
+// SERVER
+// ======================================================
+
+const PORT =
+  process.env.PORT || 8000;
+
+// ======================================================
+// DATABASE + SERVER START
+// ======================================================
+
+connectDB()
+  .then(() => {
+    app.listen(PORT, () => {
+      console.log(
+        `[Server] INFYNEST Server running on port ${PORT}`,
+      );
+    });
+  })
+  .catch((error) => {
+    console.error(
+      "[Server] Database connection failed:",
+      error,
+    );
+
+    process.exit(1);
+  });
