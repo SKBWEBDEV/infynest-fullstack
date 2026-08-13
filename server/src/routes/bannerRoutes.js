@@ -29,7 +29,12 @@ router.get("/", getBanners);
 // ======================================================
 
 // Create banner
-router.post("/", upload.single("image"), createBanner);
+
+router.post(
+  "/",
+  upload.array("images", 5),
+  createBanner
+);
 
 // Update banner
 router.put("/:id", upload.single("image"), updateBanner);

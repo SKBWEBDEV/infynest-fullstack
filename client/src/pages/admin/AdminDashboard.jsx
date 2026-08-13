@@ -20,6 +20,7 @@ import {
   HiChevronLeft,
   HiHome,
   HiClipboardList,
+  HiPhotograph,
 } from "react-icons/hi";
 
 export default function AdminDashboard() {
@@ -284,6 +285,25 @@ export default function AdminDashboard() {
       </span>
     )}
   </Link>
+
+
+  {/* BANNERS */}
+
+<Link
+  to="/admin/banners"
+  className="flex items-center gap-4 p-3 rounded-xl text-gray-400 hover:bg-gray-800/50 hover:text-white transition"
+>
+  <HiPhotograph
+    size={21}
+    className="flex-shrink-0 text-purple-400"
+  />
+
+  {isSidebarOpen && (
+    <span className="text-xs">
+      Banners
+    </span>
+  )}
+</Link>
 
 
   {/* Visit Website */}

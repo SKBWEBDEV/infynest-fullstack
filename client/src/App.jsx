@@ -45,6 +45,7 @@ import AddProduct from "./pages/admin/AddProduct";
 import Products from "./pages/admin/Products";
 import AdminOrders from "./pages/admin/AdminOrders";
 import EditProduct from "./pages/EditProduct";
+import AdminBanners from "./pages/admin/AdminBanners";
 
 // =================================================================================
 // APP
@@ -183,6 +184,11 @@ function App() {
             </AdminRoute>
           }
         />
+
+        <Route
+  path="/admin/banners"
+  element={<AdminBanners />}
+/>
       </Routes>
     </BrowserRouter>
   );
