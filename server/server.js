@@ -9,6 +9,7 @@ import productRoutes from "./src/routes/productRoutes.js";
 import orderRoutes from "./src/routes/orderRoutes.js";
 import { adminRoutes } from "./src/routes/adminRoutes.js";
 import notificationRoutes from "./src/routes/notificationRoutes.js";
+import bannerRoutes from "./src/routes/bannerRoutes.js";
 
 dotenv.config();
 
@@ -66,6 +67,8 @@ app.use("/api/v1/orders", orderRoutes);
 app.use("/api/v1/admin", adminRoutes);
 
 app.use("/api/v1/notifications", notificationRoutes);
+
+app.use("/api/v1/banners", bannerRoutes);
 
 // ==========================================
 // SERVER

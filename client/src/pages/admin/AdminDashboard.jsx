@@ -525,9 +525,9 @@ export default function AdminDashboard() {
                   No users found.
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left border-collapse">
-                    <thead>
+                <div className="max-h-[500px] overflow-y-auto overflow-x-auto rounded-xl">
+                    <table className="w-full text-left border-collapse">
+                    <thead className="sticky top-0 bg-[#161920] z-10">
                       <tr className="border-b border-gray-800 text-[10px] text-gray-500 font-bold uppercase tracking-wider">
                         <th className="py-3 px-3">User</th>
 
