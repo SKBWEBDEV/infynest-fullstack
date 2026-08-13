@@ -10,9 +10,6 @@ export const getProducts = async (req, res) => {
   try {
     const { category, isFeatured, isNewArrival } = req.query;
 
-    // ==========================================
-    // BUILD QUERY
-    // ==========================================
     const query = {};
 
     // CATEGORY FILTER
@@ -30,9 +27,6 @@ export const getProducts = async (req, res) => {
       query.isNewArrival = isNewArrival === "true";
     }
 
-    // ==========================================
-    // GET PRODUCTS
-    // ==========================================
     const products = await Product.find(query).sort({
       createdAt: -1,
     });
@@ -89,6 +83,7 @@ export const createProduct = async (req, res) => {
       name,
       description,
       retailPrice,
+      costPrice,
       discountPrice,
       wholesalePrice,
       minWholesaleQty,
@@ -120,14 +115,52 @@ export const createProduct = async (req, res) => {
       });
     }
 
+    // ==========================================
+    // RETAIL PRICE
+    // ==========================================
+
     const parsedRetailPrice = Number(retailPrice);
 
-    if (Number.isNaN(parsedRetailPrice) || parsedRetailPrice < 0) {
+    if (
+      retailPrice === undefined ||
+      retailPrice === "" ||
+      Number.isNaN(parsedRetailPrice) ||
+      parsedRetailPrice < 0
+    ) {
       return res.status(400).json({
         success: false,
         message: "Invalid retail price",
       });
     }
+
+    // ==========================================
+    // COST PRICE
+    // ==========================================
+
+    const parsedCostPrice = Number(costPrice);
+
+    if (
+      costPrice === undefined ||
+      costPrice === "" ||
+      Number.isNaN(parsedCostPrice) ||
+      parsedCostPrice < 0
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Cost price is required and must be valid",
+      });
+    }
+
+    if (parsedCostPrice > parsedRetailPrice) {
+      return res.status(400).json({
+        success: false,
+        message: "Cost price cannot be greater than retail price",
+      });
+    }
+
+    // ==========================================
+    // DISCOUNT PRICE
+    // ==========================================
 
     const parsedDiscountPrice =
       discountPrice !== undefined &&
@@ -139,11 +172,82 @@ export const createProduct = async (req, res) => {
     if (
       parsedDiscountPrice !== null &&
       (Number.isNaN(parsedDiscountPrice) ||
+        parsedDiscountPrice < 0 ||
         parsedDiscountPrice >= parsedRetailPrice)
     ) {
       return res.status(400).json({
         success: false,
         message: "Discount price must be less than retail price",
+      });
+    }
+
+    // ==========================================
+    // WHOLESALE PRICE
+    // ==========================================
+
+    const parsedWholesalePrice =
+      wholesalePrice !== undefined &&
+      wholesalePrice !== null &&
+      wholesalePrice !== ""
+        ? Number(wholesalePrice)
+        : null;
+
+    if (
+      parsedWholesalePrice !== null &&
+      (Number.isNaN(parsedWholesalePrice) || parsedWholesalePrice < 0)
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid wholesale price",
+      });
+    }
+
+    if (
+      parsedWholesalePrice !== null &&
+      parsedWholesalePrice >= parsedRetailPrice
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Wholesale price must be less than retail price",
+      });
+    }
+
+    // ==========================================
+    // MIN WHOLESALE QUANTITY
+    // ==========================================
+
+    const parsedMinWholesaleQty =
+      minWholesaleQty !== undefined &&
+      minWholesaleQty !== null &&
+      minWholesaleQty !== ""
+        ? Number(minWholesaleQty)
+        : 1;
+
+    if (
+      Number.isNaN(parsedMinWholesaleQty) ||
+      parsedMinWholesaleQty < 1
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Minimum wholesale quantity must be at least 1",
+      });
+    }
+
+    // ==========================================
+    // STOCK
+    // ==========================================
+
+    const parsedStock = Number(stock);
+
+    if (
+      stock === undefined ||
+      stock === "" ||
+      Number.isNaN(parsedStock) ||
+      parsedStock < 0
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid stock quantity",
       });
     }
 
@@ -162,35 +266,37 @@ export const createProduct = async (req, res) => {
         req.files.map(
           (file) =>
             new Promise((resolve, reject) => {
-              const uploadStream = cloudinary.uploader.upload_stream(
-                {
-                  folder: "infynest/products",
+              const uploadStream =
+                cloudinary.uploader.upload_stream(
+                  {
+                    folder: "infynest/products",
+                    resource_type: "image",
 
-                  resource_type: "image",
+                    transformation: [
+                      {
+                        quality: "auto",
+                        fetch_format: "auto",
+                      },
+                    ],
+                  },
 
-                  transformation: [
-                    {
-                      quality: "auto",
-                      fetch_format: "auto",
-                    },
-                  ],
-                },
-
-                (error, result) => {
-                  if (error) {
-                    reject(error);
-                  } else {
-                    resolve(result);
-                  }
-                }
-              );
+                  (error, result) => {
+                    if (error) {
+                      reject(error);
+                    } else {
+                      resolve(result);
+                    }
+                  },
+                );
 
               uploadStream.end(file.buffer);
-            })
-        )
+            }),
+        ),
       );
 
-      images = uploadedImages.map((result) => result.secure_url);
+      images = uploadedImages.map(
+        (result) => result.secure_url,
+      );
     }
 
     // ==========================================
@@ -239,17 +345,13 @@ export const createProduct = async (req, res) => {
 
       retailPrice: parsedRetailPrice,
 
+      costPrice: parsedCostPrice,
+
       discountPrice: parsedDiscountPrice,
 
-      wholesalePrice:
-        wholesalePrice !== undefined && wholesalePrice !== ""
-          ? Number(wholesalePrice)
-          : null,
+      wholesalePrice: parsedWholesalePrice,
 
-      minWholesaleQty:
-        minWholesaleQty !== undefined && minWholesaleQty !== ""
-          ? Number(minWholesaleQty)
-          : 1,
+      minWholesaleQty: parsedMinWholesaleQty,
 
       category,
 
@@ -261,13 +363,15 @@ export const createProduct = async (req, res) => {
 
       images,
 
-      stock: Number(stock),
+      stock: parsedStock,
 
       isFeatured:
-        isFeatured === true || isFeatured === "true",
+        isFeatured === true ||
+        isFeatured === "true",
 
       isNewArrival:
-        isNewArrival === true || isNewArrival === "true",
+        isNewArrival === true ||
+        isNewArrival === "true",
     });
 
     // ==========================================
@@ -298,6 +402,7 @@ export const updateProduct = async (req, res) => {
       name,
       description,
       retailPrice,
+      costPrice,
       discountPrice,
       wholesalePrice,
       minWholesaleQty,
@@ -314,6 +419,7 @@ export const updateProduct = async (req, res) => {
     // ==========================================
     // FIND PRODUCT
     // ==========================================
+
     const product = await Product.findById(req.params.id);
 
     if (!product) {
@@ -324,9 +430,51 @@ export const updateProduct = async (req, res) => {
     }
 
     // ==========================================
-    // PARSE PRICES
+    // RETAIL PRICE
     // ==========================================
+
     const parsedRetailPrice = Number(retailPrice);
+
+    if (
+      retailPrice === undefined ||
+      retailPrice === "" ||
+      Number.isNaN(parsedRetailPrice) ||
+      parsedRetailPrice < 0
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid retail price",
+      });
+    }
+
+    // ==========================================
+    // COST PRICE
+    // ==========================================
+
+    const parsedCostPrice = Number(costPrice);
+
+    if (
+      costPrice === undefined ||
+      costPrice === "" ||
+      Number.isNaN(parsedCostPrice) ||
+      parsedCostPrice < 0
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Cost price is required and must be valid",
+      });
+    }
+
+    if (parsedCostPrice > parsedRetailPrice) {
+      return res.status(400).json({
+        success: false,
+        message: "Cost price cannot be greater than retail price",
+      });
+    }
+
+    // ==========================================
+    // DISCOUNT PRICE
+    // ==========================================
 
     let parsedDiscountPrice = null;
 
@@ -338,12 +486,10 @@ export const updateProduct = async (req, res) => {
       parsedDiscountPrice = Number(discountPrice);
     }
 
-    // ==========================================
-    // PRICE VALIDATION
-    // ==========================================
     if (
       parsedDiscountPrice !== null &&
       (Number.isNaN(parsedDiscountPrice) ||
+        parsedDiscountPrice < 0 ||
         parsedDiscountPrice >= parsedRetailPrice)
     ) {
       return res.status(400).json({
@@ -353,15 +499,124 @@ export const updateProduct = async (req, res) => {
     }
 
     // ==========================================
-    // IMAGES
+    // WHOLESALE PRICE
     // ==========================================
-    let images = Array.isArray(product.images) ? [...product.images] : [];
+
+    const parsedWholesalePrice =
+      wholesalePrice !== undefined &&
+      wholesalePrice !== null &&
+      wholesalePrice !== ""
+        ? Number(wholesalePrice)
+        : null;
+
+    if (
+      parsedWholesalePrice !== null &&
+      (Number.isNaN(parsedWholesalePrice) ||
+        parsedWholesalePrice < 0)
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid wholesale price",
+      });
+    }
+
+    if (
+      parsedWholesalePrice !== null &&
+      parsedWholesalePrice >= parsedRetailPrice
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Wholesale price must be less than retail price",
+      });
+    }
 
     // ==========================================
-    // NEW UPLOADED FILES
+    // MIN WHOLESALE QUANTITY
     // ==========================================
+
+    const parsedMinWholesaleQty =
+      minWholesaleQty !== undefined &&
+      minWholesaleQty !== null &&
+      minWholesaleQty !== ""
+        ? Number(minWholesaleQty)
+        : 1;
+
+    if (
+      Number.isNaN(parsedMinWholesaleQty) ||
+      parsedMinWholesaleQty < 1
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Minimum wholesale quantity must be at least 1",
+      });
+    }
+
+    // ==========================================
+    // STOCK
+    // ==========================================
+
+    const parsedStock = Number(stock);
+
+    if (
+      stock === undefined ||
+      stock === "" ||
+      Number.isNaN(parsedStock) ||
+      parsedStock < 0
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid stock quantity",
+      });
+    }
+
+    // ==========================================
+    // IMAGES
+    // ==========================================
+
+    let images = Array.isArray(product.images)
+      ? [...product.images]
+      : [];
+
+    // ==========================================
+    // NEW FILE UPLOADS
+    // ==========================================
+
     if (req.files && req.files.length > 0) {
-      const newImages = req.files.map((file) => `/uploads/${file.filename}`);
+      const uploadedImages = await Promise.all(
+        req.files.map(
+          (file) =>
+            new Promise((resolve, reject) => {
+              const uploadStream =
+                cloudinary.uploader.upload_stream(
+                  {
+                    folder: "infynest/products",
+                    resource_type: "image",
+
+                    transformation: [
+                      {
+                        quality: "auto",
+                        fetch_format: "auto",
+                      },
+                    ],
+                  },
+
+                  (error, result) => {
+                    if (error) {
+                      reject(error);
+                    } else {
+                      resolve(result);
+                    }
+                  },
+                );
+
+              uploadStream.end(file.buffer);
+            }),
+        ),
+      );
+
+      const newImages = uploadedImages.map(
+        (result) => result.secure_url,
+      );
 
       images = [...images, ...newImages];
     }
@@ -369,6 +624,7 @@ export const updateProduct = async (req, res) => {
     // ==========================================
     // IMAGE URLS
     // ==========================================
+
     if (imageUrls) {
       try {
         const parsedUrls = JSON.parse(imageUrls);
@@ -382,79 +638,115 @@ export const updateProduct = async (req, res) => {
     }
 
     // ==========================================
-    // UPDATE PRODUCT DATA
+    // UPDATE BASIC DATA
     // ==========================================
+
     product.name = name?.trim();
 
     product.description = description?.trim();
 
     product.retailPrice = parsedRetailPrice;
 
+    product.costPrice = parsedCostPrice;
+
     product.discountPrice = parsedDiscountPrice;
 
-    product.wholesalePrice =
-      wholesalePrice !== undefined && wholesalePrice !== ""
-        ? Number(wholesalePrice)
-        : null;
+    product.wholesalePrice = parsedWholesalePrice;
 
-    product.minWholesaleQty =
-      minWholesaleQty !== undefined && minWholesaleQty !== ""
-        ? Number(minWholesaleQty)
-        : 1;
+    product.minWholesaleQty = parsedMinWholesaleQty;
 
-    // CATEGORY
     product.category = category;
 
     // ==========================================
     // SIZES
     // ==========================================
+
     if (sizes !== undefined) {
-      product.sizes = sizes ? JSON.parse(sizes) : [];
+      try {
+        product.sizes = sizes
+          ? JSON.parse(sizes)
+          : [];
+      } catch (error) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid sizes data",
+        });
+      }
     }
 
     // ==========================================
     // COLORS
     // ==========================================
+
     if (colors !== undefined) {
-      product.colors = colors ? JSON.parse(colors) : [];
+      try {
+        product.colors = colors
+          ? JSON.parse(colors)
+          : [];
+      } catch (error) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid colors data",
+        });
+      }
     }
 
     // ==========================================
     // TAGS
     // ==========================================
+
     if (tags !== undefined) {
-      product.tags = tags ? JSON.parse(tags) : [];
+      try {
+        product.tags = tags
+          ? JSON.parse(tags)
+          : [];
+      } catch (error) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid tags data",
+        });
+      }
     }
 
     // ==========================================
     // IMAGES
     // ==========================================
+
     product.images = images;
 
     // ==========================================
     // STOCK
     // ==========================================
-    product.stock = Number(stock);
+
+    product.stock = parsedStock;
 
     // ==========================================
     // FEATURED
     // ==========================================
-    product.isFeatured = isFeatured === true || isFeatured === "true";
+
+    product.isFeatured =
+      isFeatured === true ||
+      isFeatured === "true";
 
     // ==========================================
     // NEW ARRIVAL
     // ==========================================
-    product.isNewArrival = isNewArrival === true || isNewArrival === "true";
+
+    product.isNewArrival =
+      isNewArrival === true ||
+      isNewArrival === "true";
 
     // ==========================================
     // SAVE
     // ==========================================
+
     const updatedProduct = await product.save();
 
     // ==========================================
     // RESPONSE
     // ==========================================
-    res.status(200).json({
+
+    return res.status(200).json({
       success: true,
       message: "Product updated successfully",
       data: updatedProduct,
@@ -462,7 +754,7 @@ export const updateProduct = async (req, res) => {
   } catch (error) {
     console.error("Update product error:", error);
 
-    res.status(400).json({
+    return res.status(400).json({
       success: false,
       message: error.message,
     });
@@ -474,7 +766,9 @@ export const updateProduct = async (req, res) => {
 // ==========================================
 export const deleteProduct = async (req, res) => {
   try {
-    const product = await Product.findByIdAndDelete(req.params.id);
+    const product = await Product.findByIdAndDelete(
+      req.params.id,
+    );
 
     if (!product) {
       return res.status(404).json({
@@ -483,14 +777,14 @@ export const deleteProduct = async (req, res) => {
       });
     }
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       message: "Product deleted successfully",
     });
   } catch (error) {
     console.error("Delete product error:", error);
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: error.message,
     });
