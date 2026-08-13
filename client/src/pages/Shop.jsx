@@ -367,24 +367,25 @@ export default function Shop() {
                       </div>
 
 {/* ACTION BUTTONS */}
-<div className="flex items-center gap-1.5 shrink-0">
+<div className="flex items-center gap-1 shrink-0">
 
   {/* VIEW DETAILS */}
   <button
     type="button"
     onClick={() => navigate(`/product/${item._id}`)}
     className="
-      px-2.5
-      sm:px-3.5
-      py-2
+      px-2
+      sm:px-3
+      py-1.5
+      sm:py-2
       bg-gray-700
       hover:bg-gray-600
       text-white
-      text-[9px]
-      sm:text-xs
-      font-bold
-      rounded-lg
-      sm:rounded-xl
+      text-[8px]
+      sm:text-[10px]
+      font-semibold
+      rounded-md
+      sm:rounded-lg
       transition
       flex
       items-center
@@ -401,29 +402,33 @@ export default function Shop() {
     type="button"
     onClick={() => handleBuyNow(item._id)}
     className="
-      px-2.5
-      sm:px-3.5
-      py-2
+      px-2
+      sm:px-3
+      py-1.5
+      sm:py-2
       bg-purple-600
       hover:bg-purple-700
       text-white
-      text-[9px]
-      sm:text-xs
-      font-bold
-      rounded-lg
-      sm:rounded-xl
+      text-[8px]
+      sm:text-[10px]
+      font-semibold
+      rounded-md
+      sm:rounded-lg
       transition
       flex
       items-center
       justify-center
-      gap-1.5
-      shadow-md
+      gap-1
+      shadow-sm
       shadow-purple-600/30
       cursor-pointer
       whitespace-nowrap
     "
   >
-    <HiShoppingBag size={13} />
+    <HiShoppingBag
+      size={11}
+      className="sm:w-3 sm:h-3"
+    />
 
     <span>Buy Now</span>
   </button>
