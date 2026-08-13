@@ -366,39 +366,70 @@ export default function Shop() {
                         )}
                       </div>
 
-                      {/* BUY NOW */}
-                      <button
-                        type="button"
-                        onClick={() =>
-                          handleBuyNow(item._id)
-                        }
-                        className="
-                          px-2.5
-                          sm:px-3.5
-                          py-2
-                          bg-purple-600
-                          hover:bg-purple-700
-                          text-white
-                          text-[9px]
-                          sm:text-xs
-                          font-bold
-                          rounded-lg
-                          sm:rounded-xl
-                          transition
-                          flex
-                          items-center
-                          justify-center
-                          gap-1.5
-                          shadow-md
-                          shadow-purple-600/30
-                          cursor-pointer
-                          shrink-0
-                        "
-                      >
-                        <HiShoppingBag size={13} />
+{/* ACTION BUTTONS */}
+<div className="flex items-center gap-1.5 shrink-0">
 
-                        <span>Buy Now</span>
-                      </button>
+  {/* VIEW DETAILS */}
+  <button
+    type="button"
+    onClick={() => navigate(`/product/${item._id}`)}
+    className="
+      px-2.5
+      sm:px-3.5
+      py-2
+      bg-gray-700
+      hover:bg-gray-600
+      text-white
+      text-[9px]
+      sm:text-xs
+      font-bold
+      rounded-lg
+      sm:rounded-xl
+      transition
+      flex
+      items-center
+      justify-center
+      cursor-pointer
+      whitespace-nowrap
+    "
+  >
+    View Details
+  </button>
+
+  {/* BUY NOW */}
+  <button
+    type="button"
+    onClick={() => handleBuyNow(item._id)}
+    className="
+      px-2.5
+      sm:px-3.5
+      py-2
+      bg-purple-600
+      hover:bg-purple-700
+      text-white
+      text-[9px]
+      sm:text-xs
+      font-bold
+      rounded-lg
+      sm:rounded-xl
+      transition
+      flex
+      items-center
+      justify-center
+      gap-1.5
+      shadow-md
+      shadow-purple-600/30
+      cursor-pointer
+      whitespace-nowrap
+    "
+  >
+    <HiShoppingBag size={13} />
+
+    <span>Buy Now</span>
+  </button>
+
+</div>
+
                     </div>
                   </div>
                 </div>

@@ -15,6 +15,7 @@ import {
   HiUserGroup,
   HiLogout,
   HiViewGrid,
+  HiShoppingBag,
   HiMenuAlt2,
   HiChevronLeft,
   HiHome,
@@ -198,7 +199,7 @@ export default function AdminDashboard() {
                 </div>
 
                 <div>
-                  <h2 className="text-sm font-black text-white">Buynext</h2>
+                  <h2 className="text-sm font-black text-white">INFYNEST</h2>
 
                   <p className="text-[9px] text-gray-500">Admin Panel</p>
                 </div>
@@ -224,54 +225,88 @@ export default function AdminDashboard() {
 
           {/* Navigation */}
 
-          <nav className="flex flex-col gap-2">
-            {/* Dashboard */}
+          {/* Navigation */}
 
-            <Link
-              to="/admin/dashboard"
-              className="flex items-center gap-4 p-3 rounded-xl bg-purple-600/20 text-purple-400 font-semibold transition"
-            >
-              <HiViewGrid size={21} className="flex-shrink-0" />
+<nav className="flex flex-col gap-2">
 
-              {isSidebarOpen && <span className="text-xs">Dashboard</span>}
-            </Link>
+  {/* Dashboard */}
 
-            {/* Products */}
+  <Link
+    to="/admin/dashboard"
+    className="flex items-center gap-4 p-3 rounded-xl bg-purple-600/20 text-purple-400 font-semibold transition"
+  >
+    <HiViewGrid
+      size={21}
+      className="flex-shrink-0"
+    />
 
-            <Link
-              to="/admin/products"
-              className="flex items-center gap-4 p-3 rounded-xl text-gray-400 hover:bg-gray-800/50 hover:text-white transition"
-            >
-              <HiViewGrid size={21} className="flex-shrink-0 text-purple-400" />
+    {isSidebarOpen && (
+      <span className="text-xs">
+        Dashboard
+      </span>
+    )}
+  </Link>
 
-              {isSidebarOpen && <span className="text-xs">Products</span>}
-            </Link>
 
-            {/* Orders */}
+  {/* Products */}
 
-            <Link
-              to="/admin/orders"
-              className="flex items-center gap-4 p-3 rounded-xl text-gray-400 hover:bg-gray-800/50 hover:text-purple-400 transition"
-            >
-              <HiClipboardList
-                size={21}
-                className="flex-shrink-0 text-purple-400"
-              />
+  <Link
+    to="/admin/products"
+    className="flex items-center gap-4 p-3 rounded-xl text-gray-400 hover:bg-gray-800/50 hover:text-white transition"
+  >
+    <HiShoppingBag
+      size={21}
+      className="flex-shrink-0 text-purple-400"
+    />
 
-              {isSidebarOpen && <span className="text-xs">Orders</span>}
-            </Link>
+    {isSidebarOpen && (
+      <span className="text-xs">
+        Products
+      </span>
+    )}
+  </Link>
 
-            {/* Visit Website */}
 
-            <Link
-              to="/"
-              className="flex items-center gap-4 p-3 rounded-xl text-gray-400 hover:bg-gray-800/50 hover:text-white transition"
-            >
-              <HiHome size={21} className="flex-shrink-0 text-purple-400" />
+  {/* Orders */}
 
-              {isSidebarOpen && <span className="text-xs">Visit Website</span>}
-            </Link>
-          </nav>
+  <Link
+    to="/admin/orders"
+    className="flex items-center gap-4 p-3 rounded-xl text-gray-400 hover:bg-gray-800/50 hover:text-purple-400 transition"
+  >
+    <HiClipboardList
+      size={21}
+      className="flex-shrink-0 text-purple-400"
+    />
+
+    {isSidebarOpen && (
+      <span className="text-xs">
+        Orders
+      </span>
+    )}
+  </Link>
+
+
+  {/* Visit Website */}
+
+  <Link
+    to="/"
+    className="flex items-center gap-4 p-3 rounded-xl text-gray-400 hover:bg-gray-800/50 hover:text-white transition"
+  >
+    <HiHome
+      size={21}
+      className="flex-shrink-0 text-purple-400"
+    />
+
+    {isSidebarOpen && (
+      <span className="text-xs">
+        Visit Website
+      </span>
+    )}
+  </Link>
+
+</nav>
+
+          
         </div>
 
         {/* Logout */}
@@ -321,7 +356,7 @@ export default function AdminDashboard() {
               </h4>
 
               <p className="text-[10px] text-gray-500">
-                {userInfo?.email || "admin@buynext.com"}
+                {userInfo?.email || "admin@infynest.com"}
               </p>
             </div>
 

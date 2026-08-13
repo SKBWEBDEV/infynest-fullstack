@@ -513,17 +513,16 @@ export default function Layout() {
 
       <footer className="bg-gray-900 text-white pt-12 pb-8 mt-auto">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
-          <div>
-            <h3 className="text-xl font-bold tracking-wider mb-4">
-              INFY
-              <span className="text-indigo-500">NEST</span>
-            </h3>
+<div>
+  <h3 className="text-xl font-bold tracking-wider mb-4 text-white">
+    INFYNEST
+  </h3>
 
-            <p className="text-gray-400 text-sm">
-              Your ultimate destination for premium fashion and lifestyle
-              trends.
-            </p>
-          </div>
+  <p className="text-gray-400 text-sm">
+    Your ultimate destination for premium fashion and lifestyle
+    trends.
+  </p>
+</div>
 
           <div>
             <h4 className="font-semibold mb-4 text-gray-200">Quick Links</h4>

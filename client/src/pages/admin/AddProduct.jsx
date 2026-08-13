@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Upload, Link as LinkIcon } from "lucide-react";
@@ -16,17 +15,19 @@ export default function AddProduct() {
   const [discountPrice, setDiscountPrice] = useState("");
   const [stock, setStock] = useState("");
 
-  // Design Category
   const [category, setCategory] = useState("regular-fit");
-const [isNewArrival, setIsNewArrival] = useState(false);
+  const [isNewArrival, setIsNewArrival] = useState(false);
 
-const [sizes, setSizes] = useState("");
+  const [sizes, setSizes] = useState("");
   const [colors, setColors] = useState("");
   const [tags, setTags] = useState("");
   const [description, setDescription] = useState("");
+
   const [isFeatured, setIsFeatured] = useState(false);
 
-  // Images
+  // ==========================================
+  // IMAGE STATES
+  // ==========================================
   const [images, setImages] = useState([]);
   const [imageUrls, setImageUrls] = useState("");
   const [imageInputType, setImageInputType] = useState("file");
@@ -64,6 +65,9 @@ const [sizes, setSizes] = useState("");
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // ==========================================
+    // USER CHECK
+    // ==========================================
     const userInfo = getUserInfo();
 
     if (!userInfo.token) {
@@ -72,32 +76,53 @@ const [sizes, setSizes] = useState("");
       return;
     }
 
-    // Basic validation
+    // ==========================================
+    // BASIC VALIDATION
+    // ==========================================
     if (!name.trim()) {
       toast.error("Product name is required.");
       return;
     }
 
-    if (!retailPrice || Number(retailPrice) < 0) {
+    if (
+      retailPrice === "" ||
+      Number.isNaN(Number(retailPrice)) ||
+      Number(retailPrice) < 0
+    ) {
       toast.error("Please enter a valid retail price.");
       return;
     }
 
-    if (!stock || Number(stock) < 0) {
+    if (
+      stock === "" ||
+      Number.isNaN(Number(stock)) ||
+      Number(stock) < 0
+    ) {
       toast.error("Please enter a valid stock quantity.");
       return;
     }
 
-    // Discount validation
-    if (
-      discountPrice !== "" &&
-      Number(discountPrice) >= Number(retailPrice)
-    ) {
-      toast.error("Discount price must be less than retail price.");
-      return;
+    // ==========================================
+    // DISCOUNT VALIDATION
+    // ==========================================
+    if (discountPrice !== "") {
+      const retail = Number(retailPrice);
+      const discount = Number(discountPrice);
+
+      if (Number.isNaN(discount) || discount < 0) {
+        toast.error("Discount price cannot be negative.");
+        return;
+      }
+
+      if (discount >= retail) {
+        toast.error("Discount price must be less than retail price.");
+        return;
+      }
     }
 
-    // Image validation
+    // ==========================================
+    // IMAGE VALIDATION
+    // ==========================================
     if (imageInputType === "file" && images.length === 0) {
       toast.error("Please upload at least one product image.");
       return;
@@ -117,11 +142,17 @@ const [sizes, setSizes] = useState("");
       // BASIC PRODUCT DATA
       // ==========================================
       data.append("name", name.trim());
+
       data.append("description", description.trim());
+
       data.append("retailPrice", Number(retailPrice));
+
       data.append("category", category);
+
       data.append("stock", Number(stock));
+
       data.append("isFeatured", String(isFeatured));
+
       data.append("isNewArrival", String(isNewArrival));
 
       // ==========================================
@@ -137,8 +168,17 @@ const [sizes, setSizes] = useState("");
       const sizesArray = sizes
         ? sizes
             .split(",")
-            .map((size) => size.trim().toUpperCase())
+            .map((size) => size.trim())
             .filter(Boolean)
+            .map((size) => {
+              const normalized = size.toLowerCase();
+
+              if (normalized === "free size") {
+                return "Free Size";
+              }
+
+              return size.toUpperCase();
+            })
         : [];
 
       data.append("sizes", JSON.stringify(sizesArray));
@@ -176,7 +216,9 @@ const [sizes, setSizes] = useState("");
           .map((url) => url.trim())
           .filter(Boolean);
 
-        data.append("imageUrls", JSON.stringify(urlsArray));
+        if (urlsArray.length > 0) {
+          data.append("imageUrls", JSON.stringify(urlsArray));
+        }
       }
 
       // ==========================================
@@ -189,20 +231,56 @@ const [sizes, setSizes] = useState("");
       }
 
       // ==========================================
+      // DEBUG FOR FORMDATA
+      // ==========================================
+      console.log("========== CREATE PRODUCT ==========");
+
+      for (const [key, value] of data.entries()) {
+        if (value instanceof File) {
+          console.log(key, {
+            name: value.name,
+            type: value.type,
+            size: value.size,
+          });
+        } else {
+          console.log(key, value);
+        }
+      }
+
+      // ==========================================
       // CREATE PRODUCT
       // ==========================================
-      await API.post("/products", data);
+      const response = await API.post("/products", data);
 
+      console.log("CREATE PRODUCT RESPONSE:", response.data);
+
+      // ==========================================
+      // SUCCESS
+      // ==========================================
       toast.success("Product created successfully!");
 
       navigate("/admin/products");
     } catch (error) {
+      // ==========================================
+      // ERROR DEBUG
+      // ==========================================
       console.error("Create product error:", error);
 
+      console.log("STATUS:", error?.response?.status);
+
+      console.log("DATA:", error?.response?.data);
+
+      console.log("MESSAGE:", error?.message);
+
+      console.log("FULL ERROR:", error);
+
+      // ==========================================
+      // ERROR MESSAGE
+      // ==========================================
       toast.error(
         error?.response?.data?.message ||
           error?.response?.data?.error ||
-          "Failed to create product"
+          "Failed to create product",
       );
     } finally {
       setLoading(false);
@@ -228,6 +306,7 @@ const [sizes, setSizes] = useState("");
             className="inline-flex items-center gap-2 mb-5 px-4 py-2.5 rounded-xl bg-[#1e222d] border border-gray-800 text-gray-300 hover:text-white hover:bg-[#252a36] transition"
           >
             <ArrowLeft size={17} />
+
             <span className="text-sm font-semibold">
               Back to Products
             </span>
@@ -284,6 +363,7 @@ const [sizes, setSizes] = useState("");
                 <input
                   type="number"
                   min="0"
+                  step="1"
                   value={retailPrice}
                   onChange={(e) => setRetailPrice(e.target.value)}
                   required
@@ -296,6 +376,7 @@ const [sizes, setSizes] = useState("");
               <div>
                 <label className="block text-gray-300 mb-2 font-semibold">
                   Discount Price (৳)
+
                   <span className="text-gray-600 ml-1 font-normal">
                     Optional
                   </span>
@@ -304,6 +385,7 @@ const [sizes, setSizes] = useState("");
                 <input
                   type="number"
                   min="0"
+                  step="1"
                   value={discountPrice}
                   onChange={(e) => setDiscountPrice(e.target.value)}
                   placeholder="599"
@@ -317,7 +399,7 @@ const [sizes, setSizes] = useState("");
                       {Math.round(
                         ((Number(retailPrice) - Number(discountPrice)) /
                           Number(retailPrice)) *
-                          100
+                          100,
                       )}
                       % OFF
                     </p>
@@ -339,6 +421,7 @@ const [sizes, setSizes] = useState("");
                 <input
                   type="number"
                   min="0"
+                  step="1"
                   value={stock}
                   onChange={(e) => setStock(e.target.value)}
                   required
@@ -354,13 +437,47 @@ const [sizes, setSizes] = useState("");
                 </label>
 
                 <select
-  value={category}
-  onChange={(e) => setCategory(e.target.value)}
-  required
-  className="w-full p-3.5 bg-[#1e222d] border border-gray-800 rounded-xl text-white focus:outline-none focus:border-purple-500 transition cursor-pointer"
->
-  <option value="regular-fit">Regular Fit</option>
-</select>
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  required
+                  className="w-full p-3.5 bg-[#1e222d] border border-gray-800 rounded-xl text-white focus:outline-none focus:border-purple-500 transition cursor-pointer"
+                >
+                  <option value="regular-fit">
+                    Regular Fit
+                  </option>
+
+                  <option value="oversized">
+                    Oversized
+                  </option>
+
+                  <option value="spider-man">
+                    Spider-Man
+                  </option>
+
+                  <option value="chainsaw-man">
+                    Chainsaw Man
+                  </option>
+
+                  <option value="stranger-things">
+                    Stranger Things
+                  </option>
+
+                  <option value="ghost-rider">
+                    Ghost Rider
+                  </option>
+
+                  <option value="essentials">
+                    Essentials
+                  </option>
+
+                  <option value="anime">
+                    Anime
+                  </option>
+
+                  <option value="venom">
+                    Venom
+                  </option>
+                </select>
               </div>
             </div>
 
@@ -445,6 +562,7 @@ const [sizes, setSizes] = useState("");
                     }`}
                   >
                     <Upload size={13} />
+
                     Upload File
                   </button>
 
@@ -458,6 +576,7 @@ const [sizes, setSizes] = useState("");
                     }`}
                   >
                     <LinkIcon size={13} />
+
                     Image URL(s)
                   </button>
                 </div>
@@ -466,6 +585,7 @@ const [sizes, setSizes] = useState("");
               {/* FILE UPLOAD */}
               {imageInputType === "file" ? (
                 <div>
+
                   <input
                     type="file"
                     multiple
@@ -483,6 +603,7 @@ const [sizes, setSizes] = useState("");
               ) : (
                 /* IMAGE URL */
                 <div>
+
                   <input
                     type="text"
                     value={imageUrls}
@@ -502,6 +623,7 @@ const [sizes, setSizes] = useState("");
                 DESCRIPTION
             ========================================== */}
             <div>
+
               <label className="block text-gray-300 mb-2 font-semibold">
                 Description
               </label>
@@ -516,63 +638,61 @@ const [sizes, setSizes] = useState("");
               />
             </div>
 
+            {/* ==========================================
+                FEATURED
+            ========================================== */}
+            <div className="bg-[#1e222d] border border-gray-800 rounded-xl p-4">
 
+              <label className="flex items-center gap-3 cursor-pointer">
 
-           
-{/* ==========================================
-    FEATURED
-========================================== */}
-<div className="bg-[#1e222d] border border-gray-800 rounded-xl p-4">
-  <label className="flex items-center gap-3 cursor-pointer">
-    <input
-      type="checkbox"
-      id="isFeatured"
-      checked={isFeatured}
-      onChange={(e) => setIsFeatured(e.target.checked)}
-      className="w-4 h-4 accent-purple-600 cursor-pointer"
-    />
+                <input
+                  type="checkbox"
+                  id="isFeatured"
+                  checked={isFeatured}
+                  onChange={(e) => setIsFeatured(e.target.checked)}
+                  className="w-4 h-4 accent-purple-600 cursor-pointer"
+                />
 
-    <div>
-      <p className="text-xs font-semibold text-gray-200">
-        Mark as Featured Product
-      </p>
+                <div>
 
-      <p className="text-[10px] text-gray-500 mt-0.5">
-        Show this product in featured sections.
-      </p>
-    </div>
-  </label>
-</div>
+                  <p className="text-xs font-semibold text-gray-200">
+                    Mark as Featured Product
+                  </p>
 
-{/* ==========================================
-    NEW ARRIVAL
-========================================== */}
-<div className="bg-[#1e222d] border border-gray-800 rounded-xl p-4">
-  <label className="flex items-center gap-3 cursor-pointer">
-    <input
-      type="checkbox"
-      id="isNewArrival"
-      checked={isNewArrival}
-      onChange={(e) => setIsNewArrival(e.target.checked)}
-      className="w-4 h-4 accent-purple-600 cursor-pointer"
-    />
+                  <p className="text-[10px] text-gray-500 mt-0.5">
+                    Show this product in featured sections.
+                  </p>
+                </div>
+              </label>
+            </div>
 
-    <div>
-      <p className="text-xs font-semibold text-gray-200">
-        Mark as New Arrival
-      </p>
+            {/* ==========================================
+                NEW ARRIVAL
+            ========================================== */}
+            <div className="bg-[#1e222d] border border-gray-800 rounded-xl p-4">
 
-      <p className="text-[10px] text-gray-500 mt-0.5">
-        Show this product in the New Arrivals section on Home.
-      </p>
-    </div>
-  </label>
-</div>
+              <label className="flex items-center gap-3 cursor-pointer">
 
+                <input
+                  type="checkbox"
+                  id="isNewArrival"
+                  checked={isNewArrival}
+                  onChange={(e) => setIsNewArrival(e.target.checked)}
+                  className="w-4 h-4 accent-purple-600 cursor-pointer"
+                />
 
+                <div>
 
+                  <p className="text-xs font-semibold text-gray-200">
+                    Mark as New Arrival
+                  </p>
 
-
+                  <p className="text-[10px] text-gray-500 mt-0.5">
+                    Show this product in the New Arrivals section on Home.
+                  </p>
+                </div>
+              </label>
+            </div>
 
             {/* ==========================================
                 ACTION BUTTONS
@@ -605,4 +725,3 @@ const [sizes, setSizes] = useState("");
     </div>
   );
 }
-
