@@ -312,128 +312,140 @@ export default function Shop() {
                         gap-2
                       "
                     >
-                      {/* PRICE */}
-                      <div className="min-w-0">
-                        {hasDiscount ? (
-                          <div className="flex flex-col">
-                            <span
-                              className="
-                                text-xs
-                                sm:text-sm
-                                font-black
-                                text-green-400
-                                whitespace-nowrap
-                              "
-                            >
-                              ৳
-                              {Number(
-                                item.discountPrice
-                              ).toLocaleString()}
-                            </span>
 
-                            <span
-                              className="
-                                text-[9px]
-                                sm:text-[10px]
-                                text-gray-500
-                                line-through
-                                whitespace-nowrap
-                              "
-                            >
-                              ৳
-                              {Number(
-                                item.retailPrice
-                              ).toLocaleString()}
-                            </span>
-                          </div>
-                        ) : (
-                          <span
-                            className="
-                              text-xs
-                              sm:text-sm
-                              font-black
-                              text-purple-400
-                              whitespace-nowrap
-                            "
-                          >
-                            ৳
-                            {Number(
-                              item.retailPrice ||
-                                item.price ||
-                                0
-                            ).toLocaleString()}
-                          </span>
-                        )}
-                      </div>
 
-{/* ACTION BUTTONS */}
-<div className="flex items-center gap-1 shrink-0">
 
-  {/* VIEW DETAILS */}
-  <button
-    type="button"
-    onClick={() => navigate(`/product/${item._id}`)}
-    className="
-      px-2
-      sm:px-3
-      py-1.5
-      sm:py-2
-      bg-gray-700
-      hover:bg-gray-600
-      text-white
-      text-[8px]
-      sm:text-[10px]
-      font-semibold
-      rounded-md
-      sm:rounded-lg
-      transition
-      flex
-      items-center
-      justify-center
-      cursor-pointer
-      whitespace-nowrap
-    "
-  >
-    View Details
-  </button>
+                      {/* ======================================
+    PRICE + ACTION BUTTONS
+====================================== */}
+<div
+  className="
+    pt-3
+    mt-3
+    border-t
+    border-gray-800/80
+  "
+>
+  {/* PRICE */}
+  <div className="mb-3 min-w-0">
+    {hasDiscount ? (
+      <div className="flex items-center gap-2 flex-wrap">
+        <span
+          className="
+            text-xs
+            sm:text-sm
+            font-black
+            text-green-400
+            whitespace-nowrap
+          "
+        >
+          ৳{Number(item.discountPrice).toLocaleString()}
+        </span>
 
-  {/* BUY NOW */}
-  <button
-    type="button"
-    onClick={() => handleBuyNow(item._id)}
-    className="
-      px-2
-      sm:px-3
-      py-1.5
-      sm:py-2
-      bg-purple-600
-      hover:bg-purple-700
-      text-white
-      text-[8px]
-      sm:text-[10px]
-      font-semibold
-      rounded-md
-      sm:rounded-lg
-      transition
-      flex
-      items-center
-      justify-center
-      gap-1
-      shadow-sm
-      shadow-purple-600/30
-      cursor-pointer
-      whitespace-nowrap
-    "
-  >
-    <HiShoppingBag
-      size={11}
-      className="sm:w-3 sm:h-3"
-    />
+        <span
+          className="
+            text-[9px]
+            sm:text-[10px]
+            text-gray-500
+            line-through
+            whitespace-nowrap
+          "
+        >
+          ৳{Number(item.retailPrice).toLocaleString()}
+        </span>
+      </div>
+    ) : (
+      <span
+        className="
+          text-xs
+          sm:text-sm
+          font-black
+          text-purple-400
+          whitespace-nowrap
+        "
+      >
+        ৳
+        {Number(
+          item.retailPrice || item.price || 0
+        ).toLocaleString()}
+      </span>
+    )}
+  </div>
 
-    <span>Buy Now</span>
-  </button>
+  {/* ACTION BUTTONS */}
+  <div className="grid grid-cols-2 gap-2 w-full">
 
+    {/* VIEW DETAILS */}
+    <button
+      type="button"
+      onClick={() => navigate(`/product/${item._id}`)}
+      className="
+        w-full
+        min-w-0
+        px-2
+        sm:px-3
+        py-2
+        sm:py-2.5
+        bg-gray-700
+        hover:bg-gray-600
+        text-white
+        text-[8px]
+        sm:text-[10px]
+        font-semibold
+        rounded-md
+        sm:rounded-lg
+        transition
+        flex
+        items-center
+        justify-center
+        cursor-pointer
+        whitespace-nowrap
+      "
+    >
+      View Details
+    </button>
+
+    {/* BUY NOW */}
+    <button
+      type="button"
+      onClick={() => handleBuyNow(item._id)}
+      className="
+        w-full
+        min-w-0
+        px-2
+        sm:px-3
+        py-2
+        sm:py-2.5
+        bg-purple-600
+        hover:bg-purple-700
+        text-white
+        text-[8px]
+        sm:text-[10px]
+        font-semibold
+        rounded-md
+        sm:rounded-lg
+        transition
+        flex
+        items-center
+        justify-center
+        gap-1
+        shadow-sm
+        shadow-purple-600/30
+        cursor-pointer
+        whitespace-nowrap
+      "
+    >
+      <HiShoppingBag
+        size={11}
+        className="sm:w-3 sm:h-3 shrink-0"
+      />
+
+      <span>Buy Now</span>
+    </button>
+
+  </div>
 </div>
+
 
                     </div>
                   </div>
