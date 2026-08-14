@@ -28,19 +28,35 @@ export default function Products() {
   const userInfo = JSON.parse(localStorage.getItem('userInfo')) || {};
 
   // ব্যাকএন্ড থেকে প্রোডাক্ট ফেচ করার ফাংশন
-  const fetchProducts = async () => {
-    try {
-      const { data } = await API.get("/products");
-      // আপনার ব্যাকএন্ড কন্ট্রোলারের রেসপন্স স্ট্রাকচার অনুযায়ী data.data ব্যবহার করা হয়েছে
-      setProducts(data.data || []);
-      setLoading(false);
-    } catch (error) {
-      console.error('Error fetching products:', error);
-      toast.error('Failed to load products from server');
-      setLoading(false);
-    }
-  };
+const fetchProducts = async () => {
+  try {
+    setLoading(true);
 
+    const { data } = await API.get("/products");
+
+    console.log("Products Response:", data);
+
+    if (Array.isArray(data?.data)) {
+      setProducts(data.data);
+    } else if (Array.isArray(data?.products)) {
+      setProducts(data.products);
+    } else if (Array.isArray(data)) {
+      setProducts(data);
+    } else {
+      setProducts([]);
+    }
+  } catch (error) {
+    console.error("Error fetching products:", error);
+
+    toast.error(
+      error.response?.data?.message || "Failed to load products from server"
+    );
+
+    setProducts([]);
+  } finally {
+    setLoading(false);
+  }
+};
   useEffect(() => {
     fetchProducts();
   }, []);
@@ -225,7 +241,7 @@ export default function Products() {
                       <th className="py-4 px-6">Product</th>
                       <th className="py-4 px-6">Category</th>
                       <th className="py-4 px-6">Retail Price</th>
-                      <th className="py-4 px-6">Wholesale Price</th>
+                      {/* <th className="py-4 px-6">Wholesale Price</th> */}
                       <th className="py-4 px-6">Stock</th>
                       <th className="py-4 px-6 text-right">Actions</th>
                     </tr>
@@ -249,7 +265,7 @@ export default function Products() {
                           </td>
                           <td className="py-4 px-6 text-gray-400">{product.category}</td>
                           <td className="py-4 px-6 text-gray-300">BDT {product.retailPrice}</td>
-                          <td className="py-4 px-6 text-gray-300">BDT {product.wholesalePrice}</td>
+                          {/* <td className="py-4 px-6 text-gray-300">BDT {product.wholesalePrice}</td> */}
                           <td className="py-4 px-6">
                             <span className="inline-flex items-center gap-1.5 font-medium">
                               <span className={`w-2 h-2 rounded-full ${
