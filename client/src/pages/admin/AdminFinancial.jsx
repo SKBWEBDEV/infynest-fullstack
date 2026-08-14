@@ -1,11 +1,20 @@
-// File Path: frontend/src/pages/admin/AdminFinancial.jsx
-
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import API from "../../services/api";
 import toast from "react-hot-toast";
+
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+} from "recharts";
 
 export default function AdminFinancial() {
   const navigate = useNavigate();
@@ -43,6 +52,9 @@ export default function AdminFinancial() {
   const [transactions, setTransactions] = useState([]);
   const [expenses, setExpenses] = useState([]);
 
+  // MONTHLY CHART DATA
+  const [monthlyData, setMonthlyData] = useState([]);
+
   const [loadingDashboard, setLoadingDashboard] =
     useState(true);
 
@@ -50,6 +62,9 @@ export default function AdminFinancial() {
     useState(true);
 
   const [loadingExpenses, setLoadingExpenses] =
+    useState(true);
+
+  const [loadingMonthlyChart, setLoadingMonthlyChart] =
     useState(true);
 
   const [downloadingPDF, setDownloadingPDF] =
@@ -112,10 +127,13 @@ export default function AdminFinancial() {
   };
 
   const formatPDFCurrency = (amount) => {
-    return `BDT ${Number(amount || 0).toLocaleString("en-BD", {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 2,
-    })}`;
+    return `BDT ${Number(amount || 0).toLocaleString(
+      "en-BD",
+      {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2,
+      },
+    )}`;
   };
 
   // ======================================================
@@ -211,6 +229,50 @@ export default function AdminFinancial() {
   };
 
   // ======================================================
+  // FETCH MONTHLY CHART
+  // ======================================================
+
+  const fetchMonthlyFinancialData = async () => {
+    try {
+      setLoadingMonthlyChart(true);
+
+      const { data } = await API.get(
+        "/financial/monthly",
+        {
+          params: getDateParams(),
+        },
+      );
+
+      if (data?.success) {
+        setMonthlyData(
+          Array.isArray(data.data)
+            ? data.data
+            : [],
+        );
+      } else {
+        setMonthlyData([]);
+      }
+    } catch (error) {
+      console.error(
+        "Monthly financial chart error:",
+        error,
+      );
+
+      setMonthlyData([]);
+
+      // Chart API না থাকলে বারবার toast দেখানোর দরকার নেই।
+      console.warn(
+        getErrorMessage(
+          error,
+          "Failed to load monthly financial chart",
+        ),
+      );
+    } finally {
+      setLoadingMonthlyChart(false);
+    }
+  };
+
+  // ======================================================
   // FETCH TRANSACTIONS
   // ======================================================
 
@@ -259,7 +321,9 @@ export default function AdminFinancial() {
         });
       } else {
         setTransactions([]);
-        setTransactionPagination(defaultPagination);
+        setTransactionPagination(
+          defaultPagination,
+        );
       }
     } catch (error) {
       console.error(
@@ -275,7 +339,9 @@ export default function AdminFinancial() {
       );
 
       setTransactions([]);
-      setTransactionPagination(defaultPagination);
+      setTransactionPagination(
+        defaultPagination,
+      );
     } finally {
       setLoadingTransactions(false);
     }
@@ -326,7 +392,9 @@ export default function AdminFinancial() {
         });
       } else {
         setExpenses([]);
-        setExpensePagination(defaultPagination);
+        setExpensePagination(
+          defaultPagination,
+        );
       }
     } catch (error) {
       console.error(
@@ -342,7 +410,9 @@ export default function AdminFinancial() {
       );
 
       setExpenses([]);
-      setExpensePagination(defaultPagination);
+      setExpensePagination(
+        defaultPagination,
+      );
     } finally {
       setLoadingExpenses(false);
     }
@@ -356,6 +426,7 @@ export default function AdminFinancial() {
     fetchDashboard();
     fetchTransactions(1);
     fetchExpenses(1);
+    fetchMonthlyFinancialData();
   }, []);
 
   // ======================================================
@@ -379,6 +450,7 @@ export default function AdminFinancial() {
       fetchDashboard(),
       fetchTransactions(1),
       fetchExpenses(1),
+      fetchMonthlyFinancialData(),
     ]);
   };
 
@@ -397,11 +469,13 @@ export default function AdminFinancial() {
       setLoadingDashboard(true);
       setLoadingTransactions(true);
       setLoadingExpenses(true);
+      setLoadingMonthlyChart(true);
 
       const [
         dashboardResponse,
         transactionResponse,
         expenseResponse,
+        monthlyResponse,
       ] = await Promise.all([
         API.get("/financial/dashboard"),
 
@@ -418,6 +492,8 @@ export default function AdminFinancial() {
             limit: 20,
           },
         }),
+
+        API.get("/financial/monthly"),
       ]);
 
       if (dashboardResponse.data?.success) {
@@ -458,6 +534,18 @@ export default function AdminFinancial() {
             {}),
         });
       }
+
+      if (monthlyResponse.data?.success) {
+        setMonthlyData(
+          Array.isArray(
+            monthlyResponse.data.data,
+          )
+            ? monthlyResponse.data.data
+            : [],
+        );
+      } else {
+        setMonthlyData([]);
+      }
     } catch (error) {
       console.error(
         "Clear financial filters error:",
@@ -474,6 +562,7 @@ export default function AdminFinancial() {
       setLoadingDashboard(false);
       setLoadingTransactions(false);
       setLoadingExpenses(false);
+      setLoadingMonthlyChart(false);
     }
   };
 
@@ -501,12 +590,21 @@ export default function AdminFinancial() {
     const amount = Number(expenseForm.amount);
 
     if (!title) {
-      toast.error("Expense title is required");
+      toast.error(
+        "Expense title is required",
+      );
+
       return;
     }
 
-    if (!Number.isFinite(amount) || amount <= 0) {
-      toast.error("Enter a valid expense amount");
+    if (
+      !Number.isFinite(amount) ||
+      amount <= 0
+    ) {
+      toast.error(
+        "Enter a valid expense amount",
+      );
+
       return;
     }
 
@@ -515,14 +613,10 @@ export default function AdminFinancial() {
 
       const payload = {
         title,
-
         category: expenseForm.category,
-
         amount,
-
         paymentMethod:
           expenseForm.paymentMethod,
-
         description:
           expenseForm.description.trim(),
 
@@ -563,6 +657,7 @@ export default function AdminFinancial() {
         fetchDashboard(),
         fetchTransactions(1),
         fetchExpenses(1),
+        fetchMonthlyFinancialData(),
       ]);
     } catch (error) {
       console.error(
@@ -594,7 +689,12 @@ export default function AdminFinancial() {
       payment_fee: "Payment Fee",
       shipping: "Shipping",
     };
-    return labels[type] || type || "Unknown";
+
+    return (
+      labels[type] ||
+      type ||
+      "Unknown"
+    );
   };
 
   // ======================================================
@@ -638,11 +738,145 @@ export default function AdminFinancial() {
       shipping:
         "bg-blue-500/10 text-blue-400 border border-blue-500/20",
     };
+
     return (
       styles[type] ||
       "bg-slate-800 text-slate-300 border border-slate-700"
     );
   };
+
+  // ======================================================
+// MONTHLY FINANCIAL CHART DATA
+// ======================================================
+
+const monthlyFinancialData = useMemo(() => {
+  const monthlyMap = {};
+
+  // -----------------------------------------
+  // TRANSACTIONS
+  // -----------------------------------------
+  transactions.forEach((transaction) => {
+    const date = new Date(transaction.transactionDate);
+
+    if (Number.isNaN(date.getTime())) return;
+
+    const monthKey = `${date.getFullYear()}-${String(
+      date.getMonth() + 1,
+    ).padStart(2, "0")}`;
+
+    const monthName = date.toLocaleDateString("en-US", {
+      month: "short",
+      year: "numeric",
+    });
+
+    if (!monthlyMap[monthKey]) {
+      monthlyMap[monthKey] = {
+        monthKey,
+        month: monthName,
+        income: 0,
+        expense: 0,
+        productCost: 0,
+        refund: 0,
+        paymentFee: 0,
+        shipping: 0,
+        totalCost: 0,
+        profit: 0,
+      };
+    }
+
+    const amount = Number(transaction.amount || 0);
+
+    switch (transaction.type) {
+      case "income":
+        monthlyMap[monthKey].income += amount;
+        break;
+
+      case "expense":
+        monthlyMap[monthKey].expense += amount;
+        break;
+
+      case "product_cost":
+        monthlyMap[monthKey].productCost += amount;
+        break;
+
+      case "refund":
+        monthlyMap[monthKey].refund += amount;
+        break;
+
+      case "payment_fee":
+        monthlyMap[monthKey].paymentFee += amount;
+        break;
+
+      case "shipping":
+        monthlyMap[monthKey].shipping += amount;
+        break;
+
+      default:
+        break;
+    }
+  });
+
+  // -----------------------------------------
+  // EXPENSE RECORDS
+  // -----------------------------------------
+  expenses.forEach((expense) => {
+    const date = new Date(expense.expenseDate);
+
+    if (Number.isNaN(date.getTime())) return;
+
+    const monthKey = `${date.getFullYear()}-${String(
+      date.getMonth() + 1,
+    ).padStart(2, "0")}`;
+
+    const monthName = date.toLocaleDateString("en-US", {
+      month: "short",
+      year: "numeric",
+    });
+
+    if (!monthlyMap[monthKey]) {
+      monthlyMap[monthKey] = {
+        monthKey,
+        month: monthName,
+        income: 0,
+        expense: 0,
+        productCost: 0,
+        refund: 0,
+        paymentFee: 0,
+        shipping: 0,
+        totalCost: 0,
+        profit: 0,
+      };
+    }
+
+    const amount = Number(expense.amount || 0);
+
+    monthlyMap[monthKey].expense += amount;
+  });
+
+  // -----------------------------------------
+  // CALCULATE TOTAL COST + PROFIT
+  // -----------------------------------------
+  return Object.values(monthlyMap)
+    .map((item) => {
+      const totalCost =
+        item.expense +
+        item.productCost +
+        item.refund +
+        item.paymentFee +
+        item.shipping;
+
+      const profit = item.income - totalCost;
+
+      return {
+        ...item,
+        totalCost,
+        profit,
+      };
+    })
+    .sort((a, b) =>
+      a.monthKey.localeCompare(b.monthKey),
+    );
+}, [transactions, expenses]);
 
   // ======================================================
   // PROFIT STATUS
@@ -662,8 +896,8 @@ export default function AdminFinancial() {
         value: dashboard.totalIncome,
         icon: "↗",
         className:
-          "bg-emerald-950/50 border-emerald-800/60",
-        valueClass: "text-emerald-400",
+          "bg-emerald-500 border-emerald-800/60",
+        valueClass: "text-white",
       },
 
       {
@@ -671,8 +905,8 @@ export default function AdminFinancial() {
         value: dashboard.totalExpense,
         icon: "↘",
         className:
-          "bg-red-950/50 border-red-800/60",
-        valueClass: "text-red-400",
+          "bg-red-500 border-red-800/60",
+        valueClass: "text-white",
       },
 
       {
@@ -680,8 +914,8 @@ export default function AdminFinancial() {
         value: dashboard.totalCosts,
         icon: "−",
         className:
-          "bg-orange-950/50 border-orange-800/60",
-        valueClass: "text-orange-400",
+          "bg-orange-500 border-orange-800/60",
+        valueClass: "text-white",
       },
 
       {
@@ -689,12 +923,9 @@ export default function AdminFinancial() {
         value: dashboard.netProfit,
         icon: profitPositive ? "✓" : "!",
         className: profitPositive
-          ? "bg-indigo-950/60 border-indigo-800/60"
+          ? "bg-indigo-500 border-indigo-800/60"
           : "bg-red-950/60 border-red-800/60",
-
-        valueClass: profitPositive
-          ? "text-indigo-400"
-          : "text-red-400",
+        valueClass: "text-white",
       },
 
       {
@@ -704,18 +935,19 @@ export default function AdminFinancial() {
         ).toFixed(2)}%`,
         icon: "%",
         className:
-          "bg-blue-950/50 border-blue-800/60",
-        valueClass: "text-blue-400",
+          "bg-blue-500 border-blue-800/60",
+        valueClass: "text-white",
         isCurrency: false,
       },
 
       {
         title: "Transactions",
-        value: dashboard.transactionCount,
+        value:
+          dashboard.transactionCount,
         icon: "#",
         className:
-          "bg-purple-950/50 border-purple-800/60",
-        valueClass: "text-purple-400",
+          "bg-purple-500 border-purple-800/60",
+        valueClass: "text-white",
         isCurrency: false,
       },
     ],
@@ -730,15 +962,6 @@ export default function AdminFinancial() {
     try {
       setDownloadingPDF(true);
 
-      /*
-       * =====================================================
-       * FETCH ALL FILTERED TRANSACTIONS + EXPENSES
-       * =====================================================
-       *
-       * Current table only loads 20 records.
-       * For PDF we fetch all records matching the current filters.
-       */
-
       const transactionParams = {
         page: 1,
         limit: 100000,
@@ -749,59 +972,71 @@ export default function AdminFinancial() {
         limit: 100000,
       };
 
-      // Transaction filters
       if (transactionType) {
-        transactionParams.type = transactionType;
+        transactionParams.type =
+          transactionType;
       }
 
       if (transactionCategory) {
-        transactionParams.category = transactionCategory;
+        transactionParams.category =
+          transactionCategory;
       }
 
-      // Expense filters
       if (expenseCategory) {
-        expenseParams.category = expenseCategory;
+        expenseParams.category =
+          expenseCategory;
       }
 
-      // Date filters
       if (startDate) {
-        transactionParams.startDate = startDate;
-        expenseParams.startDate = startDate;
+        transactionParams.startDate =
+          startDate;
+
+        expenseParams.startDate =
+          startDate;
       }
 
       if (endDate) {
-        transactionParams.endDate = endDate;
-        expenseParams.endDate = endDate;
+        transactionParams.endDate =
+          endDate;
+
+        expenseParams.endDate =
+          endDate;
       }
 
       const [
         transactionResponse,
         expenseResponse,
       ] = await Promise.all([
-        API.get("/financial/transactions", {
-          params: transactionParams,
-        }),
+        API.get(
+          "/financial/transactions",
+          {
+            params: transactionParams,
+          },
+        ),
 
-        API.get("/financial/expenses", {
-          params: expenseParams,
-        }),
+        API.get(
+          "/financial/expenses",
+          {
+            params: expenseParams,
+          },
+        ),
       ]);
 
       const allTransactions =
         transactionResponse.data?.success &&
-          Array.isArray(transactionResponse.data?.data)
+          Array.isArray(
+            transactionResponse.data?.data,
+          )
           ? transactionResponse.data.data
           : [];
 
       const allExpenses =
         expenseResponse.data?.success &&
-          Array.isArray(expenseResponse.data?.data)
+          Array.isArray(
+            expenseResponse.data?.data,
+          )
           ? expenseResponse.data.data
           : [];
-
-      // =====================================================
-      // CREATE PDF
-      // =====================================================
 
       const doc = new jsPDF({
         orientation: "landscape",
@@ -815,11 +1050,15 @@ export default function AdminFinancial() {
       const pageHeight =
         doc.internal.pageSize.getHeight();
 
-      // =====================================================
-      // HEADER
-      // =====================================================
+      // ==================================================
+      // PDF HEADER
+      // ==================================================
 
-      doc.setFillColor(15, 23, 42);
+      doc.setFillColor(
+        15,
+        23,
+        42,
+      );
 
       doc.rect(
         0,
@@ -829,10 +1068,18 @@ export default function AdminFinancial() {
         "F",
       );
 
-      doc.setTextColor(255, 255, 255);
+      doc.setTextColor(
+        255,
+        255,
+        255,
+      );
 
       doc.setFontSize(20);
-      doc.setFont("helvetica", "bold");
+
+      doc.setFont(
+        "helvetica",
+        "bold",
+      );
 
       doc.text(
         "FINANCIAL REPORT",
@@ -841,7 +1088,11 @@ export default function AdminFinancial() {
       );
 
       doc.setFontSize(9);
-      doc.setFont("helvetica", "normal");
+
+      doc.setFont(
+        "helvetica",
+        "normal",
+      );
 
       doc.text(
         "Business Financial Overview",
@@ -875,9 +1126,9 @@ export default function AdminFinancial() {
         },
       );
 
-      // =====================================================
+      // ==================================================
       // SUMMARY
-      // =====================================================
+      // ==================================================
 
       autoTable(doc, {
         startY: 40,
@@ -949,7 +1200,8 @@ export default function AdminFinancial() {
           [
             "Transactions",
             String(
-              dashboard.transactionCount || 0,
+              dashboard.transactionCount ||
+              0,
             ),
           ],
         ],
@@ -957,7 +1209,11 @@ export default function AdminFinancial() {
         theme: "grid",
 
         headStyles: {
-          fillColor: [30, 41, 59],
+          fillColor: [
+            30,
+            41,
+            59,
+          ],
           textColor: 255,
           fontStyle: "bold",
         },
@@ -979,9 +1235,9 @@ export default function AdminFinancial() {
         },
       });
 
-      // =====================================================
+      // ==================================================
       // TRANSACTIONS
-      // =====================================================
+      // ==================================================
 
       let transactionStartY =
         doc.lastAutoTable.finalY + 12;
@@ -995,9 +1251,14 @@ export default function AdminFinancial() {
         transactionStartY = 18;
       }
 
-      doc.setTextColor(15, 23, 42);
+      doc.setTextColor(
+        15,
+        23,
+        42,
+      );
 
       doc.setFontSize(14);
+
       doc.setFont(
         "helvetica",
         "bold",
@@ -1013,7 +1274,8 @@ export default function AdminFinancial() {
         allTransactions.map(
           (transaction) => {
             const isIncome =
-              transaction.type === "income";
+              transaction.type ===
+              "income";
 
             return [
               formatDate(
@@ -1033,7 +1295,8 @@ export default function AdminFinancial() {
               transaction.paymentMethod ||
               "-",
 
-              `${isIncome ? "+" : "-"}${formatPDFCurrency(
+              `${isIncome ? "+" : "-"
+              }${formatPDFCurrency(
                 transaction.amount,
               )}`,
             ];
@@ -1072,7 +1335,11 @@ export default function AdminFinancial() {
         theme: "striped",
 
         headStyles: {
-          fillColor: [15, 23, 42],
+          fillColor: [
+            15,
+            23,
+            42,
+          ],
           textColor: 255,
           fontStyle: "bold",
         },
@@ -1108,15 +1375,11 @@ export default function AdminFinancial() {
             halign: "right",
           },
         },
-
-        didDrawPage: () => {
-          // Prevent table from touching footer
-        },
       });
 
-      // =====================================================
+      // ==================================================
       // EXPENSES
-      // =====================================================
+      // ==================================================
 
       let expenseStartY =
         doc.lastAutoTable.finalY + 12;
@@ -1130,9 +1393,14 @@ export default function AdminFinancial() {
         expenseStartY = 18;
       }
 
-      doc.setTextColor(15, 23, 42);
+      doc.setTextColor(
+        15,
+        23,
+        42,
+      );
 
       doc.setFontSize(14);
+
       doc.setFont(
         "helvetica",
         "bold",
@@ -1196,7 +1464,11 @@ export default function AdminFinancial() {
         theme: "striped",
 
         headStyles: {
-          fillColor: [15, 23, 42],
+          fillColor: [
+            15,
+            23,
+            42,
+          ],
           textColor: 255,
           fontStyle: "bold",
         },
@@ -1230,9 +1502,9 @@ export default function AdminFinancial() {
         },
       });
 
-      // =====================================================
-      // FOOTER ON EVERY PAGE
-      // =====================================================
+      // ==================================================
+      // FOOTER
+      // ==================================================
 
       const totalPages =
         doc.internal.getNumberOfPages();
@@ -1267,9 +1539,9 @@ export default function AdminFinancial() {
         );
       }
 
-      // =====================================================
-      // SAVE FILE
-      // =====================================================
+      // ==================================================
+      // SAVE
+      // ==================================================
 
       const fileDate =
         new Date()
@@ -1305,8 +1577,6 @@ export default function AdminFinancial() {
     }
   };
 
-
-
   // ======================================================
   // RENDER
   // ======================================================
@@ -1322,8 +1592,6 @@ export default function AdminFinancial() {
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5 mb-7">
 
           <div>
-            {/* BACK BUTTON */}
-
             <button
               type="button"
               onClick={() =>
@@ -1361,11 +1629,7 @@ export default function AdminFinancial() {
             </p>
           </div>
 
-          {/* HEADER BUTTONS */}
-
           <div className="flex flex-wrap items-center gap-2">
-
-            {/* PDF BUTTON */}
 
             <button
               type="button"
@@ -1399,8 +1663,6 @@ export default function AdminFinancial() {
                 ? "Generating..."
                 : "Download PDF"}
             </button>
-
-            {/* ADD EXPENSE */}
 
             <button
               type="button"
@@ -1497,8 +1759,6 @@ export default function AdminFinancial() {
               "
             >
 
-              {/* TITLE */}
-
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-1.5">
                   Expense Title
@@ -1528,8 +1788,6 @@ export default function AdminFinancial() {
                   "
                 />
               </div>
-
-              {/* CATEGORY */}
 
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-1.5">
@@ -1596,8 +1854,6 @@ export default function AdminFinancial() {
                 </select>
               </div>
 
-              {/* AMOUNT */}
-
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-1.5">
                   Amount
@@ -1627,8 +1883,6 @@ export default function AdminFinancial() {
                   "
                 />
               </div>
-
-              {/* PAYMENT METHOD */}
 
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-1.5">
@@ -1683,8 +1937,6 @@ export default function AdminFinancial() {
                 </select>
               </div>
 
-              {/* DATE */}
-
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-1.5">
                   Expense Date
@@ -1710,8 +1962,6 @@ export default function AdminFinancial() {
                   "
                 />
               </div>
-
-              {/* DESCRIPTION */}
 
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-1.5">
@@ -1740,8 +1990,6 @@ export default function AdminFinancial() {
                   "
                 />
               </div>
-
-              {/* BUTTONS */}
 
               <div className="md:col-span-2 lg:col-span-3 flex justify-end gap-3 pt-2">
 
@@ -1819,8 +2067,6 @@ export default function AdminFinancial() {
             "
           >
 
-            {/* START DATE */}
-
             <div>
               <label className="block text-xs font-medium text-slate-400 mb-1">
                 Start Date
@@ -1850,8 +2096,6 @@ export default function AdminFinancial() {
               />
             </div>
 
-            {/* END DATE */}
-
             <div>
               <label className="block text-xs font-medium text-slate-400 mb-1">
                 End Date
@@ -1880,8 +2124,6 @@ export default function AdminFinancial() {
                 "
               />
             </div>
-
-            {/* TRANSACTION TYPE */}
 
             <div>
               <label className="block text-xs font-medium text-slate-400 mb-1">
@@ -1939,8 +2181,6 @@ export default function AdminFinancial() {
               </select>
             </div>
 
-            {/* TRANSACTION CATEGORY */}
-
             <div>
               <label className="block text-xs font-medium text-slate-400 mb-1">
                 Transaction Category
@@ -1971,8 +2211,6 @@ export default function AdminFinancial() {
                 "
               />
             </div>
-
-            {/* EXPENSE CATEGORY */}
 
             <div>
               <label className="block text-xs font-medium text-slate-400 mb-1">
@@ -2045,8 +2283,6 @@ export default function AdminFinancial() {
                 </option>
               </select>
             </div>
-
-            {/* FILTER BUTTONS */}
 
             <div className="flex items-end gap-2">
 
@@ -2147,8 +2383,7 @@ export default function AdminFinancial() {
                 `}
               >
                 <div className="flex items-center justify-between">
-
-                  <p className="text-xs font-semibold text-slate-400">
+                  <p className="text-xs font-semibold text-white">
                     {card.title}
                   </p>
 
@@ -2178,6 +2413,265 @@ export default function AdminFinancial() {
         )}
 
         {/* ==================================================
+    MONTHLY FINANCIAL OVERVIEW
+================================================== */}
+
+<div
+  className="
+    bg-slate-900
+    border
+    border-slate-800
+    rounded-2xl
+    shadow-xl
+    shadow-black/10
+    mb-7
+    overflow-hidden
+  "
+>
+  {/* HEADER */}
+
+  <div
+    className="
+      px-5
+      py-4
+      border-b
+      border-slate-800
+      flex
+      flex-col
+      sm:flex-row
+      sm:items-center
+      sm:justify-between
+      gap-2
+    "
+  >
+    <div>
+      <h2 className="text-lg font-bold text-white">
+        Monthly Financial Overview
+      </h2>
+
+      <p className="text-xs text-slate-400 mt-1">
+        Compare monthly income, expenses and profit.
+      </p>
+    </div>
+
+    <div className="text-xs text-slate-400">
+      {monthlyFinancialData.length}{" "}
+      {monthlyFinancialData.length === 1
+        ? "month"
+        : "months"}
+    </div>
+  </div>
+
+  {/* CHART */}
+
+  <div className="p-4 sm:p-6">
+    {monthlyFinancialData.length === 0 ? (
+      <div
+        className="
+          min-h-[350px]
+          flex
+          flex-col
+          items-center
+          justify-center
+          text-center
+        "
+      >
+        <div
+          className="
+            w-14
+            h-14
+            rounded-full
+            bg-slate-800
+            flex
+            items-center
+            justify-center
+            text-2xl
+            mb-4
+          "
+        >
+          📊
+        </div>
+
+        <h3 className="text-sm font-semibold text-white">
+          No monthly financial data found.
+        </h3>
+
+        <p className="mt-1 text-xs text-slate-500">
+          Financial data will appear here when
+          transactions exist.
+        </p>
+      </div>
+    ) : (
+      <div className="w-full h-[380px]">
+        <ResponsiveContainer
+          width="100%"
+          height="100%"
+        >
+          <BarChart
+            data={monthlyFinancialData}
+            margin={{
+              top: 10,
+              right: 10,
+              left: 0,
+              bottom: 10,
+            }}
+          >
+            <CartesianGrid
+              strokeDasharray="3 3"
+              stroke="#334155"
+            />
+
+            <XAxis
+              dataKey="month"
+              stroke="#94a3b8"
+              tick={{
+                fill: "#94a3b8",
+                fontSize: 12,
+              }}
+              axisLine={{
+                stroke: "#475569",
+              }}
+              tickLine={false}
+            />
+
+            <YAxis
+              stroke="#94a3b8"
+              tick={{
+                fill: "#94a3b8",
+                fontSize: 12,
+              }}
+              axisLine={false}
+              tickLine={false}
+              tickFormatter={(value) =>
+                `৳${value}`
+              }
+            />
+
+            <Tooltip
+              cursor={{
+                fill: "rgba(148,163,184,0.08)",
+              }}
+              contentStyle={{
+                backgroundColor: "#0f172a",
+                border: "1px solid #334155",
+                borderRadius: "10px",
+                color: "#fff",
+              }}
+              labelStyle={{
+                color: "#fff",
+                fontWeight: 600,
+                marginBottom: 6,
+              }}
+              formatter={(value, name) => [
+                `৳${Number(value).toLocaleString(
+                  "en-BD",
+                )}`,
+                name,
+              ]}
+            />
+
+            <Legend
+              wrapperStyle={{
+                paddingTop: "15px",
+                fontSize: "12px",
+              }}
+            />
+
+            {/* INCOME */}
+
+            <Bar
+              dataKey="income"
+              name="Income"
+              fill="#10b981"
+              radius={[5, 5, 0, 0]}
+              maxBarSize={45}
+            />
+
+            {/* EXPENSE */}
+
+            <Bar
+              dataKey="expense"
+              name="Expense"
+              fill="#ef4444"
+              radius={[5, 5, 0, 0]}
+              maxBarSize={45}
+            />
+
+            {/* PRODUCT COST */}
+
+            <Bar
+              dataKey="productCost"
+              name="Product Cost"
+              fill="#f97316"
+              radius={[5, 5, 0, 0]}
+              maxBarSize={45}
+            />
+
+            {/* PROFIT */}
+
+            <Bar
+              dataKey="profit"
+              name="Profit"
+              fill="#6366f1"
+              radius={[5, 5, 0, 0]}
+              maxBarSize={45}
+            />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+    )}
+  </div>
+
+  {/* MONTHLY SUMMARY */}
+
+  {monthlyFinancialData.length > 0 && (
+    <div
+      className="
+        px-5
+        pb-5
+        grid
+        grid-cols-2
+        sm:grid-cols-4
+        gap-3
+      "
+    >
+      {monthlyFinancialData.map((item) => (
+        <div
+          key={item.monthKey}
+          className="
+            bg-slate-950
+            border
+            border-slate-800
+            rounded-xl
+            p-3
+          "
+        >
+          <p className="text-xs text-slate-500">
+            {item.month}
+          </p>
+
+          <p className="mt-1 text-sm font-bold text-white">
+            Profit:{" "}
+            <span
+              className={
+                item.profit >= 0
+                  ? "text-emerald-500"
+                  : "text-red-500"
+              }
+            >
+              ৳
+              {item.profit.toLocaleString(
+                "en-BD",
+              )}
+            </span>
+          </p>
+        </div>
+      ))}
+    </div>
+  )}
+</div>
+
+        {/* ==================================================
             SECONDARY SUMMARY
         ================================================== */}
 
@@ -2190,9 +2684,6 @@ export default function AdminFinancial() {
             mb-7
           "
         >
-
-          {/* REFUNDS */}
-
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4">
             <p className="text-xs text-slate-400">
               Refunds
@@ -2204,8 +2695,6 @@ export default function AdminFinancial() {
               )}
             </p>
           </div>
-
-          {/* PAYMENT FEES */}
 
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4">
             <p className="text-xs text-slate-400">
@@ -2219,8 +2708,6 @@ export default function AdminFinancial() {
             </p>
           </div>
 
-          {/* SHIPPING */}
-
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4">
             <p className="text-xs text-slate-400">
               Shipping Cost
@@ -2232,8 +2719,6 @@ export default function AdminFinancial() {
               )}
             </p>
           </div>
-
-          {/* PROFIT STATUS */}
 
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4">
             <p className="text-xs text-slate-400">
@@ -2257,6 +2742,8 @@ export default function AdminFinancial() {
           </div>
         </div>
 
+
+
         {/* ==================================================
             TRANSACTIONS
         ================================================== */}
@@ -2273,9 +2760,6 @@ export default function AdminFinancial() {
             overflow-hidden
           "
         >
-
-          {/* HEADER */}
-
           <div
             className="
               px-5
@@ -2307,16 +2791,10 @@ export default function AdminFinancial() {
             </span>
           </div>
 
-          {/* TABLE */}
-
           <div className="max-h-[600px] overflow-auto">
-
-  <table className="min-w-[900px] w-full">
-
+            <table className="min-w-[900px] w-full">
               <thead className="bg-slate-950">
-
                 <tr>
-
                   <th className="text-left px-5 py-3 text-xs font-semibold text-slate-400">
                     Date
                   </th>
@@ -2340,24 +2818,15 @@ export default function AdminFinancial() {
                   <th className="text-right px-5 py-3 text-xs font-semibold text-slate-400">
                     Amount
                   </th>
-
                 </tr>
-
               </thead>
 
               <tbody className="divide-y divide-slate-800">
-
                 {loadingTransactions ? (
                   <tr>
                     <td
                       colSpan="6"
-                      className="
-                        px-5
-                        py-12
-                        text-center
-                        text-sm
-                        text-slate-500
-                      "
+                      className="px-5 py-12 text-center text-sm text-slate-500"
                     >
                       Loading transactions...
                     </td>
@@ -2366,13 +2835,7 @@ export default function AdminFinancial() {
                   <tr>
                     <td
                       colSpan="6"
-                      className="
-                        px-5
-                        py-12
-                        text-center
-                        text-sm
-                        text-slate-500
-                      "
+                      className="px-5 py-12 text-center text-sm text-slate-500"
                     >
                       No financial transactions found.
                     </td>
@@ -2384,24 +2847,15 @@ export default function AdminFinancial() {
                         key={
                           transaction._id
                         }
-                        className="
-                          hover:bg-slate-800/40
-                          transition
-                        "
+                        className="hover:bg-slate-800/40 transition"
                       >
-
-                        {/* DATE */}
-
                         <td className="px-5 py-3 text-sm text-slate-300">
                           {formatDate(
                             transaction.transactionDate,
                           )}
                         </td>
 
-                        {/* TITLE */}
-
                         <td className="px-5 py-3">
-
                           <p className="text-sm font-semibold text-white">
                             {transaction.title ||
                               "-"}
@@ -2414,13 +2868,9 @@ export default function AdminFinancial() {
                               }
                             </p>
                           )}
-
                         </td>
 
-                        {/* TYPE */}
-
                         <td className="px-5 py-3">
-
                           <span
                             className={`
                               inline-flex
@@ -2438,10 +2888,7 @@ export default function AdminFinancial() {
                               transaction.type,
                             )}
                           </span>
-
                         </td>
-
-                        {/* CATEGORY */}
 
                         <td className="px-5 py-3 text-sm text-slate-300">
                           {categoryLabel(
@@ -2449,17 +2896,12 @@ export default function AdminFinancial() {
                           )}
                         </td>
 
-                        {/* PAYMENT */}
-
                         <td className="px-5 py-3 text-sm text-slate-300 capitalize">
                           {transaction.paymentMethod ||
                             "-"}
                         </td>
 
-                        {/* AMOUNT */}
-
                         <td className="px-5 py-3 text-right">
-
                           <span
                             className={`
                               font-bold
@@ -2479,36 +2921,18 @@ export default function AdminFinancial() {
                               transaction.amount,
                             )}
                           </span>
-
                         </td>
-
                       </tr>
                     ),
                   )
                 )}
-
               </tbody>
-
             </table>
-
           </div>
-
-          {/* PAGINATION */}
 
           {transactionPagination.totalPages >
             1 && (
-              <div
-                className="
-                px-5
-                py-4
-                border-t
-                border-slate-800
-                flex
-                items-center
-                justify-between
-              "
-              >
-
+              <div className="px-5 py-4 border-t border-slate-800 flex items-center justify-between">
                 <button
                   type="button"
                   disabled={
@@ -2522,17 +2946,17 @@ export default function AdminFinancial() {
                     )
                   }
                   className="
-                  px-3
-                  py-2
-                  rounded-lg
-                  border
-                  border-slate-700
-                  text-sm
-                  text-slate-300
-                  hover:bg-slate-800
-                  disabled:opacity-40
-                  disabled:cursor-not-allowed
-                "
+                    px-3
+                    py-2
+                    rounded-lg
+                    border
+                    border-slate-700
+                    text-sm
+                    text-slate-300
+                    hover:bg-slate-800
+                    disabled:opacity-40
+                    disabled:cursor-not-allowed
+                  "
                 >
                   Previous
                 </button>
@@ -2559,21 +2983,20 @@ export default function AdminFinancial() {
                     )
                   }
                   className="
-                  px-3
-                  py-2
-                  rounded-lg
-                  border
-                  border-slate-700
-                  text-sm
-                  text-slate-300
-                  hover:bg-slate-800
-                  disabled:opacity-40
-                  disabled:cursor-not-allowed
-                "
+                    px-3
+                    py-2
+                    rounded-lg
+                    border
+                    border-slate-700
+                    text-sm
+                    text-slate-300
+                    hover:bg-slate-800
+                    disabled:opacity-40
+                    disabled:cursor-not-allowed
+                  "
                 >
                   Next
                 </button>
-
               </div>
             )}
         </div>
@@ -2593,9 +3016,6 @@ export default function AdminFinancial() {
             overflow-hidden
           "
         >
-
-          {/* HEADER */}
-
           <div
             className="
               px-5
@@ -2611,7 +3031,6 @@ export default function AdminFinancial() {
             "
           >
             <div>
-
               <h2 className="text-lg font-bold text-white">
                 Expense Records
               </h2>
@@ -2619,7 +3038,6 @@ export default function AdminFinancial() {
               <p className="text-xs text-slate-400 mt-1">
                 Business expenses recorded by admin.
               </p>
-
             </div>
 
             <span className="text-xs text-slate-400">
@@ -2627,19 +3045,12 @@ export default function AdminFinancial() {
                 0}{" "}
               expenses
             </span>
-
           </div>
 
-          {/* TABLE */}
-
           <div className="overflow-x-auto">
-
             <table className="min-w-[900px] w-full">
-
               <thead className="bg-slate-950">
-
                 <tr>
-
                   <th className="text-left px-5 py-3 text-xs font-semibold text-slate-400">
                     Date
                   </th>
@@ -2659,24 +3070,15 @@ export default function AdminFinancial() {
                   <th className="text-right px-5 py-3 text-xs font-semibold text-slate-400">
                     Amount
                   </th>
-
                 </tr>
-
               </thead>
 
               <tbody className="divide-y divide-slate-800">
-
                 {loadingExpenses ? (
                   <tr>
                     <td
                       colSpan="5"
-                      className="
-                        px-5
-                        py-12
-                        text-center
-                        text-sm
-                        text-slate-500
-                      "
+                      className="px-5 py-12 text-center text-sm text-slate-500"
                     >
                       Loading expenses...
                     </td>
@@ -2685,13 +3087,7 @@ export default function AdminFinancial() {
                   <tr>
                     <td
                       colSpan="5"
-                      className="
-                        px-5
-                        py-12
-                        text-center
-                        text-sm
-                        text-slate-500
-                      "
+                      className="px-5 py-12 text-center text-sm text-slate-500"
                     >
                       No expenses found.
                     </td>
@@ -2701,24 +3097,15 @@ export default function AdminFinancial() {
                     (expense) => (
                       <tr
                         key={expense._id}
-                        className="
-                          hover:bg-slate-800/40
-                          transition
-                        "
+                        className="hover:bg-slate-800/40 transition"
                       >
-
-                        {/* DATE */}
-
                         <td className="px-5 py-3 text-sm text-slate-300">
                           {formatDate(
                             expense.expenseDate,
                           )}
                         </td>
 
-                        {/* TITLE */}
-
                         <td className="px-5 py-3">
-
                           <p className="text-sm font-semibold text-white">
                             {expense.title ||
                               "-"}
@@ -2731,10 +3118,7 @@ export default function AdminFinancial() {
                               }
                             </p>
                           )}
-
                         </td>
-
-                        {/* CATEGORY */}
 
                         <td className="px-5 py-3 text-sm text-slate-300">
                           {categoryLabel(
@@ -2742,14 +3126,10 @@ export default function AdminFinancial() {
                           )}
                         </td>
 
-                        {/* PAYMENT */}
-
                         <td className="px-5 py-3 text-sm text-slate-300 capitalize">
                           {expense.paymentMethod ||
                             "-"}
                         </td>
-
-                        {/* AMOUNT */}
 
                         <td className="px-5 py-3 text-right font-bold text-red-400">
                           -
@@ -2757,34 +3137,17 @@ export default function AdminFinancial() {
                             expense.amount,
                           )}
                         </td>
-
                       </tr>
                     ),
                   )
                 )}
-
               </tbody>
-
             </table>
-
           </div>
-
-          {/* PAGINATION */}
 
           {expensePagination.totalPages >
             1 && (
-              <div
-                className="
-                px-5
-                py-4
-                border-t
-                border-slate-800
-                flex
-                items-center
-                justify-between
-              "
-              >
-
+              <div className="px-5 py-4 border-t border-slate-800 flex items-center justify-between">
                 <button
                   type="button"
                   disabled={
@@ -2798,17 +3161,17 @@ export default function AdminFinancial() {
                     )
                   }
                   className="
-                  px-3
-                  py-2
-                  rounded-lg
-                  border
-                  border-slate-700
-                  text-sm
-                  text-slate-300
-                  hover:bg-slate-800
-                  disabled:opacity-40
-                  disabled:cursor-not-allowed
-                "
+                    px-3
+                    py-2
+                    rounded-lg
+                    border
+                    border-slate-700
+                    text-sm
+                    text-slate-300
+                    hover:bg-slate-800
+                    disabled:opacity-40
+                    disabled:cursor-not-allowed
+                  "
                 >
                   Previous
                 </button>
@@ -2834,22 +3197,12 @@ export default function AdminFinancial() {
                       1,
                     )
                   }
-                  className="
-                  px-3
-                  py-2
-                  rounded-lg
-                  border
-                  border-slate-700
-                  text-sm
-                  text-slate-300
-                  hover:bg-slate-800
-                  disabled:opacity-40
-                  disabled:cursor-not-allowed
-                "
+                  className="  px-3  py-2  rounded-lg  border  border-slate-700  text-sm  text-slate-300 hover:bg-slate-800 disabled:opacity-40
+                    disabled:cursor-not-allowed
+                  "
                 >
                   Next
                 </button>
-
               </div>
             )}
         </div>
