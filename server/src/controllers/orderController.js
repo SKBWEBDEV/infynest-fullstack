@@ -61,26 +61,6 @@ const ALLOWED_ORDER_STATUSES = [
 // ======================================================
 // STATUS TRANSITIONS
 // ======================================================
-//
-// Normal order flow:
-//
-// Pending
-//   ↓
-// Confirmed
-//   ↓
-// Processing
-//   ↓
-// Shipped
-//   ↓
-// Delivered
-//
-// Pending / Confirmed / Processing / Shipped
-// can be cancelled.
-//
-// Delivered cannot be cancelled.
-//
-// Cancelled and Delivered are final states.
-//
 
 const ALLOWED_STATUS_TRANSITIONS = {
   Pending: ["Confirmed", "Cancelled"],
@@ -100,14 +80,18 @@ const ALLOWED_STATUS_TRANSITIONS = {
 // NORMALIZE PAYMENT METHOD
 // ======================================================
 
-const normalizePaymentMethod = (paymentMethod) => {
+const normalizePaymentMethod = (
+  paymentMethod,
+) => {
   if (!paymentMethod) {
     return "other";
   }
 
   return (
     PAYMENT_METHOD_MAP[paymentMethod] ||
-    String(paymentMethod).trim().toLowerCase()
+    String(paymentMethod)
+      .trim()
+      .toLowerCase()
   );
 };
 
@@ -141,8 +125,6 @@ const createOrderNotification = async ({
       isRead: false,
     });
   } catch (error) {
-    // Notification failure should never break the
-    // actual order operation.
     console.error(
       "Order notification creation error:",
       error,
@@ -151,13 +133,8 @@ const createOrderNotification = async ({
 };
 
 // ======================================================
-// GET SERVER PRICE
+// GET SERVER SELLING PRICE
 // ======================================================
-//
-// IMPORTANT:
-// Never trust frontend item.price.
-// Product price from database is authoritative.
-//
 
 const getProductSellingPrice = (product) => {
   const possiblePrices = [
@@ -169,7 +146,10 @@ const getProductSellingPrice = (product) => {
   for (const value of possiblePrices) {
     const price = Number(value);
 
-    if (Number.isFinite(price) && price > 0) {
+    if (
+      Number.isFinite(price) &&
+      price > 0
+    ) {
       return price;
     }
   }
@@ -194,7 +174,10 @@ const getProductName = (product) => {
 // POST /api/v1/orders
 // ======================================================
 
-export const createOrder = async (req, res) => {
+export const createOrder = async (
+  req,
+  res,
+) => {
   try {
     const {
       orderItems,
@@ -255,12 +238,14 @@ export const createOrder = async (req, res) => {
     }
 
     // ==================================================
-    // PHONE VALIDATION
+    // PHONE
     // ==================================================
 
-    const phoneValue = String(phone).trim();
+    const phoneValue =
+      String(phone).trim();
 
-    const phoneRegex = /^01[0-9]{9}$/;
+    const phoneRegex =
+      /^01[0-9]{9}$/;
 
     if (!phoneRegex.test(phoneValue)) {
       return res.status(400).json({
@@ -271,21 +256,22 @@ export const createOrder = async (req, res) => {
     }
 
     // ==================================================
-    // EMAIL NORMALIZATION
+    // EMAIL
     // ==================================================
 
-    const emailValue = String(email)
-      .trim()
-      .toLowerCase();
+    const emailValue =
+      String(email)
+        .trim()
+        .toLowerCase();
 
-    // Basic email validation.
     const emailRegex =
       /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
     if (!emailRegex.test(emailValue)) {
       return res.status(400).json({
         success: false,
-        message: "Please enter a valid email address",
+        message:
+          "Please enter a valid email address",
       });
     }
 
@@ -294,7 +280,8 @@ export const createOrder = async (req, res) => {
     // ==================================================
 
     const finalPaymentMethod =
-      paymentMethod || "Cash on Delivery";
+      paymentMethod ||
+      "Cash on Delivery";
 
     if (
       !ALLOWED_PAYMENT_METHODS.includes(
@@ -311,7 +298,7 @@ export const createOrder = async (req, res) => {
       isCOD(finalPaymentMethod);
 
     // ==================================================
-    // ONLINE PAYMENT VALIDATION
+    // ONLINE PAYMENT
     // ==================================================
 
     if (!cashOnDelivery) {
@@ -332,7 +319,8 @@ export const createOrder = async (req, res) => {
     // ==================================================
 
     const finalShippingAddress =
-      typeof shippingAddress === "object"
+      typeof shippingAddress ===
+        "object"
         ? [
           shippingAddress.street,
           shippingAddress.city,
@@ -345,7 +333,8 @@ export const createOrder = async (req, res) => {
     if (!finalShippingAddress) {
       return res.status(400).json({
         success: false,
-        message: "Shipping address is required",
+        message:
+          "Shipping address is required",
       });
     }
 
@@ -357,14 +346,13 @@ export const createOrder = async (req, res) => {
 
     const processedOrderItems = [];
 
-    // Keep track of product quantities so the same
-    // product cannot bypass stock validation by
-    // appearing multiple times in the cart.
-    const requestedQuantities = new Map();
+    const requestedQuantities =
+      new Map();
 
     for (const item of orderItems) {
       const productId =
-        item.product || item.productId;
+        item.product ||
+        item.productId;
 
       // -----------------------------------------------
       // PRODUCT ID
@@ -373,7 +361,8 @@ export const createOrder = async (req, res) => {
       if (!productId) {
         return res.status(400).json({
           success: false,
-          message: "Product ID is missing",
+          message:
+            "Product ID is missing",
         });
       }
 
@@ -384,7 +373,8 @@ export const createOrder = async (req, res) => {
       ) {
         return res.status(400).json({
           success: false,
-          message: "Invalid product ID",
+          message:
+            "Invalid product ID",
         });
       }
 
@@ -392,7 +382,8 @@ export const createOrder = async (req, res) => {
       // QUANTITY
       // -----------------------------------------------
 
-      const quantity = Number(item.quantity);
+      const quantity =
+        Number(item.quantity);
 
       if (
         !Number.isInteger(quantity) ||
@@ -406,16 +397,20 @@ export const createOrder = async (req, res) => {
       }
 
       // -----------------------------------------------
-      // DUPLICATE PRODUCT QUANTITY
+      // DUPLICATE PRODUCT
       // -----------------------------------------------
 
-      const productKey = String(productId);
+      const productKey =
+        String(productId);
 
       const previousQuantity =
-        requestedQuantities.get(productKey) || 0;
+        requestedQuantities.get(
+          productKey,
+        ) || 0;
 
       const totalRequestedQuantity =
-        previousQuantity + quantity;
+        previousQuantity +
+        quantity;
 
       requestedQuantities.set(
         productKey,
@@ -427,17 +422,20 @@ export const createOrder = async (req, res) => {
       // -----------------------------------------------
 
       const product =
-        await Product.findById(productId);
+        await Product.findById(
+          productId,
+        );
 
       if (!product) {
         return res.status(404).json({
           success: false,
-          message: "Product not found",
+          message:
+            "Product not found",
         });
       }
 
       // -----------------------------------------------
-      // STOCK
+      // STOCK VALIDATION
       // -----------------------------------------------
 
       const availableStock =
@@ -456,14 +454,13 @@ export const createOrder = async (req, res) => {
       }
 
       // -----------------------------------------------
-      // SERVER-SIDE PRICE
+      // SERVER PRICE
       // -----------------------------------------------
-      //
-      // DO NOT use item.price from frontend.
-      //
 
       const price =
-        getProductSellingPrice(product);
+        getProductSellingPrice(
+          product,
+        );
 
       if (
         !Number.isFinite(price) ||
@@ -498,17 +495,16 @@ export const createOrder = async (req, res) => {
         image:
           item.image ||
           product.images?.find(
-            (image) => image?.isMain,
+            (image) =>
+              image?.isMain,
           )?.url ||
           product.images?.[0]?.url ||
           product.images?.[0] ||
           product.image ||
           "",
 
-        // Customer selling price
         price,
 
-        // Business actual product cost
         costPrice: Number(
           product.costPrice || 0,
         ),
@@ -528,17 +524,12 @@ export const createOrder = async (req, res) => {
     }
 
     // ==================================================
-    // SHIPPING FEE
+    // SHIPPING
     // ==================================================
-    //
-    // IMPORTANT:
-    // Shipping fee is calculated on backend.
-    // Frontend cannot send shippingFee and bypass
-    // the delivery charge.
-    //
 
     const deliveryFee =
-      deliveryArea === "Inside Dhaka"
+      deliveryArea ===
+        "Inside Dhaka"
         ? 80
         : 120;
 
@@ -555,7 +546,8 @@ export const createOrder = async (req, res) => {
     ) {
       return res.status(400).json({
         success: false,
-        message: "Invalid order subtotal",
+        message:
+          "Invalid order subtotal",
       });
     }
 
@@ -565,7 +557,8 @@ export const createOrder = async (req, res) => {
     ) {
       return res.status(400).json({
         success: false,
-        message: "Invalid order total",
+        message:
+          "Invalid order total",
       });
     }
 
@@ -637,7 +630,8 @@ export const createOrder = async (req, res) => {
     await createOrderNotification({
       user: order.user,
 
-      title: "Order Placed",
+      title:
+        "Order Placed",
 
       message: `Your order #${order._id} has been placed successfully.`,
     });
@@ -677,7 +671,6 @@ export const createOrder = async (req, res) => {
 
 // ======================================================
 // GET MY ORDERS
-// GET /api/v1/orders/myorders
 // ======================================================
 
 export const getMyOrders = async (
@@ -696,9 +689,7 @@ export const getMyOrders = async (
 
     return res.status(200).json({
       success: true,
-
       count: orders.length,
-
       data: orders,
     });
   } catch (error) {
@@ -709,7 +700,6 @@ export const getMyOrders = async (
 
     return res.status(500).json({
       success: false,
-
       message:
         "Failed to get orders",
     });
@@ -718,17 +708,12 @@ export const getMyOrders = async (
 
 // ======================================================
 // GET SINGLE ORDER
-// GET /api/v1/orders/:id
 // ======================================================
 
 export const getOrderById =
   async (req, res) => {
     try {
       const { id } = req.params;
-
-      // ==================================================
-      // ORDER ID VALIDATION
-      // ==================================================
 
       if (
         !mongoose.Types.ObjectId.isValid(
@@ -737,13 +722,10 @@ export const getOrderById =
       ) {
         return res.status(400).json({
           success: false,
-          message: "Invalid order ID",
+          message:
+            "Invalid order ID",
         });
       }
-
-      // ==================================================
-      // FIND ORDER
-      // ==================================================
 
       const order =
         await Order.findById(id).populate(
@@ -754,17 +736,10 @@ export const getOrderById =
       if (!order) {
         return res.status(404).json({
           success: false,
-          message: "Order not found",
+          message:
+            "Order not found",
         });
       }
-
-      // ==================================================
-      // ACCESS CONTROL
-      // ==================================================
-      //
-      // Admin can see every order.
-      // Normal user can only see their own order.
-      //
 
       const isAdmin =
         req.user?.role === "admin";
@@ -790,10 +765,6 @@ export const getOrderById =
         }
       }
 
-      // ==================================================
-      // RESPONSE
-      // ==================================================
-
       return res.status(200).json({
         success: true,
         data: order,
@@ -814,7 +785,6 @@ export const getOrderById =
 
 // ======================================================
 // UPDATE ORDER STATUS
-// PUT /api/v1/orders/:id/status
 // ======================================================
 
 export const updateOrderStatus = async (
@@ -839,12 +809,13 @@ export const updateOrderStatus = async (
     ) {
       return res.status(400).json({
         success: false,
-        message: "Invalid order status",
+        message:
+          "Invalid order status",
       });
     }
 
     // ==================================================
-    // ORDER ID VALIDATION
+    // ORDER ID
     // ==================================================
 
     if (
@@ -854,7 +825,8 @@ export const updateOrderStatus = async (
     ) {
       return res.status(400).json({
         success: false,
-        message: "Invalid order ID",
+        message:
+          "Invalid order ID",
       });
     }
 
@@ -878,7 +850,8 @@ export const updateOrderStatus = async (
 
       return res.status(404).json({
         success: false,
-        message: "Order not found",
+        message:
+          "Order not found",
       });
     }
 
@@ -904,7 +877,7 @@ export const updateOrderStatus = async (
     }
 
     // ==================================================
-    // STATUS TRANSITION VALIDATION
+    // STATUS TRANSITION
     // ==================================================
 
     const allowedNextStatuses =
@@ -926,30 +899,32 @@ export const updateOrderStatus = async (
     }
 
     // ==================================================
-    // STOCK DECREASE
+    // CONFIRM ORDER
     // ==================================================
-    //
-    // Stock decreases ONLY:
     //
     // Pending → Confirmed
     //
-    // Never again:
+    // STOCK:
     //
-    // Confirmed → Processing
-    // Processing → Shipped
-    // Shipped → Delivered
+    // stock -= quantity
     //
+    // SOLD:
+    //
+    // soldQuantity += quantity
+    //
+    // ==================================================
 
     const confirmingOrder =
-      oldStatus !== "Confirmed" &&
+      oldStatus === "Pending" &&
       status === "Confirmed";
 
     if (confirmingOrder) {
-      // -----------------------------------------------
-      // COMBINE DUPLICATE PRODUCT QUANTITIES
-      // -----------------------------------------------
+      const quantityMap =
+        new Map();
 
-      const quantityMap = new Map();
+      // -----------------------------------------------
+      // COMBINE DUPLICATE PRODUCTS
+      // -----------------------------------------------
 
       for (const item of order.orderItems) {
         const productId =
@@ -965,7 +940,9 @@ export const updateOrderStatus = async (
         }
 
         if (
-          !Number.isInteger(quantity) ||
+          !Number.isInteger(
+            quantity,
+          ) ||
           quantity <= 0
         ) {
           throw new Error(
@@ -974,7 +951,9 @@ export const updateOrderStatus = async (
         }
 
         const previous =
-          quantityMap.get(productId) || 0;
+          quantityMap.get(
+            productId,
+          ) || 0;
 
         quantityMap.set(
           productId,
@@ -983,7 +962,7 @@ export const updateOrderStatus = async (
       }
 
       // -----------------------------------------------
-      // ATOMIC STOCK DECREASE
+      // ATOMIC STOCK + SOLD UPDATE
       // -----------------------------------------------
 
       for (const [
@@ -999,13 +978,19 @@ export const updateOrderStatus = async (
                 $gte: quantity,
               },
             },
+
             {
               $inc: {
                 stock: -quantity,
+
+                soldQuantity:
+                  quantity,
               },
             },
+
             {
               new: true,
+
               session,
             },
           );
@@ -1022,39 +1007,55 @@ export const updateOrderStatus = async (
               .session(session)
               .lean();
 
-          await session.abortTransaction();
-
           if (!product) {
-            return res.status(404).json({
-              success: false,
-              message:
-                "Product not found while confirming order",
-            });
+            throw new Error(
+              "Product not found while confirming order",
+            );
           }
 
-          return res.status(400).json({
-            success: false,
-            message: `${getProductName(
+          throw new Error(
+            `${getProductName(
               product,
             )} has insufficient stock. Available: ${Number(
               product.stock || 0,
             )}, Required: ${quantity}`,
-          });
+          );
+        }
+
+        // ---------------------------------------------
+        // SAFETY CHECK
+        // ---------------------------------------------
+
+        if (
+          Number(
+            updatedProduct.soldQuantity,
+          ) < 0
+        ) {
+          throw new Error(
+            `Invalid sold quantity for ${getProductName(
+              updatedProduct,
+            )}`,
+          );
         }
       }
     }
 
     // ==================================================
-    // STOCK RESTORATION
+    // CANCEL ORDER
     // ==================================================
     //
-    // If stock was already deducted and order is
-    // cancelled, return the stock.
+    // If stock was already deducted:
     //
     // Confirmed → Cancelled
     // Processing → Cancelled
     // Shipped → Cancelled
     //
+    // Then:
+    //
+    // stock += quantity
+    // soldQuantity -= quantity
+    //
+    // ==================================================
 
     const restoringStock =
       status === "Cancelled" &&
@@ -1065,11 +1066,12 @@ export const updateOrderStatus = async (
       ].includes(oldStatus);
 
     if (restoringStock) {
-      // -----------------------------------------------
-      // COMBINE DUPLICATE PRODUCT QUANTITIES
-      // -----------------------------------------------
+      const quantityMap =
+        new Map();
 
-      const quantityMap = new Map();
+      // -----------------------------------------------
+      // COMBINE DUPLICATE PRODUCTS
+      // -----------------------------------------------
 
       for (const item of order.orderItems) {
         const productId =
@@ -1085,7 +1087,9 @@ export const updateOrderStatus = async (
         }
 
         if (
-          !Number.isInteger(quantity) ||
+          !Number.isInteger(
+            quantity,
+          ) ||
           quantity <= 0
         ) {
           throw new Error(
@@ -1094,7 +1098,9 @@ export const updateOrderStatus = async (
         }
 
         const previous =
-          quantityMap.get(productId) || 0;
+          quantityMap.get(
+            productId,
+          ) || 0;
 
         quantityMap.set(
           productId,
@@ -1103,7 +1109,7 @@ export const updateOrderStatus = async (
       }
 
       // -----------------------------------------------
-      // RESTORE STOCK
+      // ATOMIC STOCK RESTORATION
       // -----------------------------------------------
 
       for (const [
@@ -1111,22 +1117,49 @@ export const updateOrderStatus = async (
         quantity,
       ] of quantityMap.entries()) {
         const updatedProduct =
-          await Product.findByIdAndUpdate(
-            productId,
+          await Product.findOneAndUpdate(
+            {
+              _id: productId,
+
+              soldQuantity: {
+                $gte: quantity,
+              },
+            },
+
             {
               $inc: {
                 stock: quantity,
+
+                soldQuantity:
+                  -quantity,
               },
             },
+
             {
               new: true,
+
               session,
             },
           );
 
         if (!updatedProduct) {
+          const product =
+            await Product.findById(
+              productId,
+            )
+              .session(session)
+              .lean();
+
+          if (!product) {
+            throw new Error(
+              `Product ${productId} not found while restoring stock`,
+            );
+          }
+
           throw new Error(
-            `Product ${productId} not found while restoring stock`,
+            `${getProductName(
+              product,
+            )} cannot restore stock because sold quantity is insufficient`,
           );
         }
       }
@@ -1139,11 +1172,8 @@ export const updateOrderStatus = async (
     order.orderStatus = status;
 
     // ==================================================
-    // COD PAYMENT ON DELIVERY
+    // COD PAYMENT
     // ==================================================
-    //
-    // COD becomes paid only when the order is delivered.
-    //
 
     if (
       status === "Delivered" &&
@@ -1151,21 +1181,23 @@ export const updateOrderStatus = async (
     ) {
       order.isPaid = true;
 
-      order.paymentStatus = "Paid";
+      order.paymentStatus =
+        "Paid";
 
       order.paidAt =
-        order.paidAt || new Date();
+        order.paidAt ||
+        new Date();
     }
 
     // ==================================================
-    // CANCELLED ORDER
+    // CANCELLED
     // ==================================================
 
     if (
-      status === "Cancelled" &&
-      oldStatus !== "Cancelled"
+      status === "Cancelled"
     ) {
-      order.cancelledAt = new Date();
+      order.cancelledAt =
+        new Date();
     }
 
     // ==================================================
@@ -1180,15 +1212,6 @@ export const updateOrderStatus = async (
     // ==================================================
     // FINANCIAL TRANSACTIONS
     // ==================================================
-    //
-    // Delivered + Paid:
-    //
-    // 1. Income
-    // 2. Product Cost
-    //
-    // Financial service should have duplicate
-    // protection.
-    //
 
     const deliveredAndPaid =
       oldStatus !== "Delivered" &&
@@ -1196,71 +1219,54 @@ export const updateOrderStatus = async (
       updatedOrder.isPaid === true;
 
     if (deliveredAndPaid) {
-      // -----------------------------------------------
-      // INCOME
-      // -----------------------------------------------
-
       await createOrderIncome({
         order: updatedOrder,
 
         createdBy:
-          req.user?._id || null,
+          req.user?._id ||
+          null,
 
         session,
       });
-
-      // -----------------------------------------------
-      // PRODUCT COST
-      // -----------------------------------------------
 
       await createProductCost({
         order: updatedOrder,
 
         createdBy:
-          req.user?._id || null,
+          req.user?._id ||
+          null,
 
         session,
       });
 
-      // -----------------------------------------------
+      // ------------------------------------------------
       // SHIPPING COST
-      // -----------------------------------------------
+      // ------------------------------------------------
       //
-      // Do NOT automatically use customer shippingFee
-      // as actual courier cost.
-      //
-      // Actual courier cost should come from the admin
-      // or courier integration.
+      // Actual courier cost should be supplied separately.
       //
 
-      // Example:
-      //
       // await createShippingCost({
       //   order: updatedOrder,
-      //   amount: ACTUAL_COURIER_COST,
+      //   amount: actualCourierCost,
       //   createdBy: req.user?._id || null,
       //   session,
       // });
 
-      // -----------------------------------------------
+      // ------------------------------------------------
       // PAYMENT FEE
-      // -----------------------------------------------
-      //
-      // Add only when actual gateway fee is known.
-      //
+      // ------------------------------------------------
 
-      // Example:
-      //
       // await createPaymentFee({
       //   order: updatedOrder,
-      //   amount: PAYMENT_GATEWAY_FEE,
+      //   amount: actualGatewayFee,
       //   createdBy: req.user?._id || null,
       //   session,
       // });
     }
 
     // ==================================================
-    // COMMIT TRANSACTION
+    // COMMIT
     // ==================================================
 
     await session.commitTransaction();
@@ -1272,7 +1278,8 @@ export const updateOrderStatus = async (
     await createOrderNotification({
       user: updatedOrder.user,
 
-      title: "Order Status Updated",
+      title:
+        "Order Status Updated",
 
       message: `Your order #${updatedOrder._id} has been ${status.toLowerCase()}.`,
     });
@@ -1284,13 +1291,14 @@ export const updateOrderStatus = async (
     return res.status(200).json({
       success: true,
 
-      message: `Order status updated to ${status}`,
+      message:
+        `Order status updated to ${status}`,
 
       data: updatedOrder,
     });
   } catch (error) {
     // ==================================================
-    // ABORT TRANSACTION
+    // ABORT
     // ==================================================
 
     if (session.inTransaction()) {
@@ -1308,7 +1316,9 @@ export const updateOrderStatus = async (
     // DUPLICATE FINANCIAL TRANSACTION
     // ==================================================
 
-    if (error?.code === 11000) {
+    if (
+      error?.code === 11000
+    ) {
       console.error(
         "Duplicate financial transaction:",
         error,
@@ -1334,6 +1344,7 @@ export const updateOrderStatus = async (
       success: false,
 
       message:
+        error.message ||
         "Failed to update order status",
 
       error:
@@ -1343,17 +1354,12 @@ export const updateOrderStatus = async (
           : undefined,
     });
   } finally {
-    // ==================================================
-    // END SESSION
-    // ==================================================
-
     await session.endSession();
   }
 };
 
 // ======================================================
 // GET ALL ORDERS
-// GET /api/v1/orders
 // ======================================================
 
 export const getAllOrders = async (
@@ -1396,7 +1402,6 @@ export const getAllOrders = async (
 
 // ======================================================
 // REFUND ORDER
-// POST /api/v1/orders/:id/refund
 // ======================================================
 
 export const refundOrder = async (
@@ -1410,7 +1415,7 @@ export const refundOrder = async (
     const { id } = req.params;
 
     // ==================================================
-    // ORDER ID VALIDATION
+    // ID VALIDATION
     // ==================================================
 
     if (
@@ -1420,7 +1425,8 @@ export const refundOrder = async (
     ) {
       return res.status(400).json({
         success: false,
-        message: "Invalid order ID",
+        message:
+          "Invalid order ID",
       });
     }
 
@@ -1444,7 +1450,8 @@ export const refundOrder = async (
 
       return res.status(404).json({
         success: false,
-        message: "Order not found",
+        message:
+          "Order not found",
       });
     }
 
@@ -1466,7 +1473,7 @@ export const refundOrder = async (
     }
 
     // ==================================================
-    // ONLY PAID ORDERS CAN BE REFUNDED
+    // PAID VALIDATION
     // ==================================================
 
     if (!order.isPaid) {
@@ -1480,13 +1487,8 @@ export const refundOrder = async (
     }
 
     // ==================================================
-    // REFUND VALIDATION
+    // DELIVERED VALIDATION
     // ==================================================
-    //
-    // A delivered order is the normal case for refund.
-    // For other statuses, keep refund disabled unless
-    // your business logic explicitly allows it.
-    //
 
     if (
       order.orderStatus !==
@@ -1502,7 +1504,7 @@ export const refundOrder = async (
     }
 
     // ==================================================
-    // UPDATE PAYMENT STATUS
+    // PAYMENT STATUS
     // ==================================================
 
     order.paymentStatus =
@@ -1523,14 +1525,15 @@ export const refundOrder = async (
       });
 
     // ==================================================
-    // FINANCIAL REFUND TRANSACTION
+    // FINANCIAL REFUND
     // ==================================================
 
     await createOrderRefund({
       order: updatedOrder,
 
       createdBy:
-        req.user?._id || null,
+        req.user?._id ||
+        null,
 
       session,
     });
@@ -1548,7 +1551,8 @@ export const refundOrder = async (
     await createOrderNotification({
       user: updatedOrder.user,
 
-      title: "Order Refunded",
+      title:
+        "Order Refunded",
 
       message: `Your order #${updatedOrder._id} has been refunded successfully.`,
     });
@@ -1567,7 +1571,7 @@ export const refundOrder = async (
     });
   } catch (error) {
     // ==================================================
-    // ABORT TRANSACTION
+    // ABORT
     // ==================================================
 
     if (session.inTransaction()) {
@@ -1582,10 +1586,12 @@ export const refundOrder = async (
     }
 
     // ==================================================
-    // DUPLICATE FINANCIAL TRANSACTION
+    // DUPLICATE REFUND
     // ==================================================
 
-    if (error?.code === 11000) {
+    if (
+      error?.code === 11000
+    ) {
       console.error(
         "Duplicate refund transaction:",
         error,
@@ -1621,10 +1627,6 @@ export const refundOrder = async (
           : undefined,
     });
   } finally {
-    // ==================================================
-    // END SESSION
-    // ==================================================
-
     await session.endSession();
   }
 };

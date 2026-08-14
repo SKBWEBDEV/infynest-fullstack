@@ -1,28 +1,57 @@
-// File Path: backend/controllers/productController.js
+// File Path:
+// server/src/controllers/productController.js
 
 import { Product } from "../models/Product.js";
 import cloudinary from "../config/cloudinary.js";
 
-// ==========================================
+// ======================================================
+// HELPER - PARSE ARRAY
+// ======================================================
+
+const parseArrayField = (value, fieldName) => {
+  if (value === undefined || value === null || value === "") {
+    return [];
+  }
+
+  if (Array.isArray(value)) {
+    return value;
+  }
+
+  try {
+    const parsed = JSON.parse(value);
+
+    if (!Array.isArray(parsed)) {
+      throw new Error(`${fieldName} must be an array`);
+    }
+
+    return parsed;
+  } catch (error) {
+    throw new Error(`Invalid ${fieldName} data`);
+  }
+};
+
+// ======================================================
 // GET ALL PRODUCTS
-// ==========================================
+// ======================================================
+
 export const getProducts = async (req, res) => {
   try {
-    const { category, isFeatured, isNewArrival } = req.query;
+    const {
+      category,
+      isFeatured,
+      isNewArrival,
+    } = req.query;
 
     const query = {};
 
-    // CATEGORY FILTER
     if (category) {
       query.category = category;
     }
 
-    // FEATURED FILTER
     if (isFeatured !== undefined) {
       query.isFeatured = isFeatured === "true";
     }
 
-    // NEW ARRIVAL FILTER
     if (isNewArrival !== undefined) {
       query.isNewArrival = isNewArrival === "true";
     }
@@ -31,7 +60,7 @@ export const getProducts = async (req, res) => {
       createdAt: -1,
     });
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       count: products.length,
       data: products,
@@ -39,19 +68,26 @@ export const getProducts = async (req, res) => {
   } catch (error) {
     console.error("Get products error:", error);
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
-      message: error.message,
+      message: "Failed to get products",
+      error:
+        process.env.NODE_ENV === "development"
+          ? error.message
+          : undefined,
     });
   }
 };
 
-// ==========================================
+// ======================================================
 // GET SINGLE PRODUCT
-// ==========================================
+// ======================================================
+
 export const getProductById = async (req, res) => {
   try {
-    const product = await Product.findById(req.params.id);
+    const product = await Product.findById(
+      req.params.id,
+    );
 
     if (!product) {
       return res.status(404).json({
@@ -60,23 +96,28 @@ export const getProductById = async (req, res) => {
       });
     }
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       data: product,
     });
   } catch (error) {
     console.error("Get product error:", error);
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
-      message: error.message,
+      message: "Failed to get product",
+      error:
+        process.env.NODE_ENV === "development"
+          ? error.message
+          : undefined,
     });
   }
 };
 
-// ==========================================
+// ======================================================
 // CREATE PRODUCT
-// ==========================================
+// ======================================================
+
 export const createProduct = async (req, res) => {
   try {
     const {
@@ -97,9 +138,9 @@ export const createProduct = async (req, res) => {
       imageUrls,
     } = req.body;
 
-    // ==========================================
+    // ==================================================
     // BASIC VALIDATION
-    // ==========================================
+    // ==================================================
 
     if (!name?.trim()) {
       return res.status(400).json({
@@ -115,16 +156,23 @@ export const createProduct = async (req, res) => {
       });
     }
 
-    // ==========================================
+    if (!category?.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: "Category is required",
+      });
+    }
+
+    // ==================================================
     // RETAIL PRICE
-    // ==========================================
+    // ==================================================
 
     const parsedRetailPrice = Number(retailPrice);
 
     if (
       retailPrice === undefined ||
       retailPrice === "" ||
-      Number.isNaN(parsedRetailPrice) ||
+      !Number.isFinite(parsedRetailPrice) ||
       parsedRetailPrice < 0
     ) {
       return res.status(400).json({
@@ -133,68 +181,76 @@ export const createProduct = async (req, res) => {
       });
     }
 
-    // ==========================================
+    // ==================================================
     // COST PRICE
-    // ==========================================
+    // ==================================================
 
     const parsedCostPrice = Number(costPrice);
 
     if (
       costPrice === undefined ||
       costPrice === "" ||
-      Number.isNaN(parsedCostPrice) ||
+      !Number.isFinite(parsedCostPrice) ||
       parsedCostPrice < 0
     ) {
       return res.status(400).json({
         success: false,
-        message: "Cost price is required and must be valid",
+        message:
+          "Cost price is required and must be valid",
       });
     }
 
     if (parsedCostPrice > parsedRetailPrice) {
       return res.status(400).json({
         success: false,
-        message: "Cost price cannot be greater than retail price",
+        message:
+          "Cost price cannot be greater than retail price",
       });
     }
 
-    // ==========================================
+    // ==================================================
     // DISCOUNT PRICE
-    // ==========================================
+    // ==================================================
 
     const parsedDiscountPrice =
       discountPrice !== undefined &&
-      discountPrice !== null &&
-      discountPrice !== ""
+        discountPrice !== null &&
+        discountPrice !== ""
         ? Number(discountPrice)
         : null;
 
     if (
       parsedDiscountPrice !== null &&
-      (Number.isNaN(parsedDiscountPrice) ||
+      (
+        !Number.isFinite(parsedDiscountPrice) ||
         parsedDiscountPrice < 0 ||
-        parsedDiscountPrice >= parsedRetailPrice)
+        parsedDiscountPrice >= parsedRetailPrice
+      )
     ) {
       return res.status(400).json({
         success: false,
-        message: "Discount price must be less than retail price",
+        message:
+          "Discount price must be less than retail price",
       });
     }
 
-    // ==========================================
+    // ==================================================
     // WHOLESALE PRICE
-    // ==========================================
+    // ==================================================
 
     const parsedWholesalePrice =
       wholesalePrice !== undefined &&
-      wholesalePrice !== null &&
-      wholesalePrice !== ""
+        wholesalePrice !== null &&
+        wholesalePrice !== ""
         ? Number(wholesalePrice)
         : null;
 
     if (
       parsedWholesalePrice !== null &&
-      (Number.isNaN(parsedWholesalePrice) || parsedWholesalePrice < 0)
+      (
+        !Number.isFinite(parsedWholesalePrice) ||
+        parsedWholesalePrice < 0
+      )
     ) {
       return res.status(400).json({
         success: false,
@@ -208,41 +264,43 @@ export const createProduct = async (req, res) => {
     ) {
       return res.status(400).json({
         success: false,
-        message: "Wholesale price must be less than retail price",
+        message:
+          "Wholesale price must be less than retail price",
       });
     }
 
-    // ==========================================
+    // ==================================================
     // MIN WHOLESALE QUANTITY
-    // ==========================================
+    // ==================================================
 
     const parsedMinWholesaleQty =
       minWholesaleQty !== undefined &&
-      minWholesaleQty !== null &&
-      minWholesaleQty !== ""
+        minWholesaleQty !== null &&
+        minWholesaleQty !== ""
         ? Number(minWholesaleQty)
         : 1;
 
     if (
-      Number.isNaN(parsedMinWholesaleQty) ||
+      !Number.isInteger(parsedMinWholesaleQty) ||
       parsedMinWholesaleQty < 1
     ) {
       return res.status(400).json({
         success: false,
-        message: "Minimum wholesale quantity must be at least 1",
+        message:
+          "Minimum wholesale quantity must be at least 1",
       });
     }
 
-    // ==========================================
+    // ==================================================
     // STOCK
-    // ==========================================
+    // ==================================================
 
     const parsedStock = Number(stock);
 
     if (
       stock === undefined ||
       stock === "" ||
-      Number.isNaN(parsedStock) ||
+      !Number.isInteger(parsedStock) ||
       parsedStock < 0
     ) {
       return res.status(400).json({
@@ -251,15 +309,11 @@ export const createProduct = async (req, res) => {
       });
     }
 
-    // ==========================================
+    // ==================================================
     // IMAGES
-    // ==========================================
+    // ==================================================
 
     let images = [];
-
-    // ==========================================
-    // UPLOAD FILES TO CLOUDINARY
-    // ==========================================
 
     if (req.files && req.files.length > 0) {
       const uploadedImages = await Promise.all(
@@ -271,7 +325,6 @@ export const createProduct = async (req, res) => {
                   {
                     folder: "infynest/products",
                     resource_type: "image",
-
                     transformation: [
                       {
                         quality: "auto",
@@ -279,7 +332,6 @@ export const createProduct = async (req, res) => {
                       },
                     ],
                   },
-
                   (error, result) => {
                     if (error) {
                       reject(error);
@@ -299,44 +351,68 @@ export const createProduct = async (req, res) => {
       );
     }
 
-    // ==========================================
+    // ==================================================
     // IMAGE URLS
-    // ==========================================
+    // ==================================================
 
     if (imageUrls) {
       try {
-        const parsedUrls = JSON.parse(imageUrls);
+        const parsedUrls =
+          typeof imageUrls === "string"
+            ? JSON.parse(imageUrls)
+            : imageUrls;
 
         if (Array.isArray(parsedUrls)) {
           images = [...images, ...parsedUrls];
         }
       } catch (error) {
-        console.error("Invalid imageUrls:", error);
+        return res.status(400).json({
+          success: false,
+          message: "Invalid imageUrls data",
+        });
       }
     }
 
-    // ==========================================
-    // PARSE ARRAYS
-    // ==========================================
+    // ==================================================
+    // ARRAYS
+    // ==================================================
 
-    let parsedSizes = [];
-    let parsedColors = [];
-    let parsedTags = [];
+    let parsedSizes;
+    let parsedColors;
+    let parsedTags;
 
     try {
-      parsedSizes = sizes ? JSON.parse(sizes) : [];
-      parsedColors = colors ? JSON.parse(colors) : [];
-      parsedTags = tags ? JSON.parse(tags) : [];
+      parsedSizes = parseArrayField(
+        sizes,
+        "sizes",
+      );
+
+      parsedColors = parseArrayField(
+        colors,
+        "colors",
+      );
+
+      parsedTags = parseArrayField(
+        tags,
+        "tags",
+      );
     } catch (error) {
       return res.status(400).json({
         success: false,
-        message: "Invalid product array data",
+        message: error.message,
       });
     }
 
-    // ==========================================
+    // ==================================================
     // CREATE PRODUCT
-    // ==========================================
+    // ==================================================
+    //
+    // IMPORTANT:
+    //
+    // initialStock = stock at product creation
+    // soldQuantity = 0
+    // stock = current stock
+    //
 
     const product = await Product.create({
       name: name.trim(),
@@ -353,7 +429,7 @@ export const createProduct = async (req, res) => {
 
       minWholesaleQty: parsedMinWholesaleQty,
 
-      category,
+      category: category.trim(),
 
       sizes: parsedSizes,
 
@@ -365,6 +441,10 @@ export const createProduct = async (req, res) => {
 
       stock: parsedStock,
 
+      initialStock: parsedStock,
+
+      soldQuantity: 0,
+
       isFeatured:
         isFeatured === true ||
         isFeatured === "true",
@@ -373,10 +453,6 @@ export const createProduct = async (req, res) => {
         isNewArrival === true ||
         isNewArrival === "true",
     });
-
-    // ==========================================
-    // RESPONSE
-    // ==========================================
 
     return res.status(201).json({
       success: true,
@@ -388,14 +464,19 @@ export const createProduct = async (req, res) => {
 
     return res.status(500).json({
       success: false,
-      message: error.message,
+      message: "Failed to create product",
+      error:
+        process.env.NODE_ENV === "development"
+          ? error.message
+          : undefined,
     });
   }
 };
 
-// ==========================================
+// ======================================================
 // UPDATE PRODUCT
-// ==========================================
+// ======================================================
+
 export const updateProduct = async (req, res) => {
   try {
     const {
@@ -416,11 +497,13 @@ export const updateProduct = async (req, res) => {
       imageUrls,
     } = req.body;
 
-    // ==========================================
+    // ==================================================
     // FIND PRODUCT
-    // ==========================================
+    // ==================================================
 
-    const product = await Product.findById(req.params.id);
+    const product = await Product.findById(
+      req.params.id,
+    );
 
     if (!product) {
       return res.status(404).json({
@@ -429,16 +512,16 @@ export const updateProduct = async (req, res) => {
       });
     }
 
-    // ==========================================
-    // RETAIL PRICE
-    // ==========================================
+    // ==================================================
+    // PRICE VALIDATION
+    // ==================================================
 
     const parsedRetailPrice = Number(retailPrice);
 
     if (
       retailPrice === undefined ||
       retailPrice === "" ||
-      Number.isNaN(parsedRetailPrice) ||
+      !Number.isFinite(parsedRetailPrice) ||
       parsedRetailPrice < 0
     ) {
       return res.status(400).json({
@@ -447,34 +530,32 @@ export const updateProduct = async (req, res) => {
       });
     }
 
-    // ==========================================
-    // COST PRICE
-    // ==========================================
-
     const parsedCostPrice = Number(costPrice);
 
     if (
       costPrice === undefined ||
       costPrice === "" ||
-      Number.isNaN(parsedCostPrice) ||
+      !Number.isFinite(parsedCostPrice) ||
       parsedCostPrice < 0
     ) {
       return res.status(400).json({
         success: false,
-        message: "Cost price is required and must be valid",
+        message:
+          "Cost price is required and must be valid",
       });
     }
 
     if (parsedCostPrice > parsedRetailPrice) {
       return res.status(400).json({
         success: false,
-        message: "Cost price cannot be greater than retail price",
+        message:
+          "Cost price cannot be greater than retail price",
       });
     }
 
-    // ==========================================
+    // ==================================================
     // DISCOUNT PRICE
-    // ==========================================
+    // ==================================================
 
     let parsedDiscountPrice = null;
 
@@ -488,79 +569,77 @@ export const updateProduct = async (req, res) => {
 
     if (
       parsedDiscountPrice !== null &&
-      (Number.isNaN(parsedDiscountPrice) ||
+      (
+        !Number.isFinite(parsedDiscountPrice) ||
         parsedDiscountPrice < 0 ||
-        parsedDiscountPrice >= parsedRetailPrice)
+        parsedDiscountPrice >= parsedRetailPrice
+      )
     ) {
       return res.status(400).json({
         success: false,
-        message: "Discount price must be less than retail price",
+        message:
+          "Discount price must be less than retail price",
       });
     }
 
-    // ==========================================
+    // ==================================================
     // WHOLESALE PRICE
-    // ==========================================
+    // ==================================================
 
     const parsedWholesalePrice =
       wholesalePrice !== undefined &&
-      wholesalePrice !== null &&
-      wholesalePrice !== ""
+        wholesalePrice !== null &&
+        wholesalePrice !== ""
         ? Number(wholesalePrice)
         : null;
 
     if (
       parsedWholesalePrice !== null &&
-      (Number.isNaN(parsedWholesalePrice) ||
-        parsedWholesalePrice < 0)
+      (
+        !Number.isFinite(parsedWholesalePrice) ||
+        parsedWholesalePrice < 0 ||
+        parsedWholesalePrice >= parsedRetailPrice
+      )
     ) {
       return res.status(400).json({
         success: false,
-        message: "Invalid wholesale price",
+        message:
+          "Invalid wholesale price",
       });
     }
 
-    if (
-      parsedWholesalePrice !== null &&
-      parsedWholesalePrice >= parsedRetailPrice
-    ) {
-      return res.status(400).json({
-        success: false,
-        message: "Wholesale price must be less than retail price",
-      });
-    }
-
-    // ==========================================
-    // MIN WHOLESALE QUANTITY
-    // ==========================================
+    // ==================================================
+    // MIN WHOLESALE QTY
+    // ==================================================
 
     const parsedMinWholesaleQty =
       minWholesaleQty !== undefined &&
-      minWholesaleQty !== null &&
-      minWholesaleQty !== ""
+        minWholesaleQty !== null &&
+        minWholesaleQty !== ""
         ? Number(minWholesaleQty)
         : 1;
 
     if (
-      Number.isNaN(parsedMinWholesaleQty) ||
+      !Number.isInteger(parsedMinWholesaleQty) ||
       parsedMinWholesaleQty < 1
     ) {
       return res.status(400).json({
         success: false,
-        message: "Minimum wholesale quantity must be at least 1",
+        message:
+          "Minimum wholesale quantity must be at least 1",
       });
     }
 
-    // ==========================================
+    // ==================================================
     // STOCK
-    // ==========================================
+    // ==================================================
 
     const parsedStock = Number(stock);
 
     if (
       stock === undefined ||
       stock === "" ||
-      Number.isNaN(parsedStock) ||
+      !Number.isInteger(parsedStock) ||
       parsedStock < 0
     ) {
       return res.status(400).json({
@@ -569,17 +648,13 @@ export const updateProduct = async (req, res) => {
       });
     }
 
-    // ==========================================
-    // IMAGES
-    // ==========================================
+    // ==================================================
+    // IMAGE HANDLING
+    // ==================================================
 
     let images = Array.isArray(product.images)
       ? [...product.images]
       : [];
-
-    // ==========================================
-    // NEW FILE UPLOADS
-    // ==========================================
 
     if (req.files && req.files.length > 0) {
       const uploadedImages = await Promise.all(
@@ -591,7 +666,6 @@ export const updateProduct = async (req, res) => {
                   {
                     folder: "infynest/products",
                     resource_type: "image",
-
                     transformation: [
                       {
                         quality: "auto",
@@ -599,7 +673,6 @@ export const updateProduct = async (req, res) => {
                       },
                     ],
                   },
-
                   (error, result) => {
                     if (error) {
                       reject(error);
@@ -621,25 +694,27 @@ export const updateProduct = async (req, res) => {
       images = [...images, ...newImages];
     }
 
-    // ==========================================
-    // IMAGE URLS
-    // ==========================================
-
     if (imageUrls) {
       try {
-        const parsedUrls = JSON.parse(imageUrls);
+        const parsedUrls =
+          typeof imageUrls === "string"
+            ? JSON.parse(imageUrls)
+            : imageUrls;
 
         if (Array.isArray(parsedUrls)) {
           images = parsedUrls;
         }
       } catch (error) {
-        console.error("Invalid imageUrls:", error);
+        return res.status(400).json({
+          success: false,
+          message: "Invalid imageUrls data",
+        });
       }
     }
 
-    // ==========================================
+    // ==================================================
     // UPDATE BASIC DATA
-    // ==========================================
+    // ==================================================
 
     product.name = name?.trim();
 
@@ -649,102 +724,156 @@ export const updateProduct = async (req, res) => {
 
     product.costPrice = parsedCostPrice;
 
-    product.discountPrice = parsedDiscountPrice;
+    product.discountPrice =
+      parsedDiscountPrice;
 
-    product.wholesalePrice = parsedWholesalePrice;
+    product.wholesalePrice =
+      parsedWholesalePrice;
 
-    product.minWholesaleQty = parsedMinWholesaleQty;
+    product.minWholesaleQty =
+      parsedMinWholesaleQty;
 
-    product.category = category;
-
-    // ==========================================
-    // SIZES
-    // ==========================================
-
-    if (sizes !== undefined) {
-      try {
-        product.sizes = sizes
-          ? JSON.parse(sizes)
-          : [];
-      } catch (error) {
-        return res.status(400).json({
-          success: false,
-          message: "Invalid sizes data",
-        });
-      }
-    }
-
-    // ==========================================
-    // COLORS
-    // ==========================================
-
-    if (colors !== undefined) {
-      try {
-        product.colors = colors
-          ? JSON.parse(colors)
-          : [];
-      } catch (error) {
-        return res.status(400).json({
-          success: false,
-          message: "Invalid colors data",
-        });
-      }
-    }
-
-    // ==========================================
-    // TAGS
-    // ==========================================
-
-    if (tags !== undefined) {
-      try {
-        product.tags = tags
-          ? JSON.parse(tags)
-          : [];
-      } catch (error) {
-        return res.status(400).json({
-          success: false,
-          message: "Invalid tags data",
-        });
-      }
-    }
-
-    // ==========================================
-    // IMAGES
-    // ==========================================
+    product.category = category?.trim();
 
     product.images = images;
 
-    // ==========================================
-    // STOCK
-    // ==========================================
+    // ==================================================
+    // SIZES
+    // ==================================================
+
+    if (sizes !== undefined) {
+      try {
+        product.sizes = parseArrayField(
+          sizes,
+          "sizes",
+        );
+      } catch (error) {
+        return res.status(400).json({
+          success: false,
+          message: error.message,
+        });
+      }
+    }
+
+    // ==================================================
+    // COLORS
+    // ==================================================
+
+    if (colors !== undefined) {
+      try {
+        product.colors = parseArrayField(
+          colors,
+          "colors",
+        );
+      } catch (error) {
+        return res.status(400).json({
+          success: false,
+          message: error.message,
+        });
+      }
+    }
+
+    // ==================================================
+    // TAGS
+    // ==================================================
+
+    if (tags !== undefined) {
+      try {
+        product.tags = parseArrayField(
+          tags,
+          "tags",
+        );
+      } catch (error) {
+        return res.status(400).json({
+          success: false,
+          message: error.message,
+        });
+      }
+    }
+
+    // ==================================================
+    // CURRENT STOCK
+    // ==================================================
+    //
+    // IMPORTANT:
+    //
+    // Admin manually changes current stock here.
+    //
+    // initialStock DOES NOT change.
+    //
+    // soldQuantity DOES NOT change.
+    //
+    // Example:
+    //
+    // initialStock = 20
+    // soldQuantity = 5
+    // stock = 15
+    //
+    // Admin adds 10 stock:
+    //
+    // initialStock = 20
+    // soldQuantity = 5
+    // stock = 25
+    //
+    // This preserves the original stock history.
+    //
 
     product.stock = parsedStock;
 
-    // ==========================================
+    // ==================================================
+    // BACKWARD COMPATIBILITY
+    // ==================================================
+    //
+    // Existing products may not have initialStock.
+    //
+    // In that case initialize it once.
+    //
+
+    if (
+      product.initialStock === undefined ||
+      product.initialStock === null
+    ) {
+      product.initialStock =
+        parsedStock +
+        Number(product.soldQuantity || 0);
+    }
+
+    // Existing products may not have soldQuantity.
+    //
+
+    if (
+      product.soldQuantity === undefined ||
+      product.soldQuantity === null
+    ) {
+      product.soldQuantity = 0;
+    }
+
+    // ==================================================
     // FEATURED
-    // ==========================================
+    // ==================================================
 
     product.isFeatured =
       isFeatured === true ||
       isFeatured === "true";
 
-    // ==========================================
+    // ==================================================
     // NEW ARRIVAL
-    // ==========================================
+    // ==================================================
 
     product.isNewArrival =
       isNewArrival === true ||
       isNewArrival === "true";
 
-    // ==========================================
+    // ==================================================
     // SAVE
-    // ==========================================
+    // ==================================================
 
-    const updatedProduct = await product.save();
+    const updatedProduct =
+      await product.save();
 
-    // ==========================================
+    // ==================================================
     // RESPONSE
-    // ==========================================
+    // ==================================================
 
     return res.status(200).json({
       success: true,
@@ -754,21 +883,27 @@ export const updateProduct = async (req, res) => {
   } catch (error) {
     console.error("Update product error:", error);
 
-    return res.status(400).json({
+    return res.status(500).json({
       success: false,
-      message: error.message,
+      message: "Failed to update product",
+      error:
+        process.env.NODE_ENV === "development"
+          ? error.message
+          : undefined,
     });
   }
 };
 
-// ==========================================
+// ======================================================
 // DELETE PRODUCT
-// ==========================================
+// ======================================================
+
 export const deleteProduct = async (req, res) => {
   try {
-    const product = await Product.findByIdAndDelete(
-      req.params.id,
-    );
+    const product =
+      await Product.findByIdAndDelete(
+        req.params.id,
+      );
 
     if (!product) {
       return res.status(404).json({
@@ -786,7 +921,11 @@ export const deleteProduct = async (req, res) => {
 
     return res.status(500).json({
       success: false,
-      message: error.message,
+      message: "Failed to delete product",
+      error:
+        process.env.NODE_ENV === "development"
+          ? error.message
+          : undefined,
     });
   }
 };
