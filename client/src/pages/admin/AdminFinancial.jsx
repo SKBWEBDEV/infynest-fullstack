@@ -76,7 +76,7 @@ export default function AdminFinancial() {
     useState(false);
 
 
-    
+
 
   // ======================================================
   // NORMAL FILTER STATE
@@ -1157,76 +1157,76 @@ export default function AdminFinancial() {
 
 
   // ======================================================
-// MONTHLY CHART DATA
-// ======================================================
+  // MONTHLY CHART DATA
+  // ======================================================
 
-const monthlyFinancialData = useMemo(() => {
-  const months = [
-    "Jan",
-    "Feb",
-    "Mar",
-    "Apr",
-    "May",
-    "Jun",
-    "Jul",
-    "Aug",
-    "Sep",
-    "Oct",
-    "Nov",
-    "Dec",
-  ];
+  const monthlyFinancialData = useMemo(() => {
+    const months = [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
+    ];
 
-  const result = months.map((month) => ({
-    month,
-    income: 0,
-    expense: 0,
-    profit: 0,
-  }));
+    const result = months.map((month) => ({
+      month,
+      income: 0,
+      expense: 0,
+      profit: 0,
+    }));
 
-  // ------------------------------------------------------
-  // USE FINANCIAL TRANSACTIONS ONLY
-  // ------------------------------------------------------
-  // Important:
-  // Do NOT add allChartExpenses separately here.
-  // Expense records are already represented as transactions.
-  // Adding both causes double counting.
-  // ------------------------------------------------------
+    // ------------------------------------------------------
+    // USE FINANCIAL TRANSACTIONS ONLY
+    // ------------------------------------------------------
+    // Important:
+    // Do NOT add allChartExpenses separately here.
+    // Expense records are already represented as transactions.
+    // Adding both causes double counting.
+    // ------------------------------------------------------
 
-  allChartTransactions.forEach((transaction) => {
-    const date = new Date(
-      transaction.transactionDate
-    );
+    allChartTransactions.forEach((transaction) => {
+      const date = new Date(
+        transaction.transactionDate
+      );
 
-    if (Number.isNaN(date.getTime())) {
-      return;
-    }
+      if (Number.isNaN(date.getTime())) {
+        return;
+      }
 
-    const monthIndex = date.getMonth();
+      const monthIndex = date.getMonth();
 
-    const amount = Math.abs(
-      Number(transaction.amount || 0)
-    );
+      const amount = Math.abs(
+        Number(transaction.amount || 0)
+      );
 
-    if (transaction.type === "income") {
-      // Revenue
-      result[monthIndex].income += amount;
-    } else {
-      // Every non-income financial transaction
-      // is a business cost/reduction from profit.
-      result[monthIndex].expense += amount;
-    }
-  });
+      if (transaction.type === "income") {
+        // Revenue
+        result[monthIndex].income += amount;
+      } else {
+        // Every non-income financial transaction
+        // is a business cost/reduction from profit.
+        result[monthIndex].expense += amount;
+      }
+    });
 
-  // ------------------------------------------------------
-  // PROFIT
-  // ------------------------------------------------------
+    // ------------------------------------------------------
+    // PROFIT
+    // ------------------------------------------------------
 
-  result.forEach((item) => {
-    item.profit = item.income - item.expense;
-  });
+    result.forEach((item) => {
+      item.profit = item.income - item.expense;
+    });
 
-  return result;
-}, [allChartTransactions]);
+    return result;
+  }, [allChartTransactions]);
 
 
 
@@ -3262,8 +3262,7 @@ const monthlyFinancialData = useMemo(() => {
             </h2>
 
             <p className="text-xs text-slate-400 mt-1">
-              Compare monthly income,
-              expenses and profit.
+              Compare monthly revenue, total expense + product cost, and net profit.
             </p>
 
           </div>
@@ -3341,7 +3340,7 @@ const monthlyFinancialData = useMemo(() => {
 
                   <Bar
                     dataKey="expense"
-                    name="Expense"
+                    name="Total Expense + Product Cost"
                     fill="#ef4444"
                     radius={[
                       5,
@@ -3426,7 +3425,7 @@ const monthlyFinancialData = useMemo(() => {
 
           </div>
 
-          <div className="max-h-[600px] overflow-auto">
+          <div className="h-[450px] overflow-y-auto overflow-x-auto">
 
             <table className="min-w-[900px] w-full">
 
@@ -3746,7 +3745,7 @@ const monthlyFinancialData = useMemo(() => {
 
           </div>
 
-          <div className="overflow-x-auto">
+          <div className="h-[450px] overflow-y-auto overflow-x-auto">
 
             <table className="min-w-[900px] w-full">
 
