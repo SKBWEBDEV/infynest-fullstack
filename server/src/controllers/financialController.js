@@ -148,11 +148,12 @@ const totals = {
       // TOTAL COST
       // ====================================================
 
-      const totalCosts =
-        totals.expense +
-        totals.refund +
-        totals.payment_fee +
-        totals.shipping;
+const totalCosts =
+  totals.expense +
+  totals.product_cost +
+  totals.refund +
+  totals.payment_fee +
+  totals.shipping;
 
       // ====================================================
       // NET PROFIT

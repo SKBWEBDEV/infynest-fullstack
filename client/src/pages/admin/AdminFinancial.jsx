@@ -104,12 +104,19 @@ export default function AdminFinancial() {
   // FORMAT CURRENCY
   // ======================================================
 
-  const formatCurrency = (amount) => {
-    return `৳${Number(amount || 0).toLocaleString("en-BD", {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 2,
-    })}`;
-  };
+const formatCurrency = (amount) => {
+  return `৳${Number(amount || 0).toLocaleString("en-BD", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  })}`;
+};
+
+const formatPDFCurrency = (amount) => {
+  return `BDT ${Number(amount || 0).toLocaleString("en-BD", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  })}`;
+};
 
   // ======================================================
   // FORMAT DATE
@@ -579,14 +586,14 @@ export default function AdminFinancial() {
   // ======================================================
 
   const transactionTypeLabel = (type) => {
-    const labels = {
-      income: "Income",
-      expense: "Expense",
-      refund: "Refund",
-      payment_fee: "Payment Fee",
-      shipping: "Shipping",
-    };
-
+const labels = {
+  income: "Income",
+  expense: "Expense",
+  product_cost: "Product Cost",
+  refund: "Refund",
+  payment_fee: "Payment Fee",
+  shipping: "Shipping",
+};
     return labels[type] || type || "Unknown";
   };
 
@@ -612,23 +619,25 @@ export default function AdminFinancial() {
   // ======================================================
 
   const getTransactionStyle = (type) => {
-    const styles = {
-      income:
-        "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20",
+const styles = {
+  income:
+    "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20",
 
-      expense:
-        "bg-red-500/10 text-red-400 border border-red-500/20",
+  expense:
+    "bg-red-500/10 text-red-400 border border-red-500/20",
 
-      refund:
-        "bg-orange-500/10 text-orange-400 border border-orange-500/20",
+  product_cost:
+    "bg-orange-500/10 text-orange-400 border border-orange-500/20",
 
-      payment_fee:
-        "bg-purple-500/10 text-purple-400 border border-purple-500/20",
+  refund:
+    "bg-orange-500/10 text-orange-400 border border-orange-500/20",
 
-      shipping:
-        "bg-blue-500/10 text-blue-400 border border-blue-500/20",
-    };
+  payment_fee:
+    "bg-purple-500/10 text-purple-400 border border-purple-500/20",
 
+  shipping:
+    "bg-blue-500/10 text-blue-400 border border-blue-500/20",
+};
     return (
       styles[type] ||
       "bg-slate-800 text-slate-300 border border-slate-700"
@@ -718,215 +727,296 @@ export default function AdminFinancial() {
   // ======================================================
 
   const downloadFinancialPDF = async () => {
-    try {
-      setDownloadingPDF(true);
+  try {
+    setDownloadingPDF(true);
 
-      const doc = new jsPDF({
-        orientation: "landscape",
-        unit: "mm",
-        format: "a4",
-      });
+    /*
+     * =====================================================
+     * FETCH ALL FILTERED TRANSACTIONS + EXPENSES
+     * =====================================================
+     *
+     * Current table only loads 20 records.
+     * For PDF we fetch all records matching the current filters.
+     */
 
-      const pageWidth =
-        doc.internal.pageSize.getWidth();
+    const transactionParams = {
+      page: 1,
+      limit: 100000,
+    };
 
-      const pageHeight =
-        doc.internal.pageSize.getHeight();
+    const expenseParams = {
+      page: 1,
+      limit: 100000,
+    };
 
-      // ==================================================
-      // HEADER
-      // ==================================================
+    // Transaction filters
+    if (transactionType) {
+      transactionParams.type = transactionType;
+    }
 
-      doc.setFillColor(15, 23, 42);
+    if (transactionCategory) {
+      transactionParams.category = transactionCategory;
+    }
 
-      doc.rect(
-        0,
-        0,
-        pageWidth,
-        32,
-        "F",
-      );
+    // Expense filters
+    if (expenseCategory) {
+      expenseParams.category = expenseCategory;
+    }
 
-      doc.setTextColor(255, 255, 255);
+    // Date filters
+    if (startDate) {
+      transactionParams.startDate = startDate;
+      expenseParams.startDate = startDate;
+    }
 
-      doc.setFontSize(20);
-      doc.setFont("helvetica", "bold");
+    if (endDate) {
+      transactionParams.endDate = endDate;
+      expenseParams.endDate = endDate;
+    }
 
-      doc.text(
-        "FINANCIAL REPORT",
-        14,
-        14,
-      );
+    const [
+      transactionResponse,
+      expenseResponse,
+    ] = await Promise.all([
+      API.get("/financial/transactions", {
+        params: transactionParams,
+      }),
 
-      doc.setFontSize(9);
-      doc.setFont("helvetica", "normal");
+      API.get("/financial/expenses", {
+        params: expenseParams,
+      }),
+    ]);
 
-      doc.text(
-        "Business Financial Overview",
-        14,
-        21,
-      );
+    const allTransactions =
+      transactionResponse.data?.success &&
+      Array.isArray(transactionResponse.data?.data)
+        ? transactionResponse.data.data
+        : [];
 
-      const dateRange =
-        startDate || endDate
-          ? `${startDate || "Start"} → ${
-              endDate || "Today"
-            }`
-          : "All Time";
+    const allExpenses =
+      expenseResponse.data?.success &&
+      Array.isArray(expenseResponse.data?.data)
+        ? expenseResponse.data.data
+        : [];
 
-      doc.text(
-        `Period: ${dateRange}`,
-        pageWidth - 14,
-        14,
-        {
-          align: "right",
-        },
-      );
+    // =====================================================
+    // CREATE PDF
+    // =====================================================
 
-      doc.text(
-        `Generated: ${new Date().toLocaleDateString(
-          "en-BD",
-        )}`,
-        pageWidth - 14,
-        21,
-        {
-          align: "right",
-        },
-      );
+    const doc = new jsPDF({
+      orientation: "landscape",
+      unit: "mm",
+      format: "a4",
+    });
 
-      // ==================================================
-      // SUMMARY
-      // ==================================================
+    const pageWidth =
+      doc.internal.pageSize.getWidth();
 
-      autoTable(doc, {
-        startY: 40,
+    const pageHeight =
+      doc.internal.pageSize.getHeight();
 
-        head: [
-          [
-            "Financial Summary",
-            "Amount",
-          ],
+    // =====================================================
+    // HEADER
+    // =====================================================
+
+    doc.setFillColor(15, 23, 42);
+
+    doc.rect(
+      0,
+      0,
+      pageWidth,
+      32,
+      "F",
+    );
+
+    doc.setTextColor(255, 255, 255);
+
+    doc.setFontSize(20);
+    doc.setFont("helvetica", "bold");
+
+    doc.text(
+      "FINANCIAL REPORT",
+      14,
+      14,
+    );
+
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+
+    doc.text(
+      "Business Financial Overview",
+      14,
+      21,
+    );
+
+    const dateRange =
+      startDate || endDate
+        ? `${startDate || "Start"} → ${
+            endDate || "Today"
+          }`
+        : "All Time";
+
+    doc.text(
+      `Period: ${dateRange}`,
+      pageWidth - 14,
+      14,
+      {
+        align: "right",
+      },
+    );
+
+    doc.text(
+      `Generated: ${new Date().toLocaleDateString(
+        "en-BD",
+      )}`,
+      pageWidth - 14,
+      21,
+      {
+        align: "right",
+      },
+    );
+
+    // =====================================================
+    // SUMMARY
+    // =====================================================
+
+    autoTable(doc, {
+      startY: 40,
+
+      head: [
+        [
+          "Financial Summary",
+          "Amount",
+        ],
+      ],
+
+      body: [
+        [
+          "Total Income",
+          formatPDFCurrency(
+            dashboard.totalIncome,
+          ),
         ],
 
-        body: [
-          [
-            "Total Income",
-            formatCurrency(
-              dashboard.totalIncome,
-            ),
-          ],
-
-          [
-            "Total Expense",
-            formatCurrency(
-              dashboard.totalExpense,
-            ),
-          ],
-
-          [
-            "Total Refund",
-            formatCurrency(
-              dashboard.totalRefund,
-            ),
-          ],
-
-          [
-            "Payment Fees",
-            formatCurrency(
-              dashboard.totalPaymentFee,
-            ),
-          ],
-
-          [
-            "Shipping Cost",
-            formatCurrency(
-              dashboard.totalShipping,
-            ),
-          ],
-
-          [
-            "Total Costs",
-            formatCurrency(
-              dashboard.totalCosts,
-            ),
-          ],
-
-          [
-            "Net Profit",
-            formatCurrency(
-              dashboard.netProfit,
-            ),
-          ],
-
-          [
-            "Profit Margin",
-            `${Number(
-              dashboard.profitMargin || 0,
-            ).toFixed(2)}%`,
-          ],
-
-          [
-            "Transactions",
-            String(
-              dashboard.transactionCount || 0,
-            ),
-          ],
+        [
+          "Total Expense",
+          formatPDFCurrency(
+            dashboard.totalExpense,
+          ),
         ],
 
-        theme: "grid",
+        [
+          "Total Refund",
+          formatPDFCurrency(
+            dashboard.totalRefund,
+          ),
+        ],
 
-        headStyles: {
-          fillColor: [30, 41, 59],
-          textColor: 255,
-          fontStyle: "bold",
+        [
+          "Payment Fees",
+          formatPDFCurrency(
+            dashboard.totalPaymentFee,
+          ),
+        ],
+
+        [
+          "Shipping Cost",
+          formatPDFCurrency(
+            dashboard.totalShipping,
+          ),
+        ],
+
+        [
+          "Total Costs",
+          formatPDFCurrency(
+            dashboard.totalCosts,
+          ),
+        ],
+
+        [
+          "Net Profit",
+          formatPDFCurrency(
+            dashboard.netProfit,
+          ),
+        ],
+
+        [
+          "Profit Margin",
+          `${Number(
+            dashboard.profitMargin || 0,
+          ).toFixed(2)}%`,
+        ],
+
+        [
+          "Transactions",
+          String(
+            dashboard.transactionCount || 0,
+          ),
+        ],
+      ],
+
+      theme: "grid",
+
+      headStyles: {
+        fillColor: [30, 41, 59],
+        textColor: 255,
+        fontStyle: "bold",
+      },
+
+      styles: {
+        fontSize: 9,
+        cellPadding: 3,
+      },
+
+      columnStyles: {
+        0: {
+          cellWidth: 100,
         },
 
-        styles: {
-          fontSize: 9,
-          cellPadding: 3,
+        1: {
+          cellWidth: 70,
+          halign: "right",
         },
+      },
+    });
 
-        columnStyles: {
-          0: {
-            cellWidth: 100,
-          },
+    // =====================================================
+    // TRANSACTIONS
+    // =====================================================
 
-          1: {
-            cellWidth: 70,
-            halign: "right",
-          },
-        },
-      });
+    let transactionStartY =
+      doc.lastAutoTable.finalY + 12;
 
-      // ==================================================
-      // TRANSACTIONS
-      // ==================================================
+    if (
+      transactionStartY >
+      pageHeight - 40
+    ) {
+      doc.addPage();
 
-      let transactionStartY =
-        doc.lastAutoTable.finalY + 12;
+      transactionStartY = 18;
+    }
 
-      if (
-        transactionStartY >
-        pageHeight - 40
-      ) {
-        doc.addPage();
-        transactionStartY = 18;
-      }
+    doc.setTextColor(15, 23, 42);
 
-      doc.setTextColor(15, 23, 42);
+    doc.setFontSize(14);
+    doc.setFont(
+      "helvetica",
+      "bold",
+    );
 
-      doc.setFontSize(14);
-      doc.setFont("helvetica", "bold");
+    doc.text(
+      `Financial Transactions (${allTransactions.length})`,
+      14,
+      transactionStartY,
+    );
 
-      doc.text(
-        "Financial Transactions",
-        14,
-        transactionStartY,
-      );
+    const transactionRows =
+      allTransactions.map(
+        (transaction) => {
+          const isIncome =
+            transaction.type === "income";
 
-      const transactionRows =
-        transactions.map(
-          (transaction) => [
+          return [
             formatDate(
               transaction.transactionDate,
             ),
@@ -944,263 +1034,279 @@ export default function AdminFinancial() {
             transaction.paymentMethod ||
               "-",
 
-            `${
-              transaction.type === "income"
-                ? "+"
-                : "-"
-            }${formatCurrency(
+            `${isIncome ? "+" : "-"}${formatPDFCurrency(
               transaction.amount,
             )}`,
-          ],
-        );
+          ];
+        },
+      );
 
-      autoTable(doc, {
-        startY:
-          transactionStartY + 5,
+    autoTable(doc, {
+      startY:
+        transactionStartY + 5,
 
-        head: [
-          [
-            "Date",
-            "Title",
-            "Type",
-            "Category",
-            "Payment",
-            "Amount",
-          ],
+      head: [
+        [
+          "Date",
+          "Title",
+          "Type",
+          "Category",
+          "Payment",
+          "Amount",
         ],
+      ],
 
-        body:
-          transactionRows.length
-            ? transactionRows
-            : [
-                [
-                  "No transactions",
-                  "",
-                  "",
-                  "",
-                  "",
-                  "",
-                ],
+      body:
+        transactionRows.length
+          ? transactionRows
+          : [
+              [
+                "No transactions",
+                "",
+                "",
+                "",
+                "",
+                "",
               ],
+            ],
 
-        theme: "striped",
+      theme: "striped",
 
-        headStyles: {
-          fillColor: [15, 23, 42],
-          textColor: 255,
-          fontStyle: "bold",
+      headStyles: {
+        fillColor: [15, 23, 42],
+        textColor: 255,
+        fontStyle: "bold",
+      },
+
+      styles: {
+        fontSize: 8,
+        cellPadding: 3,
+      },
+
+      columnStyles: {
+        0: {
+          cellWidth: 28,
         },
 
-        styles: {
-          fontSize: 8,
-          cellPadding: 3,
+        1: {
+          cellWidth: 65,
         },
 
-        columnStyles: {
-          0: {
-            cellWidth: 28,
-          },
-
-          1: {
-            cellWidth: 65,
-          },
-
-          2: {
-            cellWidth: 35,
-          },
-
-          3: {
-            cellWidth: 45,
-          },
-
-          4: {
-            cellWidth: 40,
-          },
-
-          5: {
-            cellWidth: 35,
-            halign: "right",
-          },
+        2: {
+          cellWidth: 35,
         },
-      });
 
-      // ==================================================
-      // EXPENSES
-      // ==================================================
+        3: {
+          cellWidth: 45,
+        },
 
-      let expenseStartY =
-        doc.lastAutoTable.finalY + 12;
+        4: {
+          cellWidth: 40,
+        },
 
-      if (
-        expenseStartY >
-        pageHeight - 45
-      ) {
-        doc.addPage();
-        expenseStartY = 18;
-      }
+        5: {
+          cellWidth: 35,
+          halign: "right",
+        },
+      },
 
-      doc.setTextColor(15, 23, 42);
+      didDrawPage: () => {
+        // Prevent table from touching footer
+      },
+    });
 
-      doc.setFontSize(14);
-      doc.setFont("helvetica", "bold");
+    // =====================================================
+    // EXPENSES
+    // =====================================================
+
+    let expenseStartY =
+      doc.lastAutoTable.finalY + 12;
+
+    if (
+      expenseStartY >
+      pageHeight - 45
+    ) {
+      doc.addPage();
+
+      expenseStartY = 18;
+    }
+
+    doc.setTextColor(15, 23, 42);
+
+    doc.setFontSize(14);
+    doc.setFont(
+      "helvetica",
+      "bold",
+    );
+
+    doc.text(
+      `Expense Records (${allExpenses.length})`,
+      14,
+      expenseStartY,
+    );
+
+    const expenseRows =
+      allExpenses.map(
+        (expense) => [
+          formatDate(
+            expense.expenseDate,
+          ),
+
+          expense.title || "-",
+
+          categoryLabel(
+            expense.category,
+          ),
+
+          expense.paymentMethod ||
+            "-",
+
+          `-${formatPDFCurrency(
+            expense.amount,
+          )}`,
+        ],
+      );
+
+    autoTable(doc, {
+      startY:
+        expenseStartY + 5,
+
+      head: [
+        [
+          "Date",
+          "Title",
+          "Category",
+          "Payment",
+          "Amount",
+        ],
+      ],
+
+      body:
+        expenseRows.length
+          ? expenseRows
+          : [
+              [
+                "No expenses",
+                "",
+                "",
+                "",
+                "",
+              ],
+            ],
+
+      theme: "striped",
+
+      headStyles: {
+        fillColor: [15, 23, 42],
+        textColor: 255,
+        fontStyle: "bold",
+      },
+
+      styles: {
+        fontSize: 8,
+        cellPadding: 3,
+      },
+
+      columnStyles: {
+        0: {
+          cellWidth: 30,
+        },
+
+        1: {
+          cellWidth: 75,
+        },
+
+        2: {
+          cellWidth: 55,
+        },
+
+        3: {
+          cellWidth: 45,
+        },
+
+        4: {
+          cellWidth: 40,
+          halign: "right",
+        },
+      },
+    });
+
+    // =====================================================
+    // FOOTER ON EVERY PAGE
+    // =====================================================
+
+    const totalPages =
+      doc.internal.getNumberOfPages();
+
+    for (
+      let page = 1;
+      page <= totalPages;
+      page++
+    ) {
+      doc.setPage(page);
+
+      doc.setFontSize(8);
+
+      doc.setFont(
+        "helvetica",
+        "normal",
+      );
+
+      doc.setTextColor(
+        100,
+        116,
+        139,
+      );
 
       doc.text(
-        "Expense Records",
-        14,
-        expenseStartY,
-      );
-
-      const expenseRows =
-        expenses.map(
-          (expense) => [
-            formatDate(
-              expense.expenseDate,
-            ),
-
-            expense.title || "-",
-
-            categoryLabel(
-              expense.category,
-            ),
-
-            expense.paymentMethod ||
-              "-",
-
-            `-${formatCurrency(
-              expense.amount,
-            )}`,
-          ],
-        );
-
-      autoTable(doc, {
-        startY:
-          expenseStartY + 5,
-
-        head: [
-          [
-            "Date",
-            "Title",
-            "Category",
-            "Payment",
-            "Amount",
-          ],
-        ],
-
-        body:
-          expenseRows.length
-            ? expenseRows
-            : [
-                [
-                  "No expenses",
-                  "",
-                  "",
-                  "",
-                  "",
-                ],
-              ],
-
-        theme: "striped",
-
-        headStyles: {
-          fillColor: [15, 23, 42],
-          textColor: 255,
-          fontStyle: "bold",
+        `Financial Report • Page ${page} of ${totalPages}`,
+        pageWidth / 2,
+        pageHeight - 8,
+        {
+          align: "center",
         },
-
-        styles: {
-          fontSize: 8,
-          cellPadding: 3,
-        },
-
-        columnStyles: {
-          0: {
-            cellWidth: 30,
-          },
-
-          1: {
-            cellWidth: 75,
-          },
-
-          2: {
-            cellWidth: 55,
-          },
-
-          3: {
-            cellWidth: 45,
-          },
-
-          4: {
-            cellWidth: 40,
-            halign: "right",
-          },
-        },
-      });
-
-      // ==================================================
-      // FOOTER
-      // ==================================================
-
-      const totalPages =
-        doc.internal.getNumberOfPages();
-
-      for (
-        let page = 1;
-        page <= totalPages;
-        page++
-      ) {
-        doc.setPage(page);
-
-        doc.setFontSize(8);
-        doc.setFont(
-          "helvetica",
-          "normal",
-        );
-
-        doc.setTextColor(
-          100,
-          116,
-          139,
-        );
-
-        doc.text(
-          `Financial Report • Page ${page} of ${totalPages}`,
-          pageWidth / 2,
-          pageHeight - 8,
-          {
-            align: "center",
-          },
-        );
-      }
-
-      // ==================================================
-      // SAVE FILE
-      // ==================================================
-
-      const fileDate =
-        new Date()
-          .toISOString()
-          .split("T")[0];
-
-      doc.save(
-        `financial-report-${fileDate}.pdf`,
       );
-
-      toast.success(
-        "Financial PDF downloaded successfully",
-      );
-    } catch (error) {
-      console.error(
-        "Financial PDF error:",
-        error,
-      );
-
-      toast.error(
-        "Failed to generate financial PDF",
-      );
-    } finally {
-      setDownloadingPDF(false);
     }
-  };
+
+    // =====================================================
+    // SAVE FILE
+    // =====================================================
+
+    const fileDate =
+      new Date()
+        .toISOString()
+        .split("T")[0];
+
+    const filterName =
+      startDate || endDate
+        ? "filtered"
+        : "all-time";
+
+    doc.save(
+      `financial-report-${filterName}-${fileDate}.pdf`,
+    );
+
+    toast.success(
+      "Financial PDF downloaded successfully",
+    );
+  } catch (error) {
+    console.error(
+      "Financial PDF error:",
+      error,
+    );
+
+    toast.error(
+      getErrorMessage(
+        error,
+        "Failed to generate financial PDF",
+      ),
+    );
+  } finally {
+    setDownloadingPDF(false);
+  }
+};
+
+
 
   // ======================================================
   // RENDER
@@ -1808,25 +1914,29 @@ export default function AdminFinancial() {
                   All Types
                 </option>
 
-                <option value="income">
-                  Income
-                </option>
+<option value="income">
+  Income
+</option>
 
-                <option value="expense">
-                  Expense
-                </option>
+<option value="expense">
+  Expense
+</option>
 
-                <option value="refund">
-                  Refund
-                </option>
+<option value="product_cost">
+  Product Cost
+</option>
 
-                <option value="payment_fee">
-                  Payment Fee
-                </option>
+<option value="refund">
+  Refund
+</option>
 
-                <option value="shipping">
-                  Shipping
-                </option>
+<option value="payment_fee">
+  Payment Fee
+</option>
+
+<option value="shipping">
+  Shipping
+</option>
               </select>
             </div>
 

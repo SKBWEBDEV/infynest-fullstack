@@ -467,24 +467,49 @@ export const createOrderRefund = async ({
   });
 };
 
-// ======================================================
+// ==========================================================
 // CREATE PRODUCT COST
-// ======================================================
+// ==========================================================
 
 export const createProductCost = async ({
   order,
   createdBy = null,
   session = null,
 }) => {
-  if (!order) {
+  if (!order?._id) {
     throw new Error("Order is required");
   }
 
-  const orderItems = Array.isArray(order.orderItems)
+  // ========================================================
+  // CHECK EXISTING PRODUCT COST TRANSACTION
+  // ========================================================
+
+  const existing =
+    await transactionExists({
+      orderId: order._id,
+      type: "product_cost",
+      session,
+    });
+
+  if (existing) {
+    return null;
+  }
+
+  // ========================================================
+  // ORDER ITEMS
+  // ========================================================
+
+  const orderItems = Array.isArray(
+    order.orderItems,
+  )
     ? order.orderItems
     : [];
 
   let totalProductCost = 0;
+
+  // ========================================================
+  // CALCULATE TOTAL PRODUCT COST
+  // ========================================================
 
   for (const item of orderItems) {
     const costPrice = Number(
@@ -495,6 +520,7 @@ export const createProductCost = async ({
       item.quantity || 0,
     );
 
+    // Invalid cost price
     if (
       !Number.isFinite(costPrice) ||
       costPrice < 0
@@ -502,6 +528,7 @@ export const createProductCost = async ({
       continue;
     }
 
+    // Invalid quantity
     if (
       !Number.isInteger(quantity) ||
       quantity <= 0
@@ -513,22 +540,34 @@ export const createProductCost = async ({
       costPrice * quantity;
   }
 
+  // ========================================================
+  // NO PRODUCT COST
+  // ========================================================
+
   if (totalProductCost <= 0) {
     return null;
   }
+
+  // ========================================================
+  // FINANCIAL TRANSACTION
+  // ========================================================
 
   const payload = {
     type: "product_cost",
 
     category: "product-cost",
 
-    title: `Product Cost #${order._id}`,
+    title:
+      `Product Cost #${order._id}`,
 
-    amount: totalProductCost,
+    amount:
+      totalProductCost,
 
-    paymentMethod: "other",
+    paymentMethod:
+      "other",
 
-    order: order._id,
+    order:
+      order._id,
 
     description:
       `Product cost for delivered order #${order._id}`,
@@ -539,16 +578,31 @@ export const createProductCost = async ({
 
     createdBy,
 
-    isAutomatic: true,
+    isAutomatic:
+      true,
   };
 
-  const result =
-    await FinancialTransaction.create(
-      [payload],
-      session
-        ? { session }
-        : undefined,
-    );
+  // ========================================================
+  // CREATE TRANSACTION
+  // ========================================================
 
-  return result[0];
+  try {
+    const result =
+      await FinancialTransaction.create(
+        [payload],
+        session
+          ? { session }
+          : undefined,
+      );
+
+    return result[0];
+  } catch (error) {
+    // Prevent duplicate transaction
+    // in case of a unique index/race condition
+    if (error?.code === 11000) {
+      return null;
+    }
+
+    throw error;
+  }
 };

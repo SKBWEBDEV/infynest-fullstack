@@ -1,4 +1,3 @@
-
 import express from "express";
 
 import {
@@ -7,6 +6,7 @@ import {
   getOrderById,
   getAllOrders,
   updateOrderStatus,
+  refundOrder,
 } from "../controllers/orderController.js";
 
 import {
@@ -20,10 +20,10 @@ const router = express.Router();
 // USER ROUTES
 // ==========================================
 
-// শুধু Logged-in user order করতে পারবে
+// Create order
 router.post("/", protect, createOrder);
 
-// শুধু Logged-in user নিজের orders দেখতে পারবে
+// Get my orders
 router.get("/myorders", protect, getMyOrders);
 
 // Get single order
@@ -37,7 +37,19 @@ router.get("/:id", protect, getOrderById);
 router.get("/", protect, adminOnly, getAllOrders);
 
 // Update order status
-router.put("/:id/status", protect, adminOnly, updateOrderStatus);
+router.put(
+  "/:id/status",
+  protect,
+  adminOnly,
+  updateOrderStatus,
+);
+
+// Refund order
+router.post(
+  "/:id/refund",
+  protect,
+  adminOnly,
+  refundOrder,
+);
 
 export default router;
-
