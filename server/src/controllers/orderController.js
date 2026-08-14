@@ -849,11 +849,9 @@ export const updateOrderStatus = async (req, res) => {
 
           return res.status(400).json({
             success: false,
-            message: `${
-              product.name || "Product"
-            } has insufficient stock. Available: ${
-              product.stock
-            }, Required: ${quantity}`,
+            message: `${product.name || "Product"
+              } has insufficient stock. Available: ${product.stock
+              }, Required: ${quantity}`,
           });
         }
       }
@@ -1055,5 +1053,107 @@ export const updateOrderStatus = async (req, res) => {
     // ==================================================
 
     await session.endSession();
+  }
+};
+
+// ======================================================
+// GET ALL ORDERS
+// GET /api/v1/orders
+// ======================================================
+
+export const getAllOrders = async (req, res) => {
+  try {
+    const orders = await Order.find({})
+      .populate("user", "name email")
+      .sort({ createdAt: -1 })
+      .lean();
+
+    return res.status(200).json({
+      success: true,
+      count: orders.length,
+      data: orders,
+    });
+  } catch (error) {
+    console.error("Get all orders error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to get all orders",
+    });
+  }
+};
+
+
+// ======================================================
+// REFUND ORDER
+// POST /api/v1/orders/:id/refund
+// ======================================================
+
+export const refundOrder = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid order ID",
+      });
+    }
+
+    const order = await Order.findById(id);
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found",
+      });
+    }
+
+    // Already refunded
+    if (order.paymentStatus === "Refunded") {
+      return res.status(400).json({
+        success: false,
+        message: "Order is already refunded",
+      });
+    }
+
+    // Only paid orders can be refunded
+    if (!order.isPaid) {
+      return res.status(400).json({
+        success: false,
+        message: "Only paid orders can be refunded",
+      });
+    }
+
+    order.paymentStatus = "Refunded";
+    order.isPaid = false;
+    order.refundedAt = new Date();
+
+    await order.save();
+
+    // Financial refund transaction
+    await createOrderRefund({
+      order,
+      createdBy: req.user?._id || null,
+    });
+
+    await createOrderNotification({
+      user: order.user,
+      title: "Order Refunded",
+      message: `Your order #${order._id} has been refunded successfully.`,
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Order refunded successfully",
+      data: order,
+    });
+  } catch (error) {
+    console.error("Refund order error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to refund order",
+    });
   }
 };
