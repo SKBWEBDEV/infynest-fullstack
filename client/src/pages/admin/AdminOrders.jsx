@@ -156,9 +156,9 @@ export default function AdminOrders() {
           prevOrders.map((order) =>
             order?._id === orderId
               ? {
-                  ...order,
-                  orderStatus: newStatus,
-                }
+                ...order,
+                orderStatus: newStatus,
+              }
               : order,
           ),
         );
@@ -166,9 +166,9 @@ export default function AdminOrders() {
         setSelectedOrder((prev) =>
           prev && prev._id === orderId
             ? {
-                ...prev,
-                orderStatus: newStatus,
-              }
+              ...prev,
+              orderStatus: newStatus,
+            }
             : prev,
         );
 
@@ -234,8 +234,8 @@ export default function AdminOrders() {
 
       const productNames = Array.isArray(order?.orderItems)
         ? order.orderItems
-            .map((item) => String(item?.name || "").toLowerCase())
-            .join(" ")
+          .map((item) => String(item?.name || "").toLowerCase())
+          .join(" ")
         : "";
 
       const matchesSearch =
@@ -582,21 +582,21 @@ export default function AdminOrders() {
 
       const tableData = Array.isArray(order?.orderItems)
         ? order.orderItems.map((item, index) => {
-            const price = Number(item?.price || 0);
-            const quantity = Number(item?.quantity || 0);
+          const price = Number(item?.price || 0);
+          const quantity = Number(item?.quantity || 0);
 
-            const itemTotal = price * quantity;
+          const itemTotal = price * quantity;
 
-            return [
-              index + 1,
-              item?.name || "Unnamed Product",
-              item?.size || "-",
-              item?.color || "-",
-              quantity,
-              `BDT ${formatMoney(price)}`,
-              `BDT ${formatMoney(itemTotal)}`,
-            ];
-          })
+          return [
+            index + 1,
+            item?.name || "Unnamed Product",
+            item?.size || "-",
+            item?.color || "-",
+            quantity,
+            `BDT ${formatMoney(price)}`,
+            `BDT ${formatMoney(itemTotal)}`,
+          ];
+        })
         : [];
 
       autoTable(doc, {
@@ -746,9 +746,9 @@ export default function AdminOrders() {
 
     const itemCount = Array.isArray(order?.orderItems)
       ? order.orderItems.reduce(
-          (sum, item) => sum + Number(item?.quantity || 0),
-          0,
-        )
+        (sum, item) => sum + Number(item?.quantity || 0),
+        0,
+      )
       : 0;
 
     return (
@@ -1243,14 +1243,14 @@ export default function AdminOrders() {
                       : 0}{" "}
                     product
                     {Array.isArray(selectedOrder?.orderItems) &&
-                    selectedOrder.orderItems.length !== 1
+                      selectedOrder.orderItems.length !== 1
                       ? "s"
                       : ""}
                   </span>
                 </div>
 
                 {Array.isArray(selectedOrder?.orderItems) &&
-                selectedOrder.orderItems.length > 0 ? (
+                  selectedOrder.orderItems.length > 0 ? (
                   selectedOrder.orderItems.map((item, index) => {
                     const imageUrl = getImageUrl(item?.image);
 
