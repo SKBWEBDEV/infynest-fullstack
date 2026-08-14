@@ -1098,7 +1098,7 @@ export default function AdminFinancial() {
       },
 
       {
-        title: "Total Costs",
+        title: "Total Expense + Product Cost",
         value:
           dashboard.totalCosts,
         icon: "−",
