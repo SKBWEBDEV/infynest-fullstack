@@ -81,29 +81,29 @@ export default function Layout() {
 
           <div className="flex shrink-0">
             <span className="mx-8 text-xs sm:text-sm font-medium tracking-wide">
-              🎉 Free Shipping on all orders over ৳2,000! | Hotline: +880 19724-201770
+              🎉 Free Shipping on all orders over ৳2,000! | Hotline: +880 19724-20170
             </span>
 
             <span className="mx-8 text-xs sm:text-sm font-medium tracking-wide">
-              🎉 Free Shipping on all orders over ৳2,000! | Hotline: +880 19724-201770
+              🎉 Free Shipping on all orders over ৳2,000! | Hotline: +880 19724-20170
             </span>
 
             <span className="mx-8 text-xs sm:text-sm font-medium tracking-wide">
-              🎉 Free Shipping on all orders over ৳2,000! | Hotline: +880 19724-201770
+              🎉 Free Shipping on all orders over ৳2,000! | Hotline: +880 19724-20170
             </span>
           </div>
 
           <div className="flex shrink-0">
             <span className="mx-8 text-xs sm:text-sm font-medium tracking-wide">
-              🎉 Free Shipping on all orders over ৳2,000! | Hotline: +880 19724-201770
+              🎉 Free Shipping on all orders over ৳2,000! | Hotline: +880 19724-20170
             </span>
 
             <span className="mx-8 text-xs sm:text-sm font-medium tracking-wide">
-              🎉 Free Shipping on all orders over ৳2,000! | Hotline: +880 19724-201770
+              🎉 Free Shipping on all orders over ৳2,000! | Hotline: +880 19724-20170
             </span>
 
             <span className="mx-8 text-xs sm:text-sm font-medium tracking-wide">
-              🎉 Free Shipping on all orders over ৳2,000! | Hotline: +880 19724-201770
+              🎉 Free Shipping on all orders over ৳2,000! | Hotline: +880 19724-20170
             </span>
           </div>
 
