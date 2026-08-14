@@ -1954,9 +1954,20 @@ export default function AdminFinancial() {
       }
     };
 
+
+    const filteredTransactions =
+  transactionCategory === "all"
+    ? transactions
+    : transactions.filter(
+        (transaction) =>
+          transaction.category === transactionCategory
+      );
+
   // ======================================================
   // RENDER
   // ======================================================
+
+
 
   return (
     <div className="min-h-screen bg-slate-950 text-white">
@@ -3409,11 +3420,50 @@ export default function AdminFinancial() {
               </h2>
 
               <p className="text-xs text-slate-400 mt-1">
-                Income and expense
-                transaction history.
+                Income and expense transaction history.
               </p>
 
             </div>
+
+            <div className="mt-4">
+  <select
+    value={transactionCategory}
+    onChange={(e) =>
+      setTransactionCategory(e.target.value)
+    }
+    className="
+      bg-slate-900
+      border border-slate-700
+      text-white
+      text-sm
+      rounded-lg
+      px-3
+      py-2
+      outline-none
+      focus:border-indigo-500
+    "
+  >
+    <option value="all">
+      All Categories
+    </option>
+
+    <option value="sales">
+      Sales
+    </option>
+
+    <option value="marketing">
+      Marketing
+    </option>
+
+    <option value="shipping">
+      Shipping
+    </option>
+
+    <option value="product-cost">
+      Product Cost
+    </option>
+  </select>
+</div>
 
             <span className="text-xs text-slate-400">
               {
@@ -3501,7 +3551,7 @@ export default function AdminFinancial() {
 
                   </tr>
                 ) : (
-                  transactions.map(
+                  filteredTransactions.map(
                     (
                       transaction,
                     ) => (
