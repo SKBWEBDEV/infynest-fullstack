@@ -104,19 +104,19 @@ export default function AdminFinancial() {
   // FORMAT CURRENCY
   // ======================================================
 
-const formatCurrency = (amount) => {
-  return `৳${Number(amount || 0).toLocaleString("en-BD", {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
-  })}`;
-};
+  const formatCurrency = (amount) => {
+    return `৳${Number(amount || 0).toLocaleString("en-BD", {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    })}`;
+  };
 
-const formatPDFCurrency = (amount) => {
-  return `BDT ${Number(amount || 0).toLocaleString("en-BD", {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
-  })}`;
-};
+  const formatPDFCurrency = (amount) => {
+    return `BDT ${Number(amount || 0).toLocaleString("en-BD", {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    })}`;
+  };
 
   // ======================================================
   // FORMAT DATE
@@ -540,7 +540,7 @@ const formatPDFCurrency = (amount) => {
       if (!data?.success) {
         throw new Error(
           data?.message ||
-            "Failed to create expense",
+          "Failed to create expense",
         );
       }
 
@@ -586,14 +586,14 @@ const formatPDFCurrency = (amount) => {
   // ======================================================
 
   const transactionTypeLabel = (type) => {
-const labels = {
-  income: "Income",
-  expense: "Expense",
-  product_cost: "Product Cost",
-  refund: "Refund",
-  payment_fee: "Payment Fee",
-  shipping: "Shipping",
-};
+    const labels = {
+      income: "Income",
+      expense: "Expense",
+      product_cost: "Product Cost",
+      refund: "Refund",
+      payment_fee: "Payment Fee",
+      shipping: "Shipping",
+    };
     return labels[type] || type || "Unknown";
   };
 
@@ -619,25 +619,25 @@ const labels = {
   // ======================================================
 
   const getTransactionStyle = (type) => {
-const styles = {
-  income:
-    "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20",
+    const styles = {
+      income:
+        "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20",
 
-  expense:
-    "bg-red-500/10 text-red-400 border border-red-500/20",
+      expense:
+        "bg-red-500/10 text-red-400 border border-red-500/20",
 
-  product_cost:
-    "bg-orange-500/10 text-orange-400 border border-orange-500/20",
+      product_cost:
+        "bg-orange-500/10 text-orange-400 border border-orange-500/20",
 
-  refund:
-    "bg-orange-500/10 text-orange-400 border border-orange-500/20",
+      refund:
+        "bg-orange-500/10 text-orange-400 border border-orange-500/20",
 
-  payment_fee:
-    "bg-purple-500/10 text-purple-400 border border-purple-500/20",
+      payment_fee:
+        "bg-purple-500/10 text-purple-400 border border-purple-500/20",
 
-  shipping:
-    "bg-blue-500/10 text-blue-400 border border-blue-500/20",
-};
+      shipping:
+        "bg-blue-500/10 text-blue-400 border border-blue-500/20",
+    };
     return (
       styles[type] ||
       "bg-slate-800 text-slate-300 border border-slate-700"
@@ -727,339 +727,338 @@ const styles = {
   // ======================================================
 
   const downloadFinancialPDF = async () => {
-  try {
-    setDownloadingPDF(true);
+    try {
+      setDownloadingPDF(true);
 
-    /*
-     * =====================================================
-     * FETCH ALL FILTERED TRANSACTIONS + EXPENSES
-     * =====================================================
-     *
-     * Current table only loads 20 records.
-     * For PDF we fetch all records matching the current filters.
-     */
+      /*
+       * =====================================================
+       * FETCH ALL FILTERED TRANSACTIONS + EXPENSES
+       * =====================================================
+       *
+       * Current table only loads 20 records.
+       * For PDF we fetch all records matching the current filters.
+       */
 
-    const transactionParams = {
-      page: 1,
-      limit: 100000,
-    };
+      const transactionParams = {
+        page: 1,
+        limit: 100000,
+      };
 
-    const expenseParams = {
-      page: 1,
-      limit: 100000,
-    };
+      const expenseParams = {
+        page: 1,
+        limit: 100000,
+      };
 
-    // Transaction filters
-    if (transactionType) {
-      transactionParams.type = transactionType;
-    }
+      // Transaction filters
+      if (transactionType) {
+        transactionParams.type = transactionType;
+      }
 
-    if (transactionCategory) {
-      transactionParams.category = transactionCategory;
-    }
+      if (transactionCategory) {
+        transactionParams.category = transactionCategory;
+      }
 
-    // Expense filters
-    if (expenseCategory) {
-      expenseParams.category = expenseCategory;
-    }
+      // Expense filters
+      if (expenseCategory) {
+        expenseParams.category = expenseCategory;
+      }
 
-    // Date filters
-    if (startDate) {
-      transactionParams.startDate = startDate;
-      expenseParams.startDate = startDate;
-    }
+      // Date filters
+      if (startDate) {
+        transactionParams.startDate = startDate;
+        expenseParams.startDate = startDate;
+      }
 
-    if (endDate) {
-      transactionParams.endDate = endDate;
-      expenseParams.endDate = endDate;
-    }
+      if (endDate) {
+        transactionParams.endDate = endDate;
+        expenseParams.endDate = endDate;
+      }
 
-    const [
-      transactionResponse,
-      expenseResponse,
-    ] = await Promise.all([
-      API.get("/financial/transactions", {
-        params: transactionParams,
-      }),
+      const [
+        transactionResponse,
+        expenseResponse,
+      ] = await Promise.all([
+        API.get("/financial/transactions", {
+          params: transactionParams,
+        }),
 
-      API.get("/financial/expenses", {
-        params: expenseParams,
-      }),
-    ]);
+        API.get("/financial/expenses", {
+          params: expenseParams,
+        }),
+      ]);
 
-    const allTransactions =
-      transactionResponse.data?.success &&
-      Array.isArray(transactionResponse.data?.data)
-        ? transactionResponse.data.data
-        : [];
+      const allTransactions =
+        transactionResponse.data?.success &&
+          Array.isArray(transactionResponse.data?.data)
+          ? transactionResponse.data.data
+          : [];
 
-    const allExpenses =
-      expenseResponse.data?.success &&
-      Array.isArray(expenseResponse.data?.data)
-        ? expenseResponse.data.data
-        : [];
+      const allExpenses =
+        expenseResponse.data?.success &&
+          Array.isArray(expenseResponse.data?.data)
+          ? expenseResponse.data.data
+          : [];
 
-    // =====================================================
-    // CREATE PDF
-    // =====================================================
+      // =====================================================
+      // CREATE PDF
+      // =====================================================
 
-    const doc = new jsPDF({
-      orientation: "landscape",
-      unit: "mm",
-      format: "a4",
-    });
+      const doc = new jsPDF({
+        orientation: "landscape",
+        unit: "mm",
+        format: "a4",
+      });
 
-    const pageWidth =
-      doc.internal.pageSize.getWidth();
+      const pageWidth =
+        doc.internal.pageSize.getWidth();
 
-    const pageHeight =
-      doc.internal.pageSize.getHeight();
+      const pageHeight =
+        doc.internal.pageSize.getHeight();
 
-    // =====================================================
-    // HEADER
-    // =====================================================
+      // =====================================================
+      // HEADER
+      // =====================================================
 
-    doc.setFillColor(15, 23, 42);
+      doc.setFillColor(15, 23, 42);
 
-    doc.rect(
-      0,
-      0,
-      pageWidth,
-      32,
-      "F",
-    );
+      doc.rect(
+        0,
+        0,
+        pageWidth,
+        32,
+        "F",
+      );
 
-    doc.setTextColor(255, 255, 255);
+      doc.setTextColor(255, 255, 255);
 
-    doc.setFontSize(20);
-    doc.setFont("helvetica", "bold");
+      doc.setFontSize(20);
+      doc.setFont("helvetica", "bold");
 
-    doc.text(
-      "FINANCIAL REPORT",
-      14,
-      14,
-    );
+      doc.text(
+        "FINANCIAL REPORT",
+        14,
+        14,
+      );
 
-    doc.setFontSize(9);
-    doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "normal");
 
-    doc.text(
-      "Business Financial Overview",
-      14,
-      21,
-    );
+      doc.text(
+        "Business Financial Overview",
+        14,
+        21,
+      );
 
-    const dateRange =
-      startDate || endDate
-        ? `${startDate || "Start"} → ${
-            endDate || "Today"
+      const dateRange =
+        startDate || endDate
+          ? `${startDate || "Start"} → ${endDate || "Today"
           }`
-        : "All Time";
+          : "All Time";
 
-    doc.text(
-      `Period: ${dateRange}`,
-      pageWidth - 14,
-      14,
-      {
-        align: "right",
-      },
-    );
-
-    doc.text(
-      `Generated: ${new Date().toLocaleDateString(
-        "en-BD",
-      )}`,
-      pageWidth - 14,
-      21,
-      {
-        align: "right",
-      },
-    );
-
-    // =====================================================
-    // SUMMARY
-    // =====================================================
-
-    autoTable(doc, {
-      startY: 40,
-
-      head: [
-        [
-          "Financial Summary",
-          "Amount",
-        ],
-      ],
-
-      body: [
-        [
-          "Total Income",
-          formatPDFCurrency(
-            dashboard.totalIncome,
-          ),
-        ],
-
-        [
-          "Total Expense",
-          formatPDFCurrency(
-            dashboard.totalExpense,
-          ),
-        ],
-
-        [
-          "Total Refund",
-          formatPDFCurrency(
-            dashboard.totalRefund,
-          ),
-        ],
-
-        [
-          "Payment Fees",
-          formatPDFCurrency(
-            dashboard.totalPaymentFee,
-          ),
-        ],
-
-        [
-          "Shipping Cost",
-          formatPDFCurrency(
-            dashboard.totalShipping,
-          ),
-        ],
-
-        [
-          "Total Costs",
-          formatPDFCurrency(
-            dashboard.totalCosts,
-          ),
-        ],
-
-        [
-          "Net Profit",
-          formatPDFCurrency(
-            dashboard.netProfit,
-          ),
-        ],
-
-        [
-          "Profit Margin",
-          `${Number(
-            dashboard.profitMargin || 0,
-          ).toFixed(2)}%`,
-        ],
-
-        [
-          "Transactions",
-          String(
-            dashboard.transactionCount || 0,
-          ),
-        ],
-      ],
-
-      theme: "grid",
-
-      headStyles: {
-        fillColor: [30, 41, 59],
-        textColor: 255,
-        fontStyle: "bold",
-      },
-
-      styles: {
-        fontSize: 9,
-        cellPadding: 3,
-      },
-
-      columnStyles: {
-        0: {
-          cellWidth: 100,
-        },
-
-        1: {
-          cellWidth: 70,
-          halign: "right",
-        },
-      },
-    });
-
-    // =====================================================
-    // TRANSACTIONS
-    // =====================================================
-
-    let transactionStartY =
-      doc.lastAutoTable.finalY + 12;
-
-    if (
-      transactionStartY >
-      pageHeight - 40
-    ) {
-      doc.addPage();
-
-      transactionStartY = 18;
-    }
-
-    doc.setTextColor(15, 23, 42);
-
-    doc.setFontSize(14);
-    doc.setFont(
-      "helvetica",
-      "bold",
-    );
-
-    doc.text(
-      `Financial Transactions (${allTransactions.length})`,
-      14,
-      transactionStartY,
-    );
-
-    const transactionRows =
-      allTransactions.map(
-        (transaction) => {
-          const isIncome =
-            transaction.type === "income";
-
-          return [
-            formatDate(
-              transaction.transactionDate,
-            ),
-
-            transaction.title || "-",
-
-            transactionTypeLabel(
-              transaction.type,
-            ),
-
-            categoryLabel(
-              transaction.category,
-            ),
-
-            transaction.paymentMethod ||
-              "-",
-
-            `${isIncome ? "+" : "-"}${formatPDFCurrency(
-              transaction.amount,
-            )}`,
-          ];
+      doc.text(
+        `Period: ${dateRange}`,
+        pageWidth - 14,
+        14,
+        {
+          align: "right",
         },
       );
 
-    autoTable(doc, {
-      startY:
-        transactionStartY + 5,
+      doc.text(
+        `Generated: ${new Date().toLocaleDateString(
+          "en-BD",
+        )}`,
+        pageWidth - 14,
+        21,
+        {
+          align: "right",
+        },
+      );
 
-      head: [
-        [
-          "Date",
-          "Title",
-          "Type",
-          "Category",
-          "Payment",
-          "Amount",
+      // =====================================================
+      // SUMMARY
+      // =====================================================
+
+      autoTable(doc, {
+        startY: 40,
+
+        head: [
+          [
+            "Financial Summary",
+            "Amount",
+          ],
         ],
-      ],
 
-      body:
-        transactionRows.length
-          ? transactionRows
-          : [
+        body: [
+          [
+            "Total Income",
+            formatPDFCurrency(
+              dashboard.totalIncome,
+            ),
+          ],
+
+          [
+            "Total Expense",
+            formatPDFCurrency(
+              dashboard.totalExpense,
+            ),
+          ],
+
+          [
+            "Total Refund",
+            formatPDFCurrency(
+              dashboard.totalRefund,
+            ),
+          ],
+
+          [
+            "Payment Fees",
+            formatPDFCurrency(
+              dashboard.totalPaymentFee,
+            ),
+          ],
+
+          [
+            "Shipping Cost",
+            formatPDFCurrency(
+              dashboard.totalShipping,
+            ),
+          ],
+
+          [
+            "Total Costs",
+            formatPDFCurrency(
+              dashboard.totalCosts,
+            ),
+          ],
+
+          [
+            "Net Profit",
+            formatPDFCurrency(
+              dashboard.netProfit,
+            ),
+          ],
+
+          [
+            "Profit Margin",
+            `${Number(
+              dashboard.profitMargin || 0,
+            ).toFixed(2)}%`,
+          ],
+
+          [
+            "Transactions",
+            String(
+              dashboard.transactionCount || 0,
+            ),
+          ],
+        ],
+
+        theme: "grid",
+
+        headStyles: {
+          fillColor: [30, 41, 59],
+          textColor: 255,
+          fontStyle: "bold",
+        },
+
+        styles: {
+          fontSize: 9,
+          cellPadding: 3,
+        },
+
+        columnStyles: {
+          0: {
+            cellWidth: 100,
+          },
+
+          1: {
+            cellWidth: 70,
+            halign: "right",
+          },
+        },
+      });
+
+      // =====================================================
+      // TRANSACTIONS
+      // =====================================================
+
+      let transactionStartY =
+        doc.lastAutoTable.finalY + 12;
+
+      if (
+        transactionStartY >
+        pageHeight - 40
+      ) {
+        doc.addPage();
+
+        transactionStartY = 18;
+      }
+
+      doc.setTextColor(15, 23, 42);
+
+      doc.setFontSize(14);
+      doc.setFont(
+        "helvetica",
+        "bold",
+      );
+
+      doc.text(
+        `Financial Transactions (${allTransactions.length})`,
+        14,
+        transactionStartY,
+      );
+
+      const transactionRows =
+        allTransactions.map(
+          (transaction) => {
+            const isIncome =
+              transaction.type === "income";
+
+            return [
+              formatDate(
+                transaction.transactionDate,
+              ),
+
+              transaction.title || "-",
+
+              transactionTypeLabel(
+                transaction.type,
+              ),
+
+              categoryLabel(
+                transaction.category,
+              ),
+
+              transaction.paymentMethod ||
+              "-",
+
+              `${isIncome ? "+" : "-"}${formatPDFCurrency(
+                transaction.amount,
+              )}`,
+            ];
+          },
+        );
+
+      autoTable(doc, {
+        startY:
+          transactionStartY + 5,
+
+        head: [
+          [
+            "Date",
+            "Title",
+            "Type",
+            "Category",
+            "Payment",
+            "Amount",
+          ],
+        ],
+
+        body:
+          transactionRows.length
+            ? transactionRows
+            : [
               [
                 "No transactions",
                 "",
@@ -1070,121 +1069,121 @@ const styles = {
               ],
             ],
 
-      theme: "striped",
+        theme: "striped",
 
-      headStyles: {
-        fillColor: [15, 23, 42],
-        textColor: 255,
-        fontStyle: "bold",
-      },
-
-      styles: {
-        fontSize: 8,
-        cellPadding: 3,
-      },
-
-      columnStyles: {
-        0: {
-          cellWidth: 28,
+        headStyles: {
+          fillColor: [15, 23, 42],
+          textColor: 255,
+          fontStyle: "bold",
         },
 
-        1: {
-          cellWidth: 65,
+        styles: {
+          fontSize: 8,
+          cellPadding: 3,
         },
 
-        2: {
-          cellWidth: 35,
+        columnStyles: {
+          0: {
+            cellWidth: 28,
+          },
+
+          1: {
+            cellWidth: 65,
+          },
+
+          2: {
+            cellWidth: 35,
+          },
+
+          3: {
+            cellWidth: 45,
+          },
+
+          4: {
+            cellWidth: 40,
+          },
+
+          5: {
+            cellWidth: 35,
+            halign: "right",
+          },
         },
 
-        3: {
-          cellWidth: 45,
+        didDrawPage: () => {
+          // Prevent table from touching footer
         },
+      });
 
-        4: {
-          cellWidth: 40,
-        },
+      // =====================================================
+      // EXPENSES
+      // =====================================================
 
-        5: {
-          cellWidth: 35,
-          halign: "right",
-        },
-      },
+      let expenseStartY =
+        doc.lastAutoTable.finalY + 12;
 
-      didDrawPage: () => {
-        // Prevent table from touching footer
-      },
-    });
+      if (
+        expenseStartY >
+        pageHeight - 45
+      ) {
+        doc.addPage();
 
-    // =====================================================
-    // EXPENSES
-    // =====================================================
+        expenseStartY = 18;
+      }
 
-    let expenseStartY =
-      doc.lastAutoTable.finalY + 12;
+      doc.setTextColor(15, 23, 42);
 
-    if (
-      expenseStartY >
-      pageHeight - 45
-    ) {
-      doc.addPage();
-
-      expenseStartY = 18;
-    }
-
-    doc.setTextColor(15, 23, 42);
-
-    doc.setFontSize(14);
-    doc.setFont(
-      "helvetica",
-      "bold",
-    );
-
-    doc.text(
-      `Expense Records (${allExpenses.length})`,
-      14,
-      expenseStartY,
-    );
-
-    const expenseRows =
-      allExpenses.map(
-        (expense) => [
-          formatDate(
-            expense.expenseDate,
-          ),
-
-          expense.title || "-",
-
-          categoryLabel(
-            expense.category,
-          ),
-
-          expense.paymentMethod ||
-            "-",
-
-          `-${formatPDFCurrency(
-            expense.amount,
-          )}`,
-        ],
+      doc.setFontSize(14);
+      doc.setFont(
+        "helvetica",
+        "bold",
       );
 
-    autoTable(doc, {
-      startY:
-        expenseStartY + 5,
+      doc.text(
+        `Expense Records (${allExpenses.length})`,
+        14,
+        expenseStartY,
+      );
 
-      head: [
-        [
-          "Date",
-          "Title",
-          "Category",
-          "Payment",
-          "Amount",
+      const expenseRows =
+        allExpenses.map(
+          (expense) => [
+            formatDate(
+              expense.expenseDate,
+            ),
+
+            expense.title || "-",
+
+            categoryLabel(
+              expense.category,
+            ),
+
+            expense.paymentMethod ||
+            "-",
+
+            `-${formatPDFCurrency(
+              expense.amount,
+            )}`,
+          ],
+        );
+
+      autoTable(doc, {
+        startY:
+          expenseStartY + 5,
+
+        head: [
+          [
+            "Date",
+            "Title",
+            "Category",
+            "Payment",
+            "Amount",
+          ],
         ],
-      ],
 
-      body:
-        expenseRows.length
-          ? expenseRows
-          : [
+        body:
+          expenseRows.length
+            ? expenseRows
+            : [
               [
                 "No expenses",
                 "",
@@ -1194,117 +1193,117 @@ const styles = {
               ],
             ],
 
-      theme: "striped",
+        theme: "striped",
 
-      headStyles: {
-        fillColor: [15, 23, 42],
-        textColor: 255,
-        fontStyle: "bold",
-      },
-
-      styles: {
-        fontSize: 8,
-        cellPadding: 3,
-      },
-
-      columnStyles: {
-        0: {
-          cellWidth: 30,
+        headStyles: {
+          fillColor: [15, 23, 42],
+          textColor: 255,
+          fontStyle: "bold",
         },
 
-        1: {
-          cellWidth: 75,
+        styles: {
+          fontSize: 8,
+          cellPadding: 3,
         },
 
-        2: {
-          cellWidth: 55,
+        columnStyles: {
+          0: {
+            cellWidth: 30,
+          },
+
+          1: {
+            cellWidth: 75,
+          },
+
+          2: {
+            cellWidth: 55,
+          },
+
+          3: {
+            cellWidth: 45,
+          },
+
+          4: {
+            cellWidth: 40,
+            halign: "right",
+          },
         },
+      });
 
-        3: {
-          cellWidth: 45,
-        },
+      // =====================================================
+      // FOOTER ON EVERY PAGE
+      // =====================================================
 
-        4: {
-          cellWidth: 40,
-          halign: "right",
-        },
-      },
-    });
+      const totalPages =
+        doc.internal.getNumberOfPages();
 
-    // =====================================================
-    // FOOTER ON EVERY PAGE
-    // =====================================================
+      for (
+        let page = 1;
+        page <= totalPages;
+        page++
+      ) {
+        doc.setPage(page);
 
-    const totalPages =
-      doc.internal.getNumberOfPages();
+        doc.setFontSize(8);
 
-    for (
-      let page = 1;
-      page <= totalPages;
-      page++
-    ) {
-      doc.setPage(page);
+        doc.setFont(
+          "helvetica",
+          "normal",
+        );
 
-      doc.setFontSize(8);
+        doc.setTextColor(
+          100,
+          116,
+          139,
+        );
 
-      doc.setFont(
-        "helvetica",
-        "normal",
+        doc.text(
+          `Financial Report • Page ${page} of ${totalPages}`,
+          pageWidth / 2,
+          pageHeight - 8,
+          {
+            align: "center",
+          },
+        );
+      }
+
+      // =====================================================
+      // SAVE FILE
+      // =====================================================
+
+      const fileDate =
+        new Date()
+          .toISOString()
+          .split("T")[0];
+
+      const filterName =
+        startDate || endDate
+          ? "filtered"
+          : "all-time";
+
+      doc.save(
+        `financial-report-${filterName}-${fileDate}.pdf`,
       );
 
-      doc.setTextColor(
-        100,
-        116,
-        139,
+      toast.success(
+        "Financial PDF downloaded successfully",
       );
-
-      doc.text(
-        `Financial Report • Page ${page} of ${totalPages}`,
-        pageWidth / 2,
-        pageHeight - 8,
-        {
-          align: "center",
-        },
-      );
-    }
-
-    // =====================================================
-    // SAVE FILE
-    // =====================================================
-
-    const fileDate =
-      new Date()
-        .toISOString()
-        .split("T")[0];
-
-    const filterName =
-      startDate || endDate
-        ? "filtered"
-        : "all-time";
-
-    doc.save(
-      `financial-report-${filterName}-${fileDate}.pdf`,
-    );
-
-    toast.success(
-      "Financial PDF downloaded successfully",
-    );
-  } catch (error) {
-    console.error(
-      "Financial PDF error:",
-      error,
-    );
-
-    toast.error(
-      getErrorMessage(
+    } catch (error) {
+      console.error(
+        "Financial PDF error:",
         error,
-        "Failed to generate financial PDF",
-      ),
-    );
-  } finally {
-    setDownloadingPDF(false);
-  }
-};
+      );
+
+      toast.error(
+        getErrorMessage(
+          error,
+          "Failed to generate financial PDF",
+        ),
+      );
+    } finally {
+      setDownloadingPDF(false);
+    }
+  };
 
 
 
@@ -1914,29 +1913,29 @@ const styles = {
                   All Types
                 </option>
 
-<option value="income">
-  Income
-</option>
+                <option value="income">
+                  Income
+                </option>
 
-<option value="expense">
-  Expense
-</option>
+                <option value="expense">
+                  Expense
+                </option>
 
-<option value="product_cost">
-  Product Cost
-</option>
+                <option value="product_cost">
+                  Product Cost
+                </option>
 
-<option value="refund">
-  Refund
-</option>
+                <option value="refund">
+                  Refund
+                </option>
 
-<option value="payment_fee">
-  Payment Fee
-</option>
+                <option value="payment_fee">
+                  Payment Fee
+                </option>
 
-<option value="shipping">
-  Shipping
-</option>
+                <option value="shipping">
+                  Shipping
+                </option>
               </select>
             </div>
 
@@ -2170,8 +2169,8 @@ const styles = {
                   {card.isCurrency === false
                     ? card.value
                     : formatCurrency(
-                        card.value,
-                      )}
+                      card.value,
+                    )}
                 </p>
               </div>
             ))}
@@ -2245,10 +2244,9 @@ const styles = {
               className={`
                 mt-2
                 font-bold
-                ${
-                  profitPositive
-                    ? "text-emerald-400"
-                    : "text-red-400"
+                ${profitPositive
+                  ? "text-emerald-400"
+                  : "text-red-400"
                 }
               `}
             >
@@ -2311,9 +2309,9 @@ const styles = {
 
           {/* TABLE */}
 
-          <div className="overflow-x-auto">
+          <div className="max-h-[600px] overflow-auto">
 
-            <table className="min-w-[900px] w-full">
+  <table className="min-w-[900px] w-full">
 
               <thead className="bg-slate-950">
 
@@ -2432,8 +2430,8 @@ const styles = {
                               text-[11px]
                               font-semibold
                               ${getTransactionStyle(
-                                transaction.type,
-                              )}
+                              transaction.type,
+                            )}
                             `}
                           >
                             {transactionTypeLabel(
@@ -2465,16 +2463,15 @@ const styles = {
                           <span
                             className={`
                               font-bold
-                              ${
-                                transaction.type ===
+                              ${transaction.type ===
                                 "income"
-                                  ? "text-emerald-400"
-                                  : "text-red-400"
+                                ? "text-emerald-400"
+                                : "text-red-400"
                               }
                             `}
                           >
                             {transaction.type ===
-                            "income"
+                              "income"
                               ? "+"
                               : "-"}
 
@@ -2500,8 +2497,8 @@ const styles = {
 
           {transactionPagination.totalPages >
             1 && (
-            <div
-              className="
+              <div
+                className="
                 px-5
                 py-4
                 border-t
@@ -2510,21 +2507,21 @@ const styles = {
                 items-center
                 justify-between
               "
-            >
+              >
 
-              <button
-                type="button"
-                disabled={
-                  transactionPagination.page <=
-                  1
-                }
-                onClick={() =>
-                  fetchTransactions(
-                    transactionPagination.page -
+                <button
+                  type="button"
+                  disabled={
+                    transactionPagination.page <=
+                    1
+                  }
+                  onClick={() =>
+                    fetchTransactions(
+                      transactionPagination.page -
                       1,
-                  )
-                }
-                className="
+                    )
+                  }
+                  className="
                   px-3
                   py-2
                   rounded-lg
@@ -2536,32 +2533,32 @@ const styles = {
                   disabled:opacity-40
                   disabled:cursor-not-allowed
                 "
-              >
-                Previous
-              </button>
+                >
+                  Previous
+                </button>
 
-              <span className="text-xs text-slate-400">
-                Page{" "}
-                {transactionPagination.page}{" "}
-                of{" "}
-                {
-                  transactionPagination.totalPages
-                }
-              </span>
+                <span className="text-xs text-slate-400">
+                  Page{" "}
+                  {transactionPagination.page}{" "}
+                  of{" "}
+                  {
+                    transactionPagination.totalPages
+                  }
+                </span>
 
-              <button
-                type="button"
-                disabled={
-                  transactionPagination.page >=
-                  transactionPagination.totalPages
-                }
-                onClick={() =>
-                  fetchTransactions(
-                    transactionPagination.page +
+                <button
+                  type="button"
+                  disabled={
+                    transactionPagination.page >=
+                    transactionPagination.totalPages
+                  }
+                  onClick={() =>
+                    fetchTransactions(
+                      transactionPagination.page +
                       1,
-                  )
-                }
-                className="
+                    )
+                  }
+                  className="
                   px-3
                   py-2
                   rounded-lg
@@ -2573,12 +2570,12 @@ const styles = {
                   disabled:opacity-40
                   disabled:cursor-not-allowed
                 "
-              >
-                Next
-              </button>
+                >
+                  Next
+                </button>
 
-            </div>
-          )}
+              </div>
+            )}
         </div>
 
         {/* ==================================================
@@ -2776,8 +2773,8 @@ const styles = {
 
           {expensePagination.totalPages >
             1 && (
-            <div
-              className="
+              <div
+                className="
                 px-5
                 py-4
                 border-t
@@ -2786,21 +2783,21 @@ const styles = {
                 items-center
                 justify-between
               "
-            >
+              >
 
-              <button
-                type="button"
-                disabled={
-                  expensePagination.page <=
-                  1
-                }
-                onClick={() =>
-                  fetchExpenses(
-                    expensePagination.page -
+                <button
+                  type="button"
+                  disabled={
+                    expensePagination.page <=
+                    1
+                  }
+                  onClick={() =>
+                    fetchExpenses(
+                      expensePagination.page -
                       1,
-                  )
-                }
-                className="
+                    )
+                  }
+                  className="
                   px-3
                   py-2
                   rounded-lg
@@ -2812,32 +2809,32 @@ const styles = {
                   disabled:opacity-40
                   disabled:cursor-not-allowed
                 "
-              >
-                Previous
-              </button>
+                >
+                  Previous
+                </button>
 
-              <span className="text-xs text-slate-400">
-                Page{" "}
-                {expensePagination.page}{" "}
-                of{" "}
-                {
-                  expensePagination.totalPages
-                }
-              </span>
+                <span className="text-xs text-slate-400">
+                  Page{" "}
+                  {expensePagination.page}{" "}
+                  of{" "}
+                  {
+                    expensePagination.totalPages
+                  }
+                </span>
 
-              <button
-                type="button"
-                disabled={
-                  expensePagination.page >=
-                  expensePagination.totalPages
-                }
-                onClick={() =>
-                  fetchExpenses(
-                    expensePagination.page +
+                <button
+                  type="button"
+                  disabled={
+                    expensePagination.page >=
+                    expensePagination.totalPages
+                  }
+                  onClick={() =>
+                    fetchExpenses(
+                      expensePagination.page +
                       1,
-                  )
-                }
-                className="
+                    )
+                  }
+                  className="
                   px-3
                   py-2
                   rounded-lg
@@ -2849,12 +2846,12 @@ const styles = {
                   disabled:opacity-40
                   disabled:cursor-not-allowed
                 "
-              >
-                Next
-              </button>
+                >
+                  Next
+                </button>
 
-            </div>
-          )}
+              </div>
+            )}
         </div>
       </div>
     </div>
