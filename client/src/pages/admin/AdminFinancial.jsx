@@ -1155,111 +1155,80 @@ export default function AdminFinancial() {
     ],
   );
 
+
   // ======================================================
-  // MONTHLY CHART DATA
-  // ======================================================
+// MONTHLY CHART DATA
+// ======================================================
 
-  const monthlyFinancialData =
-    useMemo(() => {
-      const months = [
-        "Jan",
-        "Feb",
-        "Mar",
-        "Apr",
-        "May",
-        "Jun",
-        "Jul",
-        "Aug",
-        "Sep",
-        "Oct",
-        "Nov",
-        "Dec",
-      ];
+const monthlyFinancialData = useMemo(() => {
+  const months = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
 
-      const result =
-        months.map(
-          (month) => ({
-            month,
-            income: 0,
-            expense: 0,
-            profit: 0,
-          }),
-        );
+  const result = months.map((month) => ({
+    month,
+    income: 0,
+    expense: 0,
+    profit: 0,
+  }));
 
-      allChartTransactions.forEach(
-        (transaction) => {
-          const date =
-            new Date(
-              transaction.transactionDate,
-            );
+  // ------------------------------------------------------
+  // USE FINANCIAL TRANSACTIONS ONLY
+  // ------------------------------------------------------
+  // Important:
+  // Do NOT add allChartExpenses separately here.
+  // Expense records are already represented as transactions.
+  // Adding both causes double counting.
+  // ------------------------------------------------------
 
-          if (
-            Number.isNaN(
-              date.getTime(),
-            )
-          ) {
-            return;
-          }
+  allChartTransactions.forEach((transaction) => {
+    const date = new Date(
+      transaction.transactionDate
+    );
 
-          const monthIndex =
-            date.getMonth();
+    if (Number.isNaN(date.getTime())) {
+      return;
+    }
 
-          const amount = Number(
-            transaction.amount || 0,
-          );
+    const monthIndex = date.getMonth();
 
-          if (
-            transaction.type ===
-            "income"
-          ) {
-            result[
-              monthIndex
-            ].income += amount;
-          } else {
-            result[
-              monthIndex
-            ].expense += amount;
-          }
-        },
-      );
+    const amount = Math.abs(
+      Number(transaction.amount || 0)
+    );
 
-      allChartExpenses.forEach(
-        (expense) => {
-          const date =
-            new Date(
-              expense.expenseDate,
-            );
+    if (transaction.type === "income") {
+      // Revenue
+      result[monthIndex].income += amount;
+    } else {
+      // Every non-income financial transaction
+      // is a business cost/reduction from profit.
+      result[monthIndex].expense += amount;
+    }
+  });
 
-          if (
-            Number.isNaN(
-              date.getTime(),
-            )
-          ) {
-            return;
-          }
+  // ------------------------------------------------------
+  // PROFIT
+  // ------------------------------------------------------
 
-          const monthIndex =
-            date.getMonth();
+  result.forEach((item) => {
+    item.profit = item.income - item.expense;
+  });
 
-          result[
-            monthIndex
-          ].expense += Number(
-            expense.amount || 0,
-          );
-        },
-      );
+  return result;
+}, [allChartTransactions]);
 
-      result.forEach((item) => {
-        item.profit =
-          item.income -
-          item.expense;
-      });
 
-      return result;
-    }, [
-      allChartTransactions,
-      allChartExpenses,
-    ]);
 
   // ======================================================
   // DOWNLOAD FILTERED PDF
