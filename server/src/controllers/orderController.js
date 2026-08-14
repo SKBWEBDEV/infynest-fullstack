@@ -31,21 +31,83 @@ const PAYMENT_METHOD_MAP = {
 };
 
 // ======================================================
+// ALLOWED PAYMENT METHODS
+// ======================================================
+
+const ALLOWED_PAYMENT_METHODS = [
+  "Cash on Delivery",
+  "bKash",
+  "Nagad",
+  "Rocket",
+  "Card",
+  "AamarPay",
+  "Bank",
+  "Other",
+];
+
+// ======================================================
+// ALLOWED ORDER STATUSES
+// ======================================================
+
+const ALLOWED_ORDER_STATUSES = [
+  "Pending",
+  "Confirmed",
+  "Processing",
+  "Shipped",
+  "Delivered",
+  "Cancelled",
+];
+
+// ======================================================
+// STATUS TRANSITIONS
+// ======================================================
+//
+// Normal order flow:
+//
+// Pending
+//   ↓
+// Confirmed
+//   ↓
+// Processing
+//   ↓
+// Shipped
+//   ↓
+// Delivered
+//
+// Pending / Confirmed / Processing / Shipped
+// can be cancelled.
+//
+// Delivered cannot be cancelled.
+//
+// Cancelled and Delivered are final states.
+//
+
+const ALLOWED_STATUS_TRANSITIONS = {
+  Pending: ["Confirmed", "Cancelled"],
+
+  Confirmed: ["Processing", "Cancelled"],
+
+  Processing: ["Shipped", "Cancelled"],
+
+  Shipped: ["Delivered", "Cancelled"],
+
+  Delivered: [],
+
+  Cancelled: [],
+};
+
+// ======================================================
 // NORMALIZE PAYMENT METHOD
 // ======================================================
 
-const normalizePaymentMethod = (
-  paymentMethod,
-) => {
+const normalizePaymentMethod = (paymentMethod) => {
   if (!paymentMethod) {
     return "other";
   }
 
   return (
     PAYMENT_METHOD_MAP[paymentMethod] ||
-    String(paymentMethod)
-      .trim()
-      .toLowerCase()
+    String(paymentMethod).trim().toLowerCase()
   );
 };
 
@@ -53,8 +115,9 @@ const normalizePaymentMethod = (
 // CHECK COD
 // ======================================================
 
-const isCOD = (paymentMethod) =>
-  paymentMethod === "Cash on Delivery";
+const isCOD = (paymentMethod) => {
+  return paymentMethod === "Cash on Delivery";
+};
 
 // ======================================================
 // CREATE ORDER NOTIFICATION
@@ -78,6 +141,8 @@ const createOrderNotification = async ({
       isRead: false,
     });
   } catch (error) {
+    // Notification failure should never break the
+    // actual order operation.
     console.error(
       "Order notification creation error:",
       error,
@@ -86,14 +151,50 @@ const createOrderNotification = async ({
 };
 
 // ======================================================
+// GET SERVER PRICE
+// ======================================================
+//
+// IMPORTANT:
+// Never trust frontend item.price.
+// Product price from database is authoritative.
+//
+
+const getProductSellingPrice = (product) => {
+  const possiblePrices = [
+    product.discountPrice,
+    product.retailPrice,
+    product.price,
+  ];
+
+  for (const value of possiblePrices) {
+    const price = Number(value);
+
+    if (Number.isFinite(price) && price > 0) {
+      return price;
+    }
+  }
+
+  return 0;
+};
+
+// ======================================================
+// GET PRODUCT NAME
+// ======================================================
+
+const getProductName = (product) => {
+  return (
+    product.name ||
+    product.title ||
+    "Product"
+  );
+};
+
+// ======================================================
 // CREATE ORDER
 // POST /api/v1/orders
 // ======================================================
 
-export const createOrder = async (
-  req,
-  res,
-) => {
+export const createOrder = async (req, res) => {
   try {
     const {
       orderItems,
@@ -105,7 +206,6 @@ export const createOrder = async (
       paymentMethod,
       senderNumber,
       transactionId,
-      shippingFee,
     } = req.body;
 
     // ==================================================
@@ -138,6 +238,10 @@ export const createOrder = async (
       });
     }
 
+    // ==================================================
+    // DELIVERY AREA
+    // ==================================================
+
     if (
       ![
         "Inside Dhaka",
@@ -167,26 +271,33 @@ export const createOrder = async (
     }
 
     // ==================================================
+    // EMAIL NORMALIZATION
+    // ==================================================
+
+    const emailValue = String(email)
+      .trim()
+      .toLowerCase();
+
+    // Basic email validation.
+    const emailRegex =
+      /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!emailRegex.test(emailValue)) {
+      return res.status(400).json({
+        success: false,
+        message: "Please enter a valid email address",
+      });
+    }
+
+    // ==================================================
     // PAYMENT METHOD
     // ==================================================
 
     const finalPaymentMethod =
-      paymentMethod ||
-      "Cash on Delivery";
-
-    const allowedPaymentMethods = [
-      "Cash on Delivery",
-      "bKash",
-      "Nagad",
-      "Rocket",
-      "Card",
-      "AamarPay",
-      "Bank",
-      "Other",
-    ];
+      paymentMethod || "Cash on Delivery";
 
     if (
-      !allowedPaymentMethods.includes(
+      !ALLOWED_PAYMENT_METHODS.includes(
         finalPaymentMethod,
       )
     ) {
@@ -217,6 +328,28 @@ export const createOrder = async (
     }
 
     // ==================================================
+    // SHIPPING ADDRESS
+    // ==================================================
+
+    const finalShippingAddress =
+      typeof shippingAddress === "object"
+        ? [
+          shippingAddress.street,
+          shippingAddress.city,
+          shippingAddress.district,
+        ]
+          .filter(Boolean)
+          .join(", ")
+        : String(shippingAddress).trim();
+
+    if (!finalShippingAddress) {
+      return res.status(400).json({
+        success: false,
+        message: "Shipping address is required",
+      });
+    }
+
+    // ==================================================
     // PROCESS ORDER ITEMS
     // ==================================================
 
@@ -224,10 +357,14 @@ export const createOrder = async (
 
     const processedOrderItems = [];
 
+    // Keep track of product quantities so the same
+    // product cannot bypass stock validation by
+    // appearing multiple times in the cart.
+    const requestedQuantities = new Map();
+
     for (const item of orderItems) {
       const productId =
-        item.product ||
-        item.productId;
+        item.product || item.productId;
 
       // -----------------------------------------------
       // PRODUCT ID
@@ -236,8 +373,7 @@ export const createOrder = async (
       if (!productId) {
         return res.status(400).json({
           success: false,
-          message:
-            "Product ID is missing",
+          message: "Product ID is missing",
         });
       }
 
@@ -248,25 +384,7 @@ export const createOrder = async (
       ) {
         return res.status(400).json({
           success: false,
-          message:
-            "Invalid product ID",
-        });
-      }
-
-      // -----------------------------------------------
-      // PRODUCT
-      // -----------------------------------------------
-
-      const product =
-        await Product.findById(
-          productId,
-        );
-
-      if (!product) {
-        return res.status(404).json({
-          success: false,
-          message:
-            "Product not found",
+          message: "Invalid product ID",
         });
       }
 
@@ -274,8 +392,7 @@ export const createOrder = async (
       // QUANTITY
       // -----------------------------------------------
 
-      const quantity =
-        Number(item.quantity);
+      const quantity = Number(item.quantity);
 
       if (
         !Number.isInteger(quantity) ||
@@ -289,6 +406,37 @@ export const createOrder = async (
       }
 
       // -----------------------------------------------
+      // DUPLICATE PRODUCT QUANTITY
+      // -----------------------------------------------
+
+      const productKey = String(productId);
+
+      const previousQuantity =
+        requestedQuantities.get(productKey) || 0;
+
+      const totalRequestedQuantity =
+        previousQuantity + quantity;
+
+      requestedQuantities.set(
+        productKey,
+        totalRequestedQuantity,
+      );
+
+      // -----------------------------------------------
+      // PRODUCT
+      // -----------------------------------------------
+
+      const product =
+        await Product.findById(productId);
+
+      if (!product) {
+        return res.status(404).json({
+          success: false,
+          message: "Product not found",
+        });
+      }
+
+      // -----------------------------------------------
       // STOCK
       // -----------------------------------------------
 
@@ -296,27 +444,26 @@ export const createOrder = async (
         Number(product.stock || 0);
 
       if (
-        availableStock < quantity
+        availableStock <
+        totalRequestedQuantity
       ) {
         return res.status(400).json({
           success: false,
-          message: `${product.name ||
-            product.title ||
-            "Product"
-            } has insufficient stock`,
+          message: `${getProductName(
+            product,
+          )} has insufficient stock. Available: ${availableStock}, Required: ${totalRequestedQuantity}`,
         });
       }
 
       // -----------------------------------------------
-      // PRICE
+      // SERVER-SIDE PRICE
       // -----------------------------------------------
+      //
+      // DO NOT use item.price from frontend.
+      //
 
       const price =
-        Number(item.price) ||
-        Number(product.discountPrice) ||
-        Number(product.retailPrice) ||
-        Number(product.price) ||
-        0;
+        getProductSellingPrice(product);
 
       if (
         !Number.isFinite(price) ||
@@ -324,10 +471,9 @@ export const createOrder = async (
       ) {
         return res.status(400).json({
           success: false,
-          message: `Invalid price for product: ${product.name ||
-            product.title ||
-            "Product"
-            }`,
+          message: `Invalid price for product: ${getProductName(
+            product,
+          )}`,
         });
       }
 
@@ -347,22 +493,22 @@ export const createOrder = async (
       processedOrderItems.push({
         product: product._id,
 
-        name:
-          item.name ||
-          product.name ||
-          product.title ||
-          "Product",
+        name: getProductName(product),
 
         image:
           item.image ||
+          product.images?.find(
+            (image) => image?.isMain,
+          )?.url ||
+          product.images?.[0]?.url ||
           product.images?.[0] ||
           product.image ||
           "",
 
-        // Customer-এর selling price
+        // Customer selling price
         price,
 
-        // Business-এর actual product cost
+        // Business actual product cost
         costPrice: Number(
           product.costPrice || 0,
         ),
@@ -384,27 +530,17 @@ export const createOrder = async (
     // ==================================================
     // SHIPPING FEE
     // ==================================================
+    //
+    // IMPORTANT:
+    // Shipping fee is calculated on backend.
+    // Frontend cannot send shippingFee and bypass
+    // the delivery charge.
+    //
 
     const deliveryFee =
-      shippingFee !== undefined
-        ? Number(shippingFee)
-        : deliveryArea ===
-          "Inside Dhaka"
-          ? 80
-          : 120;
-
-    if (
-      !Number.isFinite(
-        deliveryFee,
-      ) ||
-      deliveryFee < 0
-    ) {
-      return res.status(400).json({
-        success: false,
-        message:
-          "Invalid shipping fee",
-      });
-    }
+      deliveryArea === "Inside Dhaka"
+        ? 80
+        : 120;
 
     // ==================================================
     // TOTAL
@@ -414,41 +550,22 @@ export const createOrder = async (
       subtotal + deliveryFee;
 
     if (
-      !Number.isFinite(
-        totalAmount,
-      ) ||
+      !Number.isFinite(subtotal) ||
+      subtotal <= 0
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid order subtotal",
+      });
+    }
+
+    if (
+      !Number.isFinite(totalAmount) ||
       totalAmount <= 0
     ) {
       return res.status(400).json({
         success: false,
-        message:
-          "Invalid order total",
-      });
-    }
-
-    // ==================================================
-    // SHIPPING ADDRESS
-    // ==================================================
-
-    const finalShippingAddress =
-      typeof shippingAddress ===
-        "object"
-        ? [
-          shippingAddress.street,
-          shippingAddress.city,
-          shippingAddress.district,
-        ]
-          .filter(Boolean)
-          .join(", ")
-        : String(
-          shippingAddress,
-        ).trim();
-
-    if (!finalShippingAddress) {
-      return res.status(400).json({
-        success: false,
-        message:
-          "Shipping address is required",
+        message: "Invalid order total",
       });
     }
 
@@ -462,14 +579,9 @@ export const createOrder = async (
           req.user?._id || null,
 
         customerName:
-          String(
-            customerName,
-          ).trim(),
+          String(customerName).trim(),
 
-        email:
-          String(email)
-            .trim()
-            .toLowerCase(),
+        email: emailValue,
 
         phone: phoneValue,
 
@@ -525,11 +637,9 @@ export const createOrder = async (
     await createOrderNotification({
       user: order.user,
 
-      title:
-        "Order Placed",
+      title: "Order Placed",
 
-      message:
-        `Your order #${order._id} has been placed successfully.`,
+      message: `Your order #${order._id} has been placed successfully.`,
     });
 
     // ==================================================
@@ -614,23 +724,29 @@ export const getMyOrders = async (
 export const getOrderById =
   async (req, res) => {
     try {
+      const { id } = req.params;
+
+      // ==================================================
+      // ORDER ID VALIDATION
+      // ==================================================
+
       if (
         !mongoose.Types.ObjectId.isValid(
-          req.params.id,
+          id,
         )
       ) {
         return res.status(400).json({
           success: false,
-
-          message:
-            "Invalid order ID",
+          message: "Invalid order ID",
         });
       }
 
+      // ==================================================
+      // FIND ORDER
+      // ==================================================
+
       const order =
-        await Order.findById(
-          req.params.id,
-        ).populate(
+        await Order.findById(id).populate(
           "user",
           "name email",
         );
@@ -638,15 +754,48 @@ export const getOrderById =
       if (!order) {
         return res.status(404).json({
           success: false,
-
-          message:
-            "Order not found",
+          message: "Order not found",
         });
       }
 
+      // ==================================================
+      // ACCESS CONTROL
+      // ==================================================
+      //
+      // Admin can see every order.
+      // Normal user can only see their own order.
+      //
+
+      const isAdmin =
+        req.user?.role === "admin";
+
+      if (!isAdmin) {
+        if (!order.user) {
+          return res.status(403).json({
+            success: false,
+            message:
+              "You are not allowed to view this order",
+          });
+        }
+
+        if (
+          String(order.user._id) !==
+          String(req.user._id)
+        ) {
+          return res.status(403).json({
+            success: false,
+            message:
+              "You are not allowed to view this order",
+          });
+        }
+      }
+
+      // ==================================================
+      // RESPONSE
+      // ==================================================
+
       return res.status(200).json({
         success: true,
-
         data: order,
       });
     } catch (error) {
@@ -657,7 +806,6 @@ export const getOrderById =
 
       return res.status(500).json({
         success: false,
-
         message:
           "Failed to get order",
       });
@@ -669,26 +817,26 @@ export const getOrderById =
 // PUT /api/v1/orders/:id/status
 // ======================================================
 
-export const updateOrderStatus = async (req, res) => {
-  const session = await mongoose.startSession();
+export const updateOrderStatus = async (
+  req,
+  res,
+) => {
+  const session =
+    await mongoose.startSession();
 
   try {
     const { status } = req.body;
+    const { id } = req.params;
 
     // ==================================================
     // STATUS VALIDATION
     // ==================================================
 
-    const allowedStatuses = [
-      "Pending",
-      "Confirmed",
-      "Processing",
-      "Shipped",
-      "Delivered",
-      "Cancelled",
-    ];
-
-    if (!allowedStatuses.includes(status)) {
+    if (
+      !ALLOWED_ORDER_STATUSES.includes(
+        status,
+      )
+    ) {
       return res.status(400).json({
         success: false,
         message: "Invalid order status",
@@ -699,7 +847,11 @@ export const updateOrderStatus = async (req, res) => {
     // ORDER ID VALIDATION
     // ==================================================
 
-    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+    if (
+      !mongoose.Types.ObjectId.isValid(
+        id,
+      )
+    ) {
       return res.status(400).json({
         success: false,
         message: "Invalid order ID",
@@ -716,9 +868,10 @@ export const updateOrderStatus = async (req, res) => {
     // FIND ORDER
     // ==================================================
 
-    const order = await Order.findById(req.params.id).session(
-      session,
-    );
+    const order =
+      await Order.findById(id).session(
+        session,
+      );
 
     if (!order) {
       await session.abortTransaction();
@@ -733,7 +886,8 @@ export const updateOrderStatus = async (req, res) => {
     // OLD STATUS
     // ==================================================
 
-    const oldStatus = order.orderStatus;
+    const oldStatus =
+      order.orderStatus;
 
     // ==================================================
     // SAME STATUS
@@ -750,41 +904,59 @@ export const updateOrderStatus = async (req, res) => {
     }
 
     // ==================================================
-    // INVALID TRANSITION
+    // STATUS TRANSITION VALIDATION
     // ==================================================
 
-    if (oldStatus === "Delivered" && status === "Cancelled") {
+    const allowedNextStatuses =
+      ALLOWED_STATUS_TRANSITIONS[
+      oldStatus
+      ] || [];
+
+    if (
+      !allowedNextStatuses.includes(
+        status,
+      )
+    ) {
       await session.abortTransaction();
 
       return res.status(400).json({
         success: false,
-        message: "A delivered order cannot be cancelled",
+        message: `Cannot change order status from ${oldStatus} to ${status}`,
       });
     }
 
     // ==================================================
-    // STOCK MANAGEMENT
+    // STOCK DECREASE
     // ==================================================
     //
-    // Stock will decrease ONLY when:
+    // Stock decreases ONLY:
     //
     // Pending → Confirmed
     //
-    // It will NOT decrease again when:
+    // Never again:
     //
     // Confirmed → Processing
     // Processing → Shipped
     // Shipped → Delivered
     //
-    // ==================================================
 
-    if (
+    const confirmingOrder =
       oldStatus !== "Confirmed" &&
-      status === "Confirmed"
-    ) {
+      status === "Confirmed";
+
+    if (confirmingOrder) {
+      // -----------------------------------------------
+      // COMBINE DUPLICATE PRODUCT QUANTITIES
+      // -----------------------------------------------
+
+      const quantityMap = new Map();
+
       for (const item of order.orderItems) {
-        const productId = item.product;
-        const quantity = Number(item.quantity);
+        const productId =
+          item.product?.toString();
+
+        const quantity =
+          Number(item.quantity);
 
         if (!productId) {
           throw new Error(
@@ -801,17 +973,28 @@ export const updateOrderStatus = async (req, res) => {
           );
         }
 
-        // ----------------------------------------------
-        // ATOMIC STOCK DECREASE
-        // ----------------------------------------------
+        const previous =
+          quantityMap.get(productId) || 0;
 
+        quantityMap.set(
+          productId,
+          previous + quantity,
+        );
+      }
+
+      // -----------------------------------------------
+      // ATOMIC STOCK DECREASE
+      // -----------------------------------------------
+
+      for (const [
+        productId,
+        quantity,
+      ] of quantityMap.entries()) {
         const updatedProduct =
           await Product.findOneAndUpdate(
             {
               _id: productId,
 
-              // Important:
-              // Stock must be enough
               stock: {
                 $gte: quantity,
               },
@@ -827,13 +1010,15 @@ export const updateOrderStatus = async (req, res) => {
             },
           );
 
-        // ----------------------------------------------
+        // ---------------------------------------------
         // PRODUCT NOT FOUND / INSUFFICIENT STOCK
-        // ----------------------------------------------
+        // ---------------------------------------------
 
         if (!updatedProduct) {
           const product =
-            await Product.findById(productId)
+            await Product.findById(
+              productId,
+            )
               .session(session)
               .lean();
 
@@ -849,10 +1034,100 @@ export const updateOrderStatus = async (req, res) => {
 
           return res.status(400).json({
             success: false,
-            message: `${product.name || "Product"
-              } has insufficient stock. Available: ${product.stock
-              }, Required: ${quantity}`,
+            message: `${getProductName(
+              product,
+            )} has insufficient stock. Available: ${Number(
+              product.stock || 0,
+            )}, Required: ${quantity}`,
           });
+        }
+      }
+    }
+
+    // ==================================================
+    // STOCK RESTORATION
+    // ==================================================
+    //
+    // If stock was already deducted and order is
+    // cancelled, return the stock.
+    //
+    // Confirmed → Cancelled
+    // Processing → Cancelled
+    // Shipped → Cancelled
+    //
+
+    const restoringStock =
+      status === "Cancelled" &&
+      [
+        "Confirmed",
+        "Processing",
+        "Shipped",
+      ].includes(oldStatus);
+
+    if (restoringStock) {
+      // -----------------------------------------------
+      // COMBINE DUPLICATE PRODUCT QUANTITIES
+      // -----------------------------------------------
+
+      const quantityMap = new Map();
+
+      for (const item of order.orderItems) {
+        const productId =
+          item.product?.toString();
+
+        const quantity =
+          Number(item.quantity);
+
+        if (!productId) {
+          throw new Error(
+            "Product ID is missing from order item",
+          );
+        }
+
+        if (
+          !Number.isInteger(quantity) ||
+          quantity <= 0
+        ) {
+          throw new Error(
+            "Invalid product quantity in order",
+          );
+        }
+
+        const previous =
+          quantityMap.get(productId) || 0;
+
+        quantityMap.set(
+          productId,
+          previous + quantity,
+        );
+      }
+
+      // -----------------------------------------------
+      // RESTORE STOCK
+      // -----------------------------------------------
+
+      for (const [
+        productId,
+        quantity,
+      ] of quantityMap.entries()) {
+        const updatedProduct =
+          await Product.findByIdAndUpdate(
+            productId,
+            {
+              $inc: {
+                stock: quantity,
+              },
+            },
+            {
+              new: true,
+              session,
+            },
+          );
+
+        if (!updatedProduct) {
+          throw new Error(
+            `Product ${productId} not found while restoring stock`,
+          );
         }
       }
     }
@@ -866,6 +1141,9 @@ export const updateOrderStatus = async (req, res) => {
     // ==================================================
     // COD PAYMENT ON DELIVERY
     // ==================================================
+    //
+    // COD becomes paid only when the order is delivered.
+    //
 
     if (
       status === "Delivered" &&
@@ -894,9 +1172,10 @@ export const updateOrderStatus = async (req, res) => {
     // SAVE ORDER
     // ==================================================
 
-    const updatedOrder = await order.save({
-      session,
-    });
+    const updatedOrder =
+      await order.save({
+        session,
+      });
 
     // ==================================================
     // FINANCIAL TRANSACTIONS
@@ -907,19 +1186,19 @@ export const updateOrderStatus = async (req, res) => {
     // 1. Income
     // 2. Product Cost
     //
-    // Duplicate protection already exists
-    // inside financialService.js
+    // Financial service should have duplicate
+    // protection.
     //
-    // ==================================================
 
-    if (
+    const deliveredAndPaid =
       oldStatus !== "Delivered" &&
       status === "Delivered" &&
-      updatedOrder.isPaid === true
-    ) {
-      // ----------------------------------------------
+      updatedOrder.isPaid === true;
+
+    if (deliveredAndPaid) {
+      // -----------------------------------------------
       // INCOME
-      // ----------------------------------------------
+      // -----------------------------------------------
 
       await createOrderIncome({
         order: updatedOrder,
@@ -930,9 +1209,9 @@ export const updateOrderStatus = async (req, res) => {
         session,
       });
 
-      // ----------------------------------------------
+      // -----------------------------------------------
       // PRODUCT COST
-      // ----------------------------------------------
+      // -----------------------------------------------
 
       await createProductCost({
         order: updatedOrder,
@@ -943,11 +1222,18 @@ export const updateOrderStatus = async (req, res) => {
         session,
       });
 
-      // ----------------------------------------------
+      // -----------------------------------------------
       // SHIPPING COST
-      // ----------------------------------------------
+      // -----------------------------------------------
       //
-      // Actual courier cost জানা থাকলে এখানে add করবে.
+      // Do NOT automatically use customer shippingFee
+      // as actual courier cost.
+      //
+      // Actual courier cost should come from the admin
+      // or courier integration.
+      //
+
+      // Example:
       //
       // await createShippingCost({
       //   order: updatedOrder,
@@ -955,13 +1241,15 @@ export const updateOrderStatus = async (req, res) => {
       //   createdBy: req.user?._id || null,
       //   session,
       // });
+
+      // -----------------------------------------------
+      // PAYMENT FEE
+      // -----------------------------------------------
+      //
+      // Add only when actual gateway fee is known.
       //
 
-      // ----------------------------------------------
-      // PAYMENT FEE
-      // ----------------------------------------------
-      //
-      // Gateway fee জানা থাকলে এখানে add করবে.
+      // Example:
       //
       // await createPaymentFee({
       //   order: updatedOrder,
@@ -969,7 +1257,6 @@ export const updateOrderStatus = async (req, res) => {
       //   createdBy: req.user?._id || null,
       //   session,
       // });
-      //
     }
 
     // ==================================================
@@ -1007,7 +1294,14 @@ export const updateOrderStatus = async (req, res) => {
     // ==================================================
 
     if (session.inTransaction()) {
-      await session.abortTransaction();
+      try {
+        await session.abortTransaction();
+      } catch (abortError) {
+        console.error(
+          "Transaction abort error:",
+          abortError,
+        );
+      }
     }
 
     // ==================================================
@@ -1043,7 +1337,8 @@ export const updateOrderStatus = async (req, res) => {
         "Failed to update order status",
 
       error:
-        process.env.NODE_ENV === "development"
+        process.env.NODE_ENV ===
+          "development"
           ? error.message
           : undefined,
     });
@@ -1061,99 +1356,275 @@ export const updateOrderStatus = async (req, res) => {
 // GET /api/v1/orders
 // ======================================================
 
-export const getAllOrders = async (req, res) => {
+export const getAllOrders = async (
+  req,
+  res,
+) => {
   try {
-    const orders = await Order.find({})
-      .populate("user", "name email")
-      .sort({ createdAt: -1 })
-      .lean();
+    const orders =
+      await Order.find({})
+        .populate(
+          "user",
+          "name email",
+        )
+        .sort({
+          createdAt: -1,
+        })
+        .lean();
 
     return res.status(200).json({
       success: true,
+
       count: orders.length,
+
       data: orders,
     });
   } catch (error) {
-    console.error("Get all orders error:", error);
+    console.error(
+      "Get all orders error:",
+      error,
+    );
 
     return res.status(500).json({
       success: false,
-      message: "Failed to get all orders",
+
+      message:
+        "Failed to get all orders",
     });
   }
 };
-
 
 // ======================================================
 // REFUND ORDER
 // POST /api/v1/orders/:id/refund
 // ======================================================
 
-export const refundOrder = async (req, res) => {
+export const refundOrder = async (
+  req,
+  res,
+) => {
+  const session =
+    await mongoose.startSession();
+
   try {
     const { id } = req.params;
 
-    if (!mongoose.Types.ObjectId.isValid(id)) {
+    // ==================================================
+    // ORDER ID VALIDATION
+    // ==================================================
+
+    if (
+      !mongoose.Types.ObjectId.isValid(
+        id,
+      )
+    ) {
       return res.status(400).json({
         success: false,
         message: "Invalid order ID",
       });
     }
 
-    const order = await Order.findById(id);
+    // ==================================================
+    // START TRANSACTION
+    // ==================================================
+
+    session.startTransaction();
+
+    // ==================================================
+    // FIND ORDER
+    // ==================================================
+
+    const order =
+      await Order.findById(id).session(
+        session,
+      );
 
     if (!order) {
+      await session.abortTransaction();
+
       return res.status(404).json({
         success: false,
         message: "Order not found",
       });
     }
 
-    // Already refunded
-    if (order.paymentStatus === "Refunded") {
+    // ==================================================
+    // ALREADY REFUNDED
+    // ==================================================
+
+    if (
+      order.paymentStatus ===
+      "Refunded"
+    ) {
+      await session.abortTransaction();
+
       return res.status(400).json({
         success: false,
-        message: "Order is already refunded",
+        message:
+          "Order is already refunded",
       });
     }
 
-    // Only paid orders can be refunded
+    // ==================================================
+    // ONLY PAID ORDERS CAN BE REFUNDED
+    // ==================================================
+
     if (!order.isPaid) {
+      await session.abortTransaction();
+
       return res.status(400).json({
         success: false,
-        message: "Only paid orders can be refunded",
+        message:
+          "Only paid orders can be refunded",
       });
     }
 
-    order.paymentStatus = "Refunded";
+    // ==================================================
+    // REFUND VALIDATION
+    // ==================================================
+    //
+    // A delivered order is the normal case for refund.
+    // For other statuses, keep refund disabled unless
+    // your business logic explicitly allows it.
+    //
+
+    if (
+      order.orderStatus !==
+      "Delivered"
+    ) {
+      await session.abortTransaction();
+
+      return res.status(400).json({
+        success: false,
+        message:
+          "Only delivered orders can be refunded",
+      });
+    }
+
+    // ==================================================
+    // UPDATE PAYMENT STATUS
+    // ==================================================
+
+    order.paymentStatus =
+      "Refunded";
+
     order.isPaid = false;
-    order.refundedAt = new Date();
 
-    await order.save();
+    order.refundedAt =
+      new Date();
 
-    // Financial refund transaction
+    // ==================================================
+    // SAVE ORDER
+    // ==================================================
+
+    const updatedOrder =
+      await order.save({
+        session,
+      });
+
+    // ==================================================
+    // FINANCIAL REFUND TRANSACTION
+    // ==================================================
+
     await createOrderRefund({
-      order,
-      createdBy: req.user?._id || null,
+      order: updatedOrder,
+
+      createdBy:
+        req.user?._id || null,
+
+      session,
     });
+
+    // ==================================================
+    // COMMIT
+    // ==================================================
+
+    await session.commitTransaction();
+
+    // ==================================================
+    // NOTIFICATION
+    // ==================================================
 
     await createOrderNotification({
-      user: order.user,
+      user: updatedOrder.user,
+
       title: "Order Refunded",
-      message: `Your order #${order._id} has been refunded successfully.`,
+
+      message: `Your order #${updatedOrder._id} has been refunded successfully.`,
     });
+
+    // ==================================================
+    // RESPONSE
+    // ==================================================
 
     return res.status(200).json({
       success: true,
-      message: "Order refunded successfully",
-      data: order,
+
+      message:
+        "Order refunded successfully",
+
+      data: updatedOrder,
     });
   } catch (error) {
-    console.error("Refund order error:", error);
+    // ==================================================
+    // ABORT TRANSACTION
+    // ==================================================
+
+    if (session.inTransaction()) {
+      try {
+        await session.abortTransaction();
+      } catch (abortError) {
+        console.error(
+          "Refund transaction abort error:",
+          abortError,
+        );
+      }
+    }
+
+    // ==================================================
+    // DUPLICATE FINANCIAL TRANSACTION
+    // ==================================================
+
+    if (error?.code === 11000) {
+      console.error(
+        "Duplicate refund transaction:",
+        error,
+      );
+
+      return res.status(409).json({
+        success: false,
+
+        message:
+          "Refund transaction already exists for this order",
+      });
+    }
+
+    // ==================================================
+    // ERROR
+    // ==================================================
+
+    console.error(
+      "Refund order error:",
+      error,
+    );
 
     return res.status(500).json({
       success: false,
-      message: "Failed to refund order",
+
+      message:
+        "Failed to refund order",
+
+      error:
+        process.env.NODE_ENV ===
+          "development"
+          ? error.message
+          : undefined,
     });
+  } finally {
+    // ==================================================
+    // END SESSION
+    // ==================================================
+
+    await session.endSession();
   }
 };
