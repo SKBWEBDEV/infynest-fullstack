@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import { GoogleLogin } from "@react-oauth/google";
+
 import API from "../services/api";
 import toast from "react-hot-toast";
 
@@ -22,20 +23,31 @@ import {
 } from "react-icons/hi";
 
 const Login = () => {
+  // ==========================================
+  // STATES
+  // ==========================================
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+
   const [showPassword, setShowPassword] = useState(false);
 
-  // Login loading state
   const [isLoading, setIsLoading] = useState(false);
-
-  // Google loading state
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [previousImageIndex, setPreviousImageIndex] = useState(0);
 
+  // ==========================================
+  // ROUTER
+  // ==========================================
+
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // ==========================================
+  // TRANSLATION
+  // ==========================================
 
   const { t, i18n } = useTranslation();
 
@@ -49,45 +61,104 @@ const Login = () => {
 
   const sliderImages = [
     "https://images.unsplash.com/photo-1634017839464-5c339ebe3cb4?q=80&w=1920&auto=format&fit=crop",
+
     "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1920&auto=format&fit=crop",
+
     "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?q=80&w=1920&auto=format&fit=crop",
   ];
 
   // ==========================================
-  // AUTO SLIDE
+  // RETURN PATH
+  // ==========================================
+
+  const getReturnPath = () => {
+    const from = location.state?.from;
+
+    if (typeof from === "string" && from.startsWith("/")) {
+      return from;
+    }
+
+    return "/";
+  };
+
+  // ==========================================
+  // AUTO SLIDER
   // ==========================================
 
   useEffect(() => {
     const interval = setInterval(() => {
-      const nextIndex =
-        (currentImageIndex + 1) % sliderImages.length;
-
       setPreviousImageIndex(currentImageIndex);
-      setCurrentImageIndex(nextIndex);
+
+      setCurrentImageIndex(
+        (currentImageIndex + 1) % sliderImages.length
+      );
     }, 3500);
 
     return () => clearInterval(interval);
-  }, [currentImageIndex, sliderImages.length]);
+  }, [currentImageIndex]);
 
   // ==========================================
-  // MANUAL SLIDE
+  // NEXT SLIDE
   // ==========================================
 
   const nextSlide = () => {
-    const nextIndex =
-      (currentImageIndex + 1) % sliderImages.length;
-
     setPreviousImageIndex(currentImageIndex);
-    setCurrentImageIndex(nextIndex);
+
+    setCurrentImageIndex(
+      (currentImageIndex + 1) % sliderImages.length
+    );
   };
 
-  const prevSlide = () => {
-    const prevIndex =
-      (currentImageIndex - 1 + sliderImages.length) %
-      sliderImages.length;
+  // ==========================================
+  // PREVIOUS SLIDE
+  // ==========================================
 
+  const prevSlide = () => {
     setPreviousImageIndex(currentImageIndex);
-    setCurrentImageIndex(prevIndex);
+
+    setCurrentImageIndex(
+      (currentImageIndex - 1 + sliderImages.length) %
+      sliderImages.length
+    );
+  };
+
+  // ==========================================
+  // SAVE LOGIN DATA
+  // ==========================================
+
+  const saveLoginData = (data) => {
+    if (!data) return;
+
+    // Save complete user information
+    localStorage.setItem(
+      "userInfo",
+      JSON.stringify(data)
+    );
+
+    // Save token separately
+    if (data?.token) {
+      localStorage.setItem("token", data.token);
+    }
+  };
+
+  // ==========================================
+  // REDIRECT AFTER LOGIN
+  // ==========================================
+
+  const redirectAfterLogin = (data) => {
+    // Admin
+    if (data?.role === "admin") {
+      navigate("/admin/dashboard", {
+        replace: true,
+      });
+
+      return;
+    }
+
+    // Normal user
+    navigate(getReturnPath(), {
+      replace: true,
+    });
   };
 
   // ==========================================
@@ -97,70 +168,65 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Prevent multiple clicks / duplicate requests
     if (isLoading || isGoogleLoading) {
       return;
     }
 
-    // Basic validation
-    if (!email.trim() || !password.trim()) {
-      toast.error("Please enter email and password");
+    const cleanEmail = email.trim();
+
+    if (!cleanEmail || !password.trim()) {
+      toast.error("Please enter email and password.");
       return;
     }
 
     try {
       setIsLoading(true);
 
-      const { data } = await API.post("/auth/login", {
-        email: email.trim(),
-        password,
-      });
+      const response = await API.post(
+        "/auth/login",
+        {
+          email: cleanEmail,
+          password,
+        }
+      );
+
+      const data = response?.data;
 
       console.log("Login Response:", data);
 
-      // ==========================================
-      // SAVE USER INFO
-      // ==========================================
-
-      localStorage.setItem(
-        "userInfo",
-        JSON.stringify(data)
-      );
-
-      // ==========================================
-      // SAVE TOKEN
-      // ==========================================
-
-      if (data?.token) {
-        localStorage.setItem("token", data.token);
+      if (!data) {
+        throw new Error("Invalid login response.");
       }
 
-      toast.success("Login Successful!");
+      // ==========================================
+      // SAVE USER
+      // ==========================================
 
-      // Clear form
+      saveLoginData(data);
+
+      // ==========================================
+      // SUCCESS
+      // ==========================================
+
+      toast.success("Login successful!");
+
       setEmail("");
       setPassword("");
 
       // ==========================================
-      // ROLE BASED REDIRECT
+      // REDIRECT
       // ==========================================
 
-      if (data?.role === "admin") {
-        navigate("/admin/dashboard");
-      } else {
-        navigate("/");
-      }
+      redirectAfterLogin(data);
 
     } catch (error) {
       console.error("Login Error:", error);
 
       toast.error(
-        error.response?.data?.message ||
-        "Login failed. Please try again."
+        error?.response?.data?.message ||
+        "Login failed. Please check your email and password."
       );
-
     } finally {
-      // Always enable button after request finishes
       setIsLoading(false);
     }
   };
@@ -169,72 +235,83 @@ const Login = () => {
   // GOOGLE LOGIN
   // ==========================================
 
-  const handleGoogleSuccess = async (credentialResponse) => {
-    if (isLoading || isGoogleLoading) {
+  const handleGoogleSuccess = async (
+    credentialResponse
+  ) => {
+    if (
+      isLoading ||
+      isGoogleLoading
+    ) {
+      return;
+    }
+
+    if (!credentialResponse?.credential) {
+      toast.error("Google authentication failed.");
       return;
     }
 
     try {
       setIsGoogleLoading(true);
 
-      const res = await API.post(
+      const response = await API.post(
         "/auth/google-login",
         {
           token: credentialResponse.credential,
         }
       );
 
+      const data = response?.data;
+
       console.log(
-        "Google Login Success:",
-        res.data
+        "Google Login Response:",
+        data
       );
 
-      // ==========================================
-      // SAVE USER INFO
-      // ==========================================
-
-      localStorage.setItem(
-        "userInfo",
-        JSON.stringify(res.data)
-      );
-
-      // ==========================================
-      // SAVE TOKEN
-      // ==========================================
-
-      if (res.data?.token) {
-        localStorage.setItem(
-          "token",
-          res.data.token
+      if (!data) {
+        throw new Error(
+          "Invalid Google login response."
         );
       }
 
-      toast.success("Login Successful!");
-
       // ==========================================
-      // ROLE BASED REDIRECT
+      // SAVE USER
       // ==========================================
 
-      if (res.data?.role === "admin") {
-        navigate("/admin/dashboard");
-      } else {
-        navigate("/");
-      }
+      saveLoginData(data);
+
+      toast.success("Google login successful!");
+
+      // ==========================================
+      // REDIRECT
+      // ==========================================
+
+      redirectAfterLogin(data);
 
     } catch (error) {
       console.error(
-        "Google login failed:",
+        "Google Login Error:",
         error
       );
 
       toast.error(
-        error.response?.data?.message ||
-        "Google login failed"
+        error?.response?.data?.message ||
+        "Google login failed. Please try again."
       );
-
     } finally {
       setIsGoogleLoading(false);
     }
+  };
+
+  // ==========================================
+  // GOOGLE ERROR
+  // ==========================================
+
+  const handleGoogleError = () => {
+    setIsGoogleLoading(false);
+
+    toast.error(
+      "Google login failed. Please try again."
+    );
   };
 
   // ==========================================
@@ -251,12 +328,10 @@ const Login = () => {
         items-center
         justify-center
         p-4
-        sm:p-0
+        sm:p-6
         md:p-8
         relative
         overflow-hidden
-        border-0
-        border-white/20
       "
       style={{
         backgroundImage:
@@ -291,7 +366,7 @@ const Login = () => {
       >
 
         {/* ==========================================
-            LEFT SIDE - IMAGE SLIDER
+            LEFT SIDE
         ========================================== */}
 
         <div
@@ -392,6 +467,9 @@ const Login = () => {
 
                 <Link
                   to="/register"
+                  state={{
+                    from: getReturnPath(),
+                  }}
                   className="
                     border
                     border-white/50
@@ -438,7 +516,6 @@ const Login = () => {
                 </div>
 
                 <div>
-
                   <h4 className="font-bold text-sm">
                     INFYNEST.ui
                   </h4>
@@ -446,7 +523,6 @@ const Login = () => {
                   <p className="text-[11px] text-gray-300">
                     UI & E-commerce Platform
                   </p>
-
                 </div>
 
               </div>
@@ -458,7 +534,10 @@ const Login = () => {
                 <button
                   type="button"
                   onClick={prevSlide}
-                  disabled={isLoading || isGoogleLoading}
+                  disabled={
+                    isLoading ||
+                    isGoogleLoading
+                  }
                   className="
                     w-8
                     h-8
@@ -471,10 +550,8 @@ const Login = () => {
                     hover:bg-white/20
                     transition
                     text-white
-                    cursor-pointer
                     backdrop-blur-sm
                     disabled:opacity-50
-                    disabled:cursor-not-allowed
                   "
                 >
                   <HiArrowLeft size={14} />
@@ -483,7 +560,10 @@ const Login = () => {
                 <button
                   type="button"
                   onClick={nextSlide}
-                  disabled={isLoading || isGoogleLoading}
+                  disabled={
+                    isLoading ||
+                    isGoogleLoading
+                  }
                   className="
                     w-8
                     h-8
@@ -496,10 +576,8 @@ const Login = () => {
                     hover:bg-white/20
                     transition
                     text-white
-                    cursor-pointer
                     backdrop-blur-sm
                     disabled:opacity-50
-                    disabled:cursor-not-allowed
                   "
                 >
                   <HiArrowRight size={14} />
@@ -513,7 +591,7 @@ const Login = () => {
         </div>
 
         {/* ==========================================
-            RIGHT SIDE - LOGIN FORM
+            RIGHT SIDE
         ========================================== */}
 
         <div
@@ -566,8 +644,13 @@ const Login = () => {
 
               <button
                 type="button"
-                onClick={() => changeLanguage("en")}
-                disabled={isLoading || isGoogleLoading}
+                onClick={() =>
+                  changeLanguage("en")
+                }
+                disabled={
+                  isLoading ||
+                  isGoogleLoading
+                }
                 className={
                   i18n.language === "en"
                     ? "font-bold text-black"
@@ -581,8 +664,13 @@ const Login = () => {
 
               <button
                 type="button"
-                onClick={() => changeLanguage("bn")}
-                disabled={isLoading || isGoogleLoading}
+                onClick={() =>
+                  changeLanguage("bn")
+                }
+                disabled={
+                  isLoading ||
+                  isGoogleLoading
+                }
                 className={
                   i18n.language === "bn"
                     ? "font-bold text-black"
@@ -629,42 +717,39 @@ const Login = () => {
 
             {/* Email */}
 
-            <div>
-
-              <input
-                type="email"
-                placeholder={t("email")}
-                value={email}
-                onChange={(e) =>
-                  setEmail(e.target.value)
-                }
-                required
-                disabled={
-                  isLoading || isGoogleLoading
-                }
-                className="
-                  w-full
-                  px-4
-                  py-3.5
-                  rounded-xl
-                  border
-                  border-gray-200
-                  focus:outline-none
-                  focus:border-black
-                  focus:ring-2
-                  focus:ring-black/5
-                  text-xs
-                  bg-gray-50/50
-                  text-gray-800
-                  placeholder-gray-400
-                  transition
-                  disabled:bg-gray-100
-                  disabled:cursor-not-allowed
-                  disabled:opacity-70
-                "
-              />
-
-            </div>
+            <input
+              type="email"
+              placeholder={t("email")}
+              value={email}
+              onChange={(e) =>
+                setEmail(e.target.value)
+              }
+              required
+              disabled={
+                isLoading ||
+                isGoogleLoading
+              }
+              autoComplete="email"
+              className="
+                w-full
+                px-4
+                py-3.5
+                rounded-xl
+                border
+                border-gray-200
+                focus:outline-none
+                focus:border-black
+                focus:ring-2
+                focus:ring-black/5
+                text-xs
+                bg-gray-50/50
+                text-gray-800
+                placeholder-gray-400
+                transition
+                disabled:bg-gray-100
+                disabled:cursor-not-allowed
+              "
+            />
 
             {/* Password */}
 
@@ -683,8 +768,10 @@ const Login = () => {
                 }
                 required
                 disabled={
-                  isLoading || isGoogleLoading
+                  isLoading ||
+                  isGoogleLoading
                 }
+                autoComplete="current-password"
                 className="
                   w-full
                   px-4
@@ -702,19 +789,19 @@ const Login = () => {
                   text-gray-800
                   placeholder-gray-400
                   transition
-                  disabled:bg-gray-100
-                  disabled:cursor-not-allowed
-                  disabled:opacity-70
                 "
               />
 
               <button
                 type="button"
                 onClick={() =>
-                  setShowPassword(!showPassword)
+                  setShowPassword(
+                    !showPassword
+                  )
                 }
                 disabled={
-                  isLoading || isGoogleLoading
+                  isLoading ||
+                  isGoogleLoading
                 }
                 className="
                   absolute
@@ -723,18 +810,13 @@ const Login = () => {
                   -translate-y-1/2
                   text-gray-400
                   hover:text-gray-700
-                  cursor-pointer
-                  disabled:opacity-50
-                  disabled:cursor-not-allowed
                 "
               >
-
                 {showPassword ? (
                   <HiEyeOff size={16} />
                 ) : (
                   <HiEye size={16} />
                 )}
-
               </button>
 
             </div>
@@ -757,14 +839,14 @@ const Login = () => {
                   items-center
                   gap-2
                   text-gray-600
-                  cursor-pointer
                 "
               >
 
                 <input
                   type="checkbox"
                   disabled={
-                    isLoading || isGoogleLoading
+                    isLoading ||
+                    isGoogleLoading
                   }
                   className="
                     rounded
@@ -806,7 +888,6 @@ const Login = () => {
 
               <span
                 className="
-                  flex-shrink
                   mx-4
                   text-gray-400
                   text-xs
@@ -823,14 +904,7 @@ const Login = () => {
                 GOOGLE LOGIN
             ========================================== */}
 
-            <div
-              className="
-                w-full
-                flex
-                justify-center
-                relative
-              "
-            >
+            <div className="w-full flex justify-center relative">
 
               {isGoogleLoading && (
                 <div
@@ -871,26 +945,22 @@ const Login = () => {
                   onSuccess={
                     handleGoogleSuccess
                   }
-                  onError={() => {
-                    setIsGoogleLoading(false);
-                    toast.error(
-                      "Google Login Failed"
-                    );
-                  }}
+                  onError={
+                    handleGoogleError
+                  }
                 />
 
               </div>
 
             </div>
 
-            {/* ==========================================
-                LOGIN BUTTON
-            ========================================== */}
+            {/* Login Button */}
 
             <button
               type="submit"
               disabled={
-                isLoading || isGoogleLoading
+                isLoading ||
+                isGoogleLoading
               }
               className="
                 w-full
@@ -904,10 +974,8 @@ const Login = () => {
                 text-xs
                 shadow-md
                 shadow-red-500/20
-                cursor-pointer
                 disabled:opacity-60
                 disabled:cursor-not-allowed
-                disabled:hover:bg-[#f53b3b]
                 flex
                 items-center
                 justify-center
@@ -939,9 +1007,7 @@ const Login = () => {
 
           </form>
 
-          {/* ==========================================
-              BOTTOM
-          ========================================== */}
+          {/* Bottom */}
 
           <div className="mt-6 text-center">
 
@@ -951,6 +1017,9 @@ const Login = () => {
 
               <Link
                 to="/register"
+                state={{
+                  from: getReturnPath(),
+                }}
                 className="
                   text-[#f53b3b]
                   font-semibold
@@ -977,6 +1046,9 @@ const Login = () => {
 
               <a
                 href="#"
+                onClick={(e) =>
+                  e.preventDefault()
+                }
                 className="hover:text-black transition"
               >
                 <FaFacebookF size={14} />
@@ -984,6 +1056,9 @@ const Login = () => {
 
               <a
                 href="#"
+                onClick={(e) =>
+                  e.preventDefault()
+                }
                 className="hover:text-black transition"
               >
                 <FaTwitter size={14} />
@@ -991,6 +1066,9 @@ const Login = () => {
 
               <a
                 href="#"
+                onClick={(e) =>
+                  e.preventDefault()
+                }
                 className="hover:text-black transition"
               >
                 <FaLinkedinIn size={14} />
@@ -998,6 +1076,9 @@ const Login = () => {
 
               <a
                 href="#"
+                onClick={(e) =>
+                  e.preventDefault()
+                }
                 className="hover:text-black transition"
               >
                 <FaInstagram size={14} />
