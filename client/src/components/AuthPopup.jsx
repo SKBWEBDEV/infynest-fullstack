@@ -16,6 +16,36 @@ export default function AuthPopup({ onClose, onSuccess }) {
 
   const [loading, setLoading] = useState(false);
 
+
+  // ==========================================
+// SAVE AUTH DATA
+// ==========================================
+
+const saveAuthData = (data) => {
+  const token = data?.token;
+
+  const user =
+    data?.user ||
+    data?.userData ||
+    data?.data?.user ||
+    data?.data?.userData ||
+    data;
+
+  if (token) {
+    localStorage.setItem("token", token);
+  }
+
+  if (user) {
+    localStorage.setItem(
+      "userInfo",
+      JSON.stringify(user)
+    );
+  }
+
+  // Tell Layout that login state changed
+  window.dispatchEvent(new Event("authChanged"));
+};
+
   // ==========================================
   // LOGIN
   // ==========================================
@@ -41,30 +71,24 @@ export default function AuthPopup({ onClose, onSuccess }) {
       console.log("Popup Login Response:", data);
 
       // Save user information
-      localStorage.setItem(
-        "userInfo",
-        JSON.stringify(data)
-      );
-
-      // Save token
-      if (data?.token) {
-        localStorage.setItem("token", data.token);
-      }
+      saveAuthData(data);
 
       toast.success("Login Successful!");
 
-      // Clear form
-      setEmail("");
-      setPassword("");
+setEmail("");
+setPassword("");
 
-      // Tell Cart that authentication succeeded
-      if (onSuccess) {
+saveAuthData(data);
+
+if (onSuccess) {
   onSuccess(data);
 }
 
 if (onClose) {
   onClose();
+
 }
+
 
     } catch (error) {
       console.error("Popup Login Error:", error);
@@ -150,20 +174,13 @@ if (onClose) {
       );
 
       // Save user information
-      localStorage.setItem(
-        "userInfo",
-        JSON.stringify(data)
-      );
+      saveAuthData(data);
 
-      // Save token
-      if (data?.token) {
-        localStorage.setItem("token", data.token);
-      }
+toast.success("Login Successful!");
 
-      toast.success("Login Successful!");
+saveAuthData(data);
 
-      // Tell Cart authentication succeeded
-      if (onSuccess) {
+if (onSuccess) {
   onSuccess(data);
 }
 

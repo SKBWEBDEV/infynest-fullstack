@@ -39,18 +39,35 @@ export default function Layout() {
   // LOAD USER
   // ====================================================
 
-  useEffect(() => {
+useEffect(() => {
+  const loadUser = () => {
     const storedUser = localStorage.getItem("userInfo");
 
-    if (storedUser) {
-      try {
-        setUserInfo(JSON.parse(storedUser));
-      } catch (error) {
-        console.error("Failed to parse user info:", error);
-        setUserInfo(null);
-      }
+    if (!storedUser) {
+      setUserInfo(null);
+      return;
     }
-  }, []);
+
+    try {
+      const parsedUser = JSON.parse(storedUser);
+
+      setUserInfo(parsedUser);
+    } catch (error) {
+      console.error("Failed to parse user info:", error);
+      setUserInfo(null);
+    }
+  };
+
+  // Load user when Layout mounts
+  loadUser();
+
+  // Listen for login/logout changes
+  window.addEventListener("authChanged", loadUser);
+
+  return () => {
+    window.removeEventListener("authChanged", loadUser);
+  };
+}, []);
 
   // ====================================================
   // LOGOUT
@@ -60,9 +77,12 @@ const handleLogout = () => {
   localStorage.removeItem("token");
 
   setUserInfo(null);
+
+  window.dispatchEvent(new Event("authChanged"));
+
   setIsMobileMenuOpen(false);
 
-  navigate("/login");
+  navigate("/");
 };
 
   // ====================================================
@@ -359,9 +379,7 @@ const handleLogout = () => {
               {userInfo ? (
                 <div className="flex items-center space-x-3">
 
-                  <span className="text-sm font-semibold text-gray-800">
-                    Hi, {userInfo.name}
-                  </span>
+                  <span className="text-sm font-semibold text-gray-800">Hi, {userInfo?.name || userInfo?.fullName || "User"}</span>
 
                   <button
                     onClick={handleLogout}
