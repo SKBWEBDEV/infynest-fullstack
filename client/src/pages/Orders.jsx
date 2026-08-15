@@ -21,38 +21,100 @@ export default function MyOrders() {
   }, []);
 
   const fetchMyOrders = async () => {
-    try {
-      const token =
-        localStorage.getItem("token") ||
-        JSON.parse(localStorage.getItem("userInfo"))?.token;
+  try {
+    setLoading(true);
 
-      if (!token) {
-        toast.error("Please login to view your orders");
-        setLoading(false);
-        return;
-      }
+    // ==========================================
+    // GET LOGGED-IN USER FROM LOCAL STORAGE
+    // ==========================================
 
-      const response = await API.get("/orders/myorders", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+    const storedUser = localStorage.getItem("userInfo");
 
-      if (response.data?.data) {
-        setOrders(response.data.data);
-      } else if (Array.isArray(response.data)) {
-        setOrders(response.data);
-      }
-    } catch (error) {
-      console.error("Error fetching orders:", error);
-
-      toast.error(
-        error.response?.data?.message || "Failed to fetch orders",
-      );
-    } finally {
+    // User login না করলে কোনো API request যাবে না
+    if (!storedUser) {
+      setOrders([]);
       setLoading(false);
+      return;
     }
-  };
+
+    let userInfo;
+
+    try {
+      userInfo = JSON.parse(storedUser);
+    } catch (parseError) {
+      console.error("Invalid userInfo in localStorage:", parseError);
+
+      // Corrupted userInfo থাকলে remove করে দিচ্ছি
+      localStorage.removeItem("userInfo");
+
+      setOrders([]);
+      setLoading(false);
+      return;
+    }
+
+    // ==========================================
+    // CHECK TOKEN
+    // ==========================================
+
+    const token = userInfo?.token;
+
+    if (!token) {
+      setOrders([]);
+      setLoading(false);
+      return;
+    }
+
+    // ==========================================
+    // FETCH ONLY LOGGED-IN USER'S ORDERS
+    // ==========================================
+
+    const response = await API.get("/orders/myorders", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    console.log("My Orders Response:", response.data);
+
+    // ==========================================
+    // SET ORDERS
+    // ==========================================
+
+    if (Array.isArray(response.data?.data)) {
+      setOrders(response.data.data);
+    } else if (Array.isArray(response.data?.orders)) {
+      setOrders(response.data.orders);
+    } else if (Array.isArray(response.data)) {
+      setOrders(response.data);
+    } else {
+      setOrders([]);
+    }
+
+  } catch (error) {
+    console.error("Error fetching orders:", error);
+
+    // Unauthorized / expired token
+    if (error.response?.status === 401) {
+      localStorage.removeItem("userInfo");
+      localStorage.removeItem("token");
+
+      setOrders([]);
+
+      toast.error("Your session has expired. Please login again.");
+
+      return;
+    }
+
+    toast.error(
+      error.response?.data?.message || "Failed to fetch orders"
+    );
+
+    setOrders([]);
+
+  } finally {
+    setLoading(false);
+  }
+};
 
   // ==========================================
   // STATUS BADGE

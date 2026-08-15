@@ -55,15 +55,15 @@ export default function Layout() {
   // ====================================================
   // LOGOUT
   // ====================================================
+const handleLogout = () => {
+  localStorage.removeItem("userInfo");
+  localStorage.removeItem("token");
 
-  const handleLogout = () => {
-    localStorage.removeItem("userInfo");
+  setUserInfo(null);
+  setIsMobileMenuOpen(false);
 
-    setUserInfo(null);
-    setIsMobileMenuOpen(false);
-
-    navigate("/login");
-  };
+  navigate("/login");
+};
 
   // ====================================================
   // RETURN
