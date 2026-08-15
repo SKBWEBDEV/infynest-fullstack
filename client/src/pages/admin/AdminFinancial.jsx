@@ -1955,10 +1955,10 @@ export default function AdminFinancial() {
     };
 
 
-    const filteredTransactions =
-  transactionCategory === "all"
-    ? transactions
-    : transactions.filter(
+  const filteredTransactions =
+    transactionCategory === "all"
+      ? transactions
+      : transactions.filter(
         (transaction) =>
           transaction.category === transactionCategory
       );
@@ -3426,12 +3426,12 @@ export default function AdminFinancial() {
             </div>
 
             <div className="mt-4">
-  <select
-    value={transactionCategory}
-    onChange={(e) =>
-      setTransactionCategory(e.target.value)
-    }
-    className="
+              <select
+                value={transactionCategory}
+                onChange={(e) =>
+                  setTransactionCategory(e.target.value)
+                }
+                className="
       bg-slate-900
       border border-slate-700
       text-white
@@ -3442,28 +3442,28 @@ export default function AdminFinancial() {
       outline-none
       focus:border-indigo-500
     "
-  >
-    <option value="all">
-      All Categories
-    </option>
+              >
+                <option value="all">
+                  All Categories
+                </option>
 
-    <option value="sales">
-      Sales
-    </option>
+                <option value="sales">
+                  Sales
+                </option>
 
-    <option value="marketing">
-      Marketing
-    </option>
+                <option value="marketing">
+                  Marketing
+                </option>
 
-    <option value="shipping">
-      Shipping
-    </option>
+                <option value="shipping">
+                  Shipping
+                </option>
 
-    <option value="product-cost">
-      Product Cost
-    </option>
-  </select>
-</div>
+                <option value="product-cost">
+                  Product Cost
+                </option>
+              </select>
+            </div>
 
             <span className="text-xs text-slate-400">
               {

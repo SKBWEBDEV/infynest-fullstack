@@ -59,8 +59,12 @@ export default function AuthPopup({ onClose, onSuccess }) {
 
       // Tell Cart that authentication succeeded
       if (onSuccess) {
-        onSuccess(data);
-      }
+  onSuccess(data);
+}
+
+if (onClose) {
+  onClose();
+}
 
     } catch (error) {
       console.error("Popup Login Error:", error);
@@ -160,8 +164,12 @@ export default function AuthPopup({ onClose, onSuccess }) {
 
       // Tell Cart authentication succeeded
       if (onSuccess) {
-        onSuccess(data);
-      }
+  onSuccess(data);
+}
+
+if (onClose) {
+  onClose();
+}
 
     } catch (error) {
       console.error(
