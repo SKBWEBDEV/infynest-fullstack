@@ -1,4 +1,5 @@
-// writing{variant="document" id="58321"}
+// File Path: src/pages/Login.jsx
+
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, Link } from "react-router-dom";
@@ -24,6 +25,13 @@ const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+
+  // Login loading state
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Google loading state
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [previousImageIndex, setPreviousImageIndex] = useState(0);
 
@@ -49,259 +57,517 @@ const Login = () => {
   // AUTO SLIDE
   // ==========================================
 
-useEffect(() => {
-  const interval = setInterval(() => {
-    const nextIndex =
-      (currentImageIndex + 1) % sliderImages.length;
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const nextIndex =
+        (currentImageIndex + 1) % sliderImages.length;
 
-    setPreviousImageIndex(currentImageIndex);
-    setCurrentImageIndex(nextIndex);
-  }, 3500);
+      setPreviousImageIndex(currentImageIndex);
+      setCurrentImageIndex(nextIndex);
+    }, 3500);
 
-  return () => clearInterval(interval);
-}, [currentImageIndex, sliderImages.length]);
+    return () => clearInterval(interval);
+  }, [currentImageIndex, sliderImages.length]);
 
   // ==========================================
   // MANUAL SLIDE
   // ==========================================
 
-const nextSlide = () => {
-  const nextIndex =
-    (currentImageIndex + 1) % sliderImages.length;
+  const nextSlide = () => {
+    const nextIndex =
+      (currentImageIndex + 1) % sliderImages.length;
 
-  setPreviousImageIndex(currentImageIndex);
-  setCurrentImageIndex(nextIndex);
-};
+    setPreviousImageIndex(currentImageIndex);
+    setCurrentImageIndex(nextIndex);
+  };
 
-const prevSlide = () => {
-  const prevIndex =
-    (currentImageIndex - 1 + sliderImages.length) %
-    sliderImages.length;
+  const prevSlide = () => {
+    const prevIndex =
+      (currentImageIndex - 1 + sliderImages.length) %
+      sliderImages.length;
 
-  setPreviousImageIndex(currentImageIndex);
-  setCurrentImageIndex(prevIndex);
-};
+    setPreviousImageIndex(currentImageIndex);
+    setCurrentImageIndex(prevIndex);
+  };
 
   // ==========================================
-  // LOGIN
+  // NORMAL LOGIN
   // ==========================================
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // Prevent multiple clicks / duplicate requests
+    if (isLoading || isGoogleLoading) {
+      return;
+    }
+
+    // Basic validation
+    if (!email.trim() || !password.trim()) {
+      toast.error("Please enter email and password");
+      return;
+    }
+
     try {
+      setIsLoading(true);
+
       const { data } = await API.post("/auth/login", {
-        email,
+        email: email.trim(),
         password,
       });
 
-      // Save complete user information
-      localStorage.setItem("userInfo", JSON.stringify(data));
+      console.log("Login Response:", data);
 
-      // Save token separately
-      if (data.token) {
+      // ==========================================
+      // SAVE USER INFO
+      // ==========================================
+
+      localStorage.setItem(
+        "userInfo",
+        JSON.stringify(data)
+      );
+
+      // ==========================================
+      // SAVE TOKEN
+      // ==========================================
+
+      if (data?.token) {
         localStorage.setItem("token", data.token);
       }
 
       toast.success("Login Successful!");
 
+      // Clear form
       setEmail("");
       setPassword("");
 
-      // Role based redirect
-      if (data.role === "admin") {
+      // ==========================================
+      // ROLE BASED REDIRECT
+      // ==========================================
+
+      if (data?.role === "admin") {
         navigate("/admin/dashboard");
       } else {
         navigate("/");
       }
+
     } catch (error) {
+      console.error("Login Error:", error);
+
       toast.error(
-        error.response?.data?.message || "Login failed",
+        error.response?.data?.message ||
+        "Login failed. Please try again."
       );
+
+    } finally {
+      // Always enable button after request finishes
+      setIsLoading(false);
     }
   };
 
+  // ==========================================
+  // GOOGLE LOGIN
+  // ==========================================
+
+  const handleGoogleSuccess = async (credentialResponse) => {
+    if (isLoading || isGoogleLoading) {
+      return;
+    }
+
+    try {
+      setIsGoogleLoading(true);
+
+      const res = await API.post(
+        "/auth/google-login",
+        {
+          token: credentialResponse.credential,
+        }
+      );
+
+      console.log(
+        "Google Login Success:",
+        res.data
+      );
+
+      // ==========================================
+      // SAVE USER INFO
+      // ==========================================
+
+      localStorage.setItem(
+        "userInfo",
+        JSON.stringify(res.data)
+      );
+
+      // ==========================================
+      // SAVE TOKEN
+      // ==========================================
+
+      if (res.data?.token) {
+        localStorage.setItem(
+          "token",
+          res.data.token
+        );
+      }
+
+      toast.success("Login Successful!");
+
+      // ==========================================
+      // ROLE BASED REDIRECT
+      // ==========================================
+
+      if (res.data?.role === "admin") {
+        navigate("/admin/dashboard");
+      } else {
+        navigate("/");
+      }
+
+    } catch (error) {
+      console.error(
+        "Google login failed:",
+        error
+      );
+
+      toast.error(
+        error.response?.data?.message ||
+        "Google login failed"
+      );
+
+    } finally {
+      setIsGoogleLoading(false);
+    }
+  };
+
+  // ==========================================
+  // RETURN
+  // ==========================================
+
   return (
     <div
-  className="min-h-screen bg-cover bg-center flex items-center justify-center p-4 sm:p-0 md:p-8 relative overflow-hidden border-0 border-white/20"
-  style={{
-    backgroundImage:
-      "linear-gradient(to bottom, rgba(0,0,0,0.45), rgba(0,0,0,0.65)), url('/box.png')",
-  }}
->
+      className="
+        min-h-screen
+        bg-cover
+        bg-center
+        flex
+        items-center
+        justify-center
+        p-4
+        sm:p-0
+        md:p-8
+        relative
+        overflow-hidden
+        border-0
+        border-white/20
+      "
+      style={{
+        backgroundImage:
+          "linear-gradient(to bottom, rgba(0,0,0,0.45), rgba(0,0,0,0.65)), url('/box.png')",
+      }}
+    >
+
       {/* ==========================================
           MAIN CARD
       ========================================== */}
 
-      <div className="bg-white w-full max-w-5xl rounded-[30px] md:rounded-[36px] shadow-2xl p-3 sm:p-4 md:p-6 grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 items-center relative z-10">
+      <div
+        className="
+          bg-white
+          w-full
+          max-w-5xl
+          rounded-[30px]
+          md:rounded-[36px]
+          shadow-2xl
+          p-3
+          sm:p-4
+          md:p-6
+          grid
+          grid-cols-1
+          lg:grid-cols-2
+          gap-4
+          md:gap-6
+          items-center
+          relative
+          z-10
+        "
+      >
 
         {/* ==========================================
-            LEFT SIDE - AUTO IMAGE SLIDER
+            LEFT SIDE - IMAGE SLIDER
         ========================================== */}
 
-
-        {/* Left Side: Image Slider Banner */}
-<div
-  className="
-    relative
-    rounded-[28px]
-    overflow-hidden
-    p-6 md:p-8
-    flex flex-col justify-between
-    text-white
-    h-[480px]
-    lg:h-[540px]
-    border border-white/40
-  "
->
-  {/* Previous Image */}
-  <div
-    className="absolute inset-0 bg-cover bg-center"
-    style={{
-      backgroundImage: `
-        linear-gradient(
-          to bottom,
-          rgba(0,0,0,0.15),
-          rgba(0,0,0,0.7)
-        ),
-        url('${sliderImages[previousImageIndex]}')
-      `,
-    }}
-  />
-
-  {/* Current Image */}
-  <div
-    key={currentImageIndex}
-    className="absolute inset-0 bg-cover bg-center animate-slider-fade"
-    style={{
-      backgroundImage: `
-        linear-gradient(
-          to bottom,
-          rgba(0,0,0,0.15),
-          rgba(0,0,0,0.7)
-        ),
-        url('${sliderImages[currentImageIndex]}')
-      `,
-    }}
-  />
-
-  {/* Content */}
-  <div className="relative z-10 flex h-full flex-col justify-between">
-
-    {/* Top */}
-    <div className="flex justify-between items-center">
-      <span className="text-xs font-medium tracking-wider text-gray-200">
-        {t("welcome_back")}
-      </span>
-
-      <div className="flex items-center gap-2">
-        <span className="text-xs text-gray-300">
-          {t("dont_have_account")}
-        </span>
-
-        <Link
-          to="/register"
+        <div
           className="
-            border border-white/50
-            px-3.5 py-1.5
-            rounded-full
-            text-xs font-medium
-            hover:bg-white
-            hover:text-black
-            transition
-          "
-        >
-          {t("register")}
-        </Link>
-      </div>
-    </div>
-
-    {/* Bottom */}
-    <div className="flex justify-between items-end">
-
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-orange-500 to-red-600 flex items-center justify-center font-bold text-sm text-white shadow-md">
-          IN
-        </div>
-
-        <div>
-          <h4 className="font-bold text-sm">
-            INFYNEST.ui
-          </h4>
-
-          <p className="text-[11px] text-gray-300">
-            UI & E-commerce Platform
-          </p>
-        </div>
-      </div>
-
-      {/* Arrows */}
-      <div className="flex gap-2">
-        <button
-          type="button"
-          onClick={prevSlide}
-          className="
-            w-8 h-8
-            rounded-full
-            border border-white/40
-            flex items-center justify-center
-            hover:bg-white/20
-            transition
+            relative
+            rounded-[28px]
+            overflow-hidden
+            p-6
+            md:p-8
+            flex
+            flex-col
+            justify-between
             text-white
-            cursor-pointer
-            backdrop-blur-sm
+            h-[480px]
+            lg:h-[540px]
+            border
+            border-white/40
           "
         >
-          <HiArrowLeft size={14} />
-        </button>
 
-        <button
-          type="button"
-          onClick={nextSlide}
-          className="
-            w-8 h-8
-            rounded-full
-            border border-white/40
-            flex items-center justify-center
-            hover:bg-white/20
-            transition
-            text-white
-            cursor-pointer
-            backdrop-blur-sm
-          "
-        >
-          <HiArrowRight size={14} />
-        </button>
-      </div>
+          {/* Previous Image */}
 
-    </div>
+          <div
+            className="
+              absolute
+              inset-0
+              bg-cover
+              bg-center
+            "
+            style={{
+              backgroundImage: `
+                linear-gradient(
+                  to bottom,
+                  rgba(0,0,0,0.15),
+                  rgba(0,0,0,0.7)
+                ),
+                url('${sliderImages[previousImageIndex]}')
+              `,
+            }}
+          />
 
-  </div>
-</div>
+          {/* Current Image */}
 
-        
+          <div
+            key={currentImageIndex}
+            className="
+              absolute
+              inset-0
+              bg-cover
+              bg-center
+              animate-login-fade
+            "
+            style={{
+              backgroundImage: `
+                linear-gradient(
+                  to bottom,
+                  rgba(0,0,0,0.15),
+                  rgba(0,0,0,0.7)
+                ),
+                url('${sliderImages[currentImageIndex]}')
+              `,
+            }}
+          />
+
+          {/* Content */}
+
+          <div
+            className="
+              relative
+              z-10
+              flex
+              h-full
+              flex-col
+              justify-between
+            "
+          >
+
+            {/* Top */}
+
+            <div className="flex justify-between items-center">
+
+              <span
+                className="
+                  text-xs
+                  font-medium
+                  tracking-wider
+                  text-gray-200
+                "
+              >
+                {t("welcome_back")}
+              </span>
+
+              <div className="flex items-center gap-2">
+
+                <span className="text-xs text-gray-300">
+                  {t("dont_have_account")}
+                </span>
+
+                <Link
+                  to="/register"
+                  className="
+                    border
+                    border-white/50
+                    px-3.5
+                    py-1.5
+                    rounded-full
+                    text-xs
+                    font-medium
+                    hover:bg-white
+                    hover:text-black
+                    transition
+                  "
+                >
+                  {t("register")}
+                </Link>
+
+              </div>
+            </div>
+
+            {/* Bottom */}
+
+            <div className="flex justify-between items-end">
+
+              <div className="flex items-center gap-3">
+
+                <div
+                  className="
+                    w-10
+                    h-10
+                    rounded-full
+                    bg-gradient-to-tr
+                    from-orange-500
+                    to-red-600
+                    flex
+                    items-center
+                    justify-center
+                    font-bold
+                    text-sm
+                    text-white
+                    shadow-md
+                  "
+                >
+                  IN
+                </div>
+
+                <div>
+
+                  <h4 className="font-bold text-sm">
+                    INFYNEST.ui
+                  </h4>
+
+                  <p className="text-[11px] text-gray-300">
+                    UI & E-commerce Platform
+                  </p>
+
+                </div>
+
+              </div>
+
+              {/* Arrows */}
+
+              <div className="flex gap-2">
+
+                <button
+                  type="button"
+                  onClick={prevSlide}
+                  disabled={isLoading || isGoogleLoading}
+                  className="
+                    w-8
+                    h-8
+                    rounded-full
+                    border
+                    border-white/40
+                    flex
+                    items-center
+                    justify-center
+                    hover:bg-white/20
+                    transition
+                    text-white
+                    cursor-pointer
+                    backdrop-blur-sm
+                    disabled:opacity-50
+                    disabled:cursor-not-allowed
+                  "
+                >
+                  <HiArrowLeft size={14} />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={nextSlide}
+                  disabled={isLoading || isGoogleLoading}
+                  className="
+                    w-8
+                    h-8
+                    rounded-full
+                    border
+                    border-white/40
+                    flex
+                    items-center
+                    justify-center
+                    hover:bg-white/20
+                    transition
+                    text-white
+                    cursor-pointer
+                    backdrop-blur-sm
+                    disabled:opacity-50
+                    disabled:cursor-not-allowed
+                  "
+                >
+                  <HiArrowRight size={14} />
+                </button>
+
+              </div>
+
+            </div>
+
+          </div>
+        </div>
 
         {/* ==========================================
             RIGHT SIDE - LOGIN FORM
         ========================================== */}
 
-        <div className="px-4 sm:px-6 md:px-8 lg:px-6 py-6 md:py-8 flex flex-col justify-center">
+        <div
+          className="
+            px-4
+            sm:px-6
+            md:px-8
+            lg:px-6
+            py-6
+            md:py-8
+            flex
+            flex-col
+            justify-center
+          "
+        >
 
           {/* Header */}
 
           <div className="flex justify-between items-center mb-6">
 
-            <h1 className="text-lg font-black text-black tracking-wider">
+            <h1
+              className="
+                text-lg
+                font-black
+                text-black
+                tracking-wider
+              "
+            >
               INFYNEST
             </h1>
 
-            {/* Language Switcher */}
+            {/* Language */}
 
-            <div className="flex items-center gap-1 border border-gray-200 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-gray-700 bg-gray-50">
+            <div
+              className="
+                flex
+                items-center
+                gap-1
+                border
+                border-gray-200
+                px-2.5
+                py-1.5
+                rounded-lg
+                text-xs
+                font-semibold
+                text-gray-700
+                bg-gray-50
+              "
+            >
 
               <button
                 type="button"
                 onClick={() => changeLanguage("en")}
+                disabled={isLoading || isGoogleLoading}
                 className={
                   i18n.language === "en"
                     ? "font-bold text-black"
@@ -316,6 +582,7 @@ const prevSlide = () => {
               <button
                 type="button"
                 onClick={() => changeLanguage("bn")}
+                disabled={isLoading || isGoogleLoading}
                 className={
                   i18n.language === "bn"
                     ? "font-bold text-black"
@@ -333,7 +600,15 @@ const prevSlide = () => {
 
           <div className="mb-6">
 
-            <h2 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight">
+            <h2
+              className="
+                text-2xl
+                md:text-3xl
+                font-black
+                text-gray-900
+                tracking-tight
+              "
+            >
               {t("sign_in")}
             </h2>
 
@@ -343,7 +618,9 @@ const prevSlide = () => {
 
           </div>
 
-          {/* Form */}
+          {/* ==========================================
+              LOGIN FORM
+          ========================================== */}
 
           <form
             onSubmit={handleSubmit}
@@ -358,13 +635,20 @@ const prevSlide = () => {
                 type="email"
                 placeholder={t("email")}
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) =>
+                  setEmail(e.target.value)
+                }
                 required
+                disabled={
+                  isLoading || isGoogleLoading
+                }
                 className="
                   w-full
-                  px-4 py-3.5
+                  px-4
+                  py-3.5
                   rounded-xl
-                  border border-gray-200
+                  border
+                  border-gray-200
                   focus:outline-none
                   focus:border-black
                   focus:ring-2
@@ -374,6 +658,9 @@ const prevSlide = () => {
                   text-gray-800
                   placeholder-gray-400
                   transition
+                  disabled:bg-gray-100
+                  disabled:cursor-not-allowed
+                  disabled:opacity-70
                 "
               />
 
@@ -384,17 +671,28 @@ const prevSlide = () => {
             <div className="relative">
 
               <input
-                type={showPassword ? "text" : "password"}
+                type={
+                  showPassword
+                    ? "text"
+                    : "password"
+                }
                 placeholder={t("password")}
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) =>
+                  setPassword(e.target.value)
+                }
                 required
+                disabled={
+                  isLoading || isGoogleLoading
+                }
                 className="
                   w-full
-                  px-4 py-3.5
+                  px-4
+                  py-3.5
                   pr-10
                   rounded-xl
-                  border border-gray-200
+                  border
+                  border-gray-200
                   focus:outline-none
                   focus:border-black
                   focus:ring-2
@@ -404,12 +702,20 @@ const prevSlide = () => {
                   text-gray-800
                   placeholder-gray-400
                   transition
+                  disabled:bg-gray-100
+                  disabled:cursor-not-allowed
+                  disabled:opacity-70
                 "
               />
 
               <button
                 type="button"
-                onClick={() => setShowPassword(!showPassword)}
+                onClick={() =>
+                  setShowPassword(!showPassword)
+                }
+                disabled={
+                  isLoading || isGoogleLoading
+                }
                 className="
                   absolute
                   right-3
@@ -418,26 +724,54 @@ const prevSlide = () => {
                   text-gray-400
                   hover:text-gray-700
                   cursor-pointer
+                  disabled:opacity-50
+                  disabled:cursor-not-allowed
                 "
               >
+
                 {showPassword ? (
                   <HiEyeOff size={16} />
                 ) : (
                   <HiEye size={16} />
                 )}
+
               </button>
 
             </div>
 
             {/* Remember / Forgot */}
 
-            <div className="flex items-center justify-between text-xs gap-3">
+            <div
+              className="
+                flex
+                items-center
+                justify-between
+                text-xs
+                gap-3
+              "
+            >
 
-              <label className="flex items-center gap-2 text-gray-600 cursor-pointer">
+              <label
+                className="
+                  flex
+                  items-center
+                  gap-2
+                  text-gray-600
+                  cursor-pointer
+                "
+              >
 
                 <input
                   type="checkbox"
-                  className="rounded border-gray-300 text-[#f53b3b] focus:ring-0"
+                  disabled={
+                    isLoading || isGoogleLoading
+                  }
+                  className="
+                    rounded
+                    border-gray-300
+                    text-[#f53b3b]
+                    focus:ring-0
+                  "
                 />
 
                 Remember me
@@ -446,7 +780,11 @@ const prevSlide = () => {
 
               <Link
                 to="/forgot-password"
-                className="font-medium text-indigo-600 hover:text-indigo-500"
+                className="
+                  font-medium
+                  text-indigo-600
+                  hover:text-indigo-500
+                "
               >
                 Forgot your password?
               </Link>
@@ -455,11 +793,25 @@ const prevSlide = () => {
 
             {/* Divider */}
 
-            <div className="relative flex py-1 items-center">
+            <div
+              className="
+                relative
+                flex
+                py-1
+                items-center
+              "
+            >
 
               <div className="flex-grow border-t border-gray-200" />
 
-              <span className="flex-shrink mx-4 text-gray-400 text-xs">
+              <span
+                className="
+                  flex-shrink
+                  mx-4
+                  text-gray-400
+                  text-xs
+                "
+              >
                 {t("or")}
               </span>
 
@@ -467,69 +819,79 @@ const prevSlide = () => {
 
             </div>
 
-            {/* Google Login */}
+            {/* ==========================================
+                GOOGLE LOGIN
+            ========================================== */}
 
-            <div className="w-full flex justify-center">
+            <div
+              className="
+                w-full
+                flex
+                justify-center
+                relative
+              "
+            >
 
-              <GoogleLogin
-                onSuccess={async (credentialResponse) => {
-                  try {
+              {isGoogleLoading && (
+                <div
+                  className="
+                    absolute
+                    inset-0
+                    bg-white/70
+                    z-10
+                    flex
+                    items-center
+                    justify-center
+                    rounded-lg
+                  "
+                >
+                  <div
+                    className="
+                      w-5
+                      h-5
+                      border-2
+                      border-gray-300
+                      border-t-black
+                      rounded-full
+                      animate-spin
+                    "
+                  />
+                </div>
+              )}
 
-                    const res = await API.post(
-                      "/auth/google-login",
-                      {
-                        token: credentialResponse.credential,
-                      },
-                    );
+              <div
+                className={
+                  isLoading
+                    ? "opacity-50 pointer-events-none"
+                    : ""
+                }
+              >
 
-                    console.log(
-                      "Google Login Success:",
-                      res.data,
-                    );
-
-                    localStorage.setItem(
-                      "userInfo",
-                      JSON.stringify(res.data),
-                    );
-
-                    localStorage.setItem(
-                      "token",
-                      res.data.token,
-                    );
-
-                    toast.success("Login Successful!");
-
-                    if (res.data.role === "admin") {
-                      navigate("/admin/dashboard");
-                    } else {
-                      navigate("/");
-                    }
-
-                  } catch (error) {
-
-                    console.error(
-                      "Google login failed",
-                      error,
-                    );
-
-                    toast.error(
-                      error.response?.data?.message ||
-                        "Google login failed",
-                    );
+                <GoogleLogin
+                  onSuccess={
+                    handleGoogleSuccess
                   }
-                }}
+                  onError={() => {
+                    setIsGoogleLoading(false);
+                    toast.error(
+                      "Google Login Failed"
+                    );
+                  }}
+                />
 
-                onError={() => {
-                  toast.error("Google Login Failed");
-                }}
-              />
+              </div>
 
             </div>
 
-            {/* Login Button */}
+            {/* ==========================================
+                LOGIN BUTTON
+            ========================================== */}
 
             <button
               type="submit"
+              disabled={
+                isLoading || isGoogleLoading
+              }
               className="
                 w-full
                 py-3.5
@@ -543,14 +905,43 @@ const prevSlide = () => {
                 shadow-md
                 shadow-red-500/20
                 cursor-pointer
+                disabled:opacity-60
+                disabled:cursor-not-allowed
+                disabled:hover:bg-[#f53b3b]
+                flex
+                items-center
+                justify-center
+                gap-2
               "
             >
-              {t("sign_in")}
+
+              {isLoading ? (
+                <>
+                  <span
+                    className="
+                      w-4
+                      h-4
+                      border-2
+                      border-white/30
+                      border-t-white
+                      rounded-full
+                      animate-spin
+                    "
+                  />
+
+                  Signing in...
+                </>
+              ) : (
+                t("sign_in")
+              )}
+
             </button>
 
           </form>
 
-          {/* Bottom */}
+          {/* ==========================================
+              BOTTOM
+          ========================================== */}
 
           <div className="mt-6 text-center">
 
@@ -560,7 +951,11 @@ const prevSlide = () => {
 
               <Link
                 to="/register"
-                className="text-[#f53b3b] font-semibold hover:underline"
+                className="
+                  text-[#f53b3b]
+                  font-semibold
+                  hover:underline
+                "
               >
                 {t("register")}
               </Link>
@@ -569,7 +964,16 @@ const prevSlide = () => {
 
             {/* Social */}
 
-            <div className="flex justify-center items-center gap-6 mt-5 text-gray-400">
+            <div
+              className="
+                flex
+                justify-center
+                items-center
+                gap-6
+                mt-5
+                text-gray-400
+              "
+            >
 
               <a
                 href="#"
@@ -604,7 +1008,6 @@ const prevSlide = () => {
           </div>
 
         </div>
-
       </div>
 
       {/* ==========================================
