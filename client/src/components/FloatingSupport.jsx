@@ -1,7 +1,9 @@
-// # Fixed `FloatingSupport.jsx`
+import React, {
+    useEffect,
+    useRef,
+    useState,
+} from "react";
 
-
-import React, { useEffect, useRef, useState } from "react";
 import {
     HiChatAlt2,
     HiX,
@@ -11,255 +13,350 @@ import {
 } from "react-icons/hi";
 
 import API from "../services/api";
+import socket from "../services/socket";
 
 export default function FloatingSupport() {
-    // =========================================================
+    // ======================================================
     // STATES
-    // =========================================================
+    // ======================================================
 
-    const [open, setOpen] = useState(false);
+    const [open, setOpen] =
+        useState(false);
 
-    const [position, setPosition] = useState(null);
+    const [position, setPosition] =
+        useState(null);
 
-    const [isDragging, setIsDragging] = useState(false);
+    const [isDragging, setIsDragging] =
+        useState(false);
 
-    const [sending, setSending] = useState(false);
+    const [sending, setSending] =
+        useState(false);
 
     const [loadingMessages, setLoadingMessages] =
         useState(false);
 
-    const [name, setName] = useState("");
+    const [name, setName] =
+        useState("");
 
-    const [email, setEmail] = useState("");
+    const [email, setEmail] =
+        useState("");
 
-    const [message, setMessage] = useState("");
+    const [message, setMessage] =
+        useState("");
 
-    const [messages, setMessages] = useState([]);
+    const [messages, setMessages] =
+        useState([]);
 
     const [hasNewReply, setHasNewReply] =
         useState(false);
 
-    const [error, setError] = useState("");
-
-    const [conversationId, setConversationId] =
+    const [error, setError] =
         useState("");
 
-    // =========================================================
-    // REFS
-    // =========================================================
+    // ======================================================
+    // SINGLE CONVERSATION ID
+    // ======================================================
 
-    const buttonRef = useRef(null);
+    const [conversationId] =
+        useState(() => {
+            try {
+                const saved =
+                    localStorage.getItem(
+                        "infynest_support_conversation_id"
+                    );
 
-    const messagesEndRef = useRef(null);
+                if (saved) {
+                    return saved;
+                }
 
-    const textareaRef = useRef(null);
-
-    const dragData = useRef({
-        offsetX: 0,
-        offsetY: 0,
-        moved: false,
-        startX: 0,
-        startY: 0,
-    });
-
-    // =========================================================
-    // CREATE / LOAD CONVERSATION ID
-    // =========================================================
-
-    useEffect(() => {
-        try {
-            let storedConversationId =
-                localStorage.getItem(
-                    "infynest_support_conversation_id"
-                );
-
-            if (!storedConversationId) {
-                storedConversationId =
-                    crypto.randomUUID();
+                const newId =
+                    crypto?.randomUUID
+                        ? crypto.randomUUID()
+                        : `support_${Date.now()}_${Math.random()
+                            .toString(36)
+                            .slice(2, 10)}`;
 
                 localStorage.setItem(
                     "infynest_support_conversation_id",
-                    storedConversationId
+                    newId
                 );
+
+                return newId;
+            } catch (error) {
+                console.error(
+                    "Conversation ID error:",
+                    error
+                );
+
+                const fallbackId =
+                    `support_${Date.now()}_${Math.random()
+                        .toString(36)
+                        .slice(2, 10)}`;
+
+                localStorage.setItem(
+                    "infynest_support_conversation_id",
+                    fallbackId
+                );
+
+                return fallbackId;
             }
+        });
 
-            setConversationId(
-                storedConversationId
-            );
-        } catch (error) {
-            console.error(
-                "Conversation ID error:",
-                error
-            );
+    // ======================================================
+    // REFS
+    // ======================================================
 
-            const fallbackId =
-                `support_${Date.now()}_${Math.random()
-                    .toString(36)
-                    .substring(2, 10)}`;
+    const buttonRef =
+        useRef(null);
 
-            localStorage.setItem(
-                "infynest_support_conversation_id",
-                fallbackId
-            );
+    const messagesEndRef =
+        useRef(null);
 
-            setConversationId(fallbackId);
-        }
-    }, []);
+    const textareaRef =
+        useRef(null);
 
-    // =========================================================
-    // LOAD LOGGED-IN USER
-    // =========================================================
+    const dragData =
+        useRef({
+            offsetX: 0,
+            offsetY: 0,
+            moved: false,
+            startX: 0,
+            startY: 0,
+        });
+
+    // ======================================================
+    // GET CURRENT USER
+    // ======================================================
+
+    const getCurrentUser =
+        () => {
+            try {
+                const storedUser =
+                    localStorage.getItem(
+                        "userInfo"
+                    );
+
+                if (!storedUser) {
+                    return null;
+                }
+
+                return JSON.parse(
+                    storedUser
+                );
+            } catch (error) {
+                console.error(
+                    "User parse error:",
+                    error
+                );
+
+                return null;
+            }
+        };
+
+    // ======================================================
+    // LOAD USER INFORMATION
+    // ======================================================
 
     useEffect(() => {
-        const storedUser =
-            localStorage.getItem("userInfo");
+        const user =
+            getCurrentUser();
 
-        if (!storedUser) return;
-
-        try {
-            const user =
-                JSON.parse(storedUser);
-
-            setName(
-                user?.name ||
-                user?.fullName ||
-                user?.username ||
-                ""
-            );
-
-            setEmail(
-                user?.email || ""
-            );
-        } catch (error) {
-            console.error(
-                "Failed to load support user:",
-                error
-            );
+        if (!user) {
+            return;
         }
+
+        setName(
+            user?.name ||
+            user?.fullName ||
+            user?.username ||
+            ""
+        );
+
+        setEmail(
+            user?.email || ""
+        );
     }, []);
 
-    // =========================================================
+    // ======================================================
     // GET USER ID
-    // =========================================================
+    // ======================================================
 
-    const getCurrentUserId = () => {
-        const storedUser =
-            localStorage.getItem("userInfo");
-
-        if (!storedUser) {
-            return null;
-        }
-
-        try {
+    const getCurrentUserId =
+        () => {
             const user =
-                JSON.parse(storedUser);
+                getCurrentUser();
 
             return (
                 user?.id ||
                 user?._id ||
                 null
             );
-        } catch (error) {
-            console.error(
-                "Failed to parse userInfo:",
-                error
-            );
+        };
 
-            return null;
-        }
-    };
+    // ======================================================
+    // LOAD CONVERSATION
+    // ======================================================
 
-    // =========================================================
-    // LOAD CONVERSATION MESSAGES
-    // =========================================================
-
-    const fetchMessages = async () => {
-        if (!conversationId) {
-            return;
-        }
-
-        try {
-            setLoadingMessages(true);
-
-            const response = await API.get(
-                `/support/messages/${conversationId}`
-            );
-
-            const serverMessages =
-                response.data?.data || [];
-
-            setMessages(serverMessages);
-
-            // -------------------------------------------------
-            // Check if latest message is admin reply
-            // -------------------------------------------------
-
-            const lastMessage =
-                serverMessages[
-                serverMessages.length - 1
-                ];
-
-            if (
-                lastMessage?.sender === "admin" &&
-                !lastMessage?.isSeen
-            ) {
-                setHasNewReply(true);
-            }
-        } catch (error) {
-            // -------------------------------------------------
-            // 404 হলে empty conversation ধরে নেব
-            // -------------------------------------------------
-
-            if (
-                error?.response?.status === 404
-            ) {
-                setMessages([]);
+    const fetchMessages =
+        async () => {
+            if (!conversationId) {
                 return;
             }
 
-            console.error(
-                "Fetch support messages error:",
-                error
-            );
-        } finally {
-            setLoadingMessages(false);
-        }
-    };
+            try {
+                setLoadingMessages(
+                    true
+                );
 
-    // =========================================================
-    // LOAD MESSAGES WHEN CONVERSATION ID READY
-    // =========================================================
+                const response =
+                    await API.get(
+                        `/support/messages/${conversationId}`
+                    );
+
+                const serverMessages =
+                    response.data?.data ||
+                    [];
+
+                setMessages(
+                    serverMessages
+                );
+
+                const latest =
+                    serverMessages[
+                    serverMessages.length -
+                    1
+                    ];
+
+                if (
+                    latest?.sender ===
+                    "admin" &&
+                    !latest?.isSeen
+                ) {
+                    setHasNewReply(
+                        true
+                    );
+                }
+            } catch (error) {
+                console.error(
+                    "Fetch support messages error:",
+                    error
+                );
+            } finally {
+                setLoadingMessages(
+                    false
+                );
+            }
+        };
+
+    // ======================================================
+    // SOCKET JOIN + REAL-TIME MESSAGE
+    // ======================================================
 
     useEffect(() => {
         if (!conversationId) {
             return;
         }
 
-        fetchMessages();
-    }, [conversationId]);
+        // JOIN ROOM
+        socket.emit(
+            "join-support",
+            conversationId
+        );
 
-    // =========================================================
-    // AUTO REFRESH MESSAGES
-    // =========================================================
+        // ==================================================
+        // INCOMING MESSAGE
+        // ==================================================
 
-    useEffect(() => {
-        if (!conversationId) {
-            return;
-        }
+        const handleIncomingMessage =
+            (newMessage) => {
+                if (
+                    newMessage?.conversationId !==
+                    conversationId
+                ) {
+                    return;
+                }
 
-        const interval =
-            setInterval(() => {
-                fetchMessages();
-            }, 10000);
+                setMessages(
+                    (previous) => {
+                        const exists =
+                            previous.some(
+                                (item) =>
+                                    item._id ===
+                                    newMessage._id
+                            );
+
+                        if (exists) {
+                            return previous;
+                        }
+
+                        return [
+                            ...previous,
+                            newMessage,
+                        ];
+                    }
+                );
+
+                // ADMIN REPLY
+                if (
+                    newMessage.sender ===
+                    "admin"
+                ) {
+                    setHasNewReply(
+                        true
+                    );
+                }
+            };
+
+        socket.on(
+            "support-message",
+            handleIncomingMessage
+        );
+
+        // ==================================================
+        // CLEANUP
+        // ==================================================
 
         return () => {
-            clearInterval(interval);
+            socket.emit(
+                "leave-support",
+                conversationId
+            );
+
+            socket.off(
+                "support-message",
+                handleIncomingMessage
+            );
         };
     }, [conversationId]);
 
-    // =========================================================
-    // AUTO SCROLL CHAT
-    // =========================================================
+    // ======================================================
+    // INITIAL FETCH
+    // ======================================================
+
+    useEffect(() => {
+        fetchMessages();
+    }, [conversationId]);
+
+    // ======================================================
+    // FALLBACK REFRESH
+    // ======================================================
+
+    useEffect(() => {
+        const interval =
+            setInterval(() => {
+                fetchMessages();
+            }, 30000);
+
+        return () => {
+            clearInterval(
+                interval
+            );
+        };
+    }, [conversationId]);
+
+    // ======================================================
+    // AUTO SCROLL
+    // ======================================================
 
     useEffect(() => {
         if (!open) {
@@ -267,352 +364,388 @@ export default function FloatingSupport() {
         }
 
         setTimeout(() => {
-            messagesEndRef.current?.scrollIntoView({
-                behavior: "smooth",
-            });
+            messagesEndRef.current?.scrollIntoView(
+                {
+                    behavior:
+                        "smooth",
+                }
+            );
         }, 50);
     }, [messages, open]);
 
-    // =========================================================
+    // ======================================================
     // POINTER DOWN
-    // =========================================================
+    // ======================================================
 
-    const handlePointerDown = (e) => {
-        if (!buttonRef.current) {
-            return;
-        }
+    const handlePointerDown =
+        (e) => {
+            if (
+                !buttonRef.current
+            ) {
+                return;
+            }
 
-        const rect =
-            buttonRef.current.getBoundingClientRect();
+            const rect =
+                buttonRef.current.getBoundingClientRect();
 
-        dragData.current = {
-            offsetX:
-                e.clientX - rect.left,
+            dragData.current = {
+                offsetX:
+                    e.clientX -
+                    rect.left,
 
-            offsetY:
-                e.clientY - rect.top,
+                offsetY:
+                    e.clientY -
+                    rect.top,
 
-            moved: false,
+                moved: false,
 
-            startX: e.clientX,
+                startX:
+                    e.clientX,
 
-            startY: e.clientY,
+                startY:
+                    e.clientY,
+            };
+
+            setIsDragging(
+                true
+            );
+
+            buttonRef.current.setPointerCapture?.(
+                e.pointerId
+            );
         };
 
-        setIsDragging(true);
-
-        buttonRef.current.setPointerCapture?.(
-            e.pointerId
-        );
-    };
-
-    // =========================================================
+    // ======================================================
     // POINTER MOVE
-    // =========================================================
+    // ======================================================
 
-    const handlePointerMove = (e) => {
-        if (
-            !isDragging ||
-            !buttonRef.current
-        ) {
-            return;
-        }
+    const handlePointerMove =
+        (e) => {
+            if (
+                !isDragging ||
+                !buttonRef.current
+            ) {
+                return;
+            }
 
-        const buttonWidth =
-            buttonRef.current.offsetWidth;
+            const width =
+                buttonRef.current
+                    .offsetWidth;
 
-        const buttonHeight =
-            buttonRef.current.offsetHeight;
+            const height =
+                buttonRef.current
+                    .offsetHeight;
 
-        const margin = 8;
+            const margin = 8;
 
-        let newLeft =
-            e.clientX -
-            dragData.current.offsetX;
+            let left =
+                e.clientX -
+                dragData.current
+                    .offsetX;
 
-        let newTop =
-            e.clientY -
-            dragData.current.offsetY;
+            let top =
+                e.clientY -
+                dragData.current
+                    .offsetY;
 
-        const maxLeft =
-            window.innerWidth -
-            buttonWidth -
-            margin;
+            const maxLeft =
+                window.innerWidth -
+                width -
+                margin;
 
-        const maxTop =
-            window.innerHeight -
-            buttonHeight -
-            margin;
+            const maxTop =
+                window.innerHeight -
+                height -
+                margin;
 
-        newLeft = Math.max(
-            margin,
-            Math.min(
-                newLeft,
-                maxLeft
-            )
-        );
-
-        newTop = Math.max(
-            margin,
-            Math.min(
-                newTop,
-                maxTop
-            )
-        );
-
-        // -----------------------------------------------------
-        // Detect real movement
-        // -----------------------------------------------------
-
-        const distance =
-            Math.sqrt(
-                Math.pow(
-                    e.clientX -
-                    dragData.current.startX,
-                    2
-                ) +
-                Math.pow(
-                    e.clientY -
-                    dragData.current.startY,
-                    2
+            left = Math.max(
+                margin,
+                Math.min(
+                    left,
+                    maxLeft
                 )
             );
 
-        if (distance > 5) {
-            dragData.current.moved = true;
-        }
-
-        setPosition({
-            left: newLeft,
-            top: newTop,
-        });
-    };
-
-    // =========================================================
-    // POINTER UP
-    // =========================================================
-
-    const handlePointerUp = (e) => {
-        if (!isDragging) {
-            return;
-        }
-
-        setIsDragging(false);
-
-        buttonRef.current?.releasePointerCapture?.(
-            e.pointerId
-        );
-    };
-
-    // =========================================================
-    // BUTTON CLICK
-    // =========================================================
-
-    const handleClick = () => {
-        // Don't open after dragging
-        if (dragData.current.moved) {
-            dragData.current.moved = false;
-            return;
-        }
-
-        setOpen((previous) => !previous);
-
-        setHasNewReply(false);
-
-        setTimeout(() => {
-            textareaRef.current?.focus();
-        }, 150);
-    };
-
-    // =========================================================
-    // SEND MESSAGE
-    // =========================================================
-
-    const handleSendMessage = async () => {
-        setError("");
-
-        const cleanName =
-            name.trim();
-
-        const cleanEmail =
-            email.trim();
-
-        const cleanMessage =
-            message.trim();
-
-        // =====================================================
-        // VALIDATION
-        // =====================================================
-
-        if (!cleanName) {
-            setError(
-                "Please enter your name."
-            );
-            return;
-        }
-
-        if (!cleanEmail) {
-            setError(
-                "Please enter your email."
-            );
-            return;
-        }
-
-        if (
-            !cleanEmail.includes("@")
-        ) {
-            setError(
-                "Please enter a valid email."
-            );
-            return;
-        }
-
-        if (!cleanMessage) {
-            setError(
-                "Please write your message."
-            );
-            return;
-        }
-
-        if (!conversationId) {
-            setError(
-                "Conversation is not ready. Please try again."
-            );
-            return;
-        }
-
-        if (sending) {
-            return;
-        }
-
-        // =====================================================
-        // START LOADING
-        // =====================================================
-
-        setSending(true);
-
-        try {
-            const currentUserId =
-                getCurrentUserId();
-
-            // =================================================
-            // PAYLOAD
-            // =================================================
-
-            const payload = {
-                user:
-                    currentUserId || null,
-
-                name:
-                    cleanName,
-
-                email:
-                    cleanEmail,
-
-                conversationId:
-                    conversationId,
-
-                sender:
-                    "user",
-
-                message:
-                    cleanMessage,
-            };
-
-            console.log(
-                "[Support] Sending payload:",
-                payload
+            top = Math.max(
+                margin,
+                Math.min(
+                    top,
+                    maxTop
+                )
             );
 
-            // =================================================
-            // SEND TO BACKEND
-            //
-            // POST /api/v1/support/messages
-            // =================================================
-
-            const response =
-                await API.post(
-                    "/support/messages",
-                    payload
+            const distance =
+                Math.sqrt(
+                    Math.pow(
+                        e.clientX -
+                        dragData.current
+                            .startX,
+                        2
+                    ) +
+                    Math.pow(
+                        e.clientY -
+                        dragData.current
+                            .startY,
+                        2
+                    )
                 );
 
-            console.log(
-                "[Support] Server response:",
-                response.data
-            );
-
-            const newMessage =
-                response.data?.data;
-
-            if (newMessage) {
-                setMessages(
-                    (previous) => [
-                        ...previous,
-                        newMessage,
-                    ]
-                );
+            if (
+                distance > 5
+            ) {
+                dragData.current.moved =
+                    true;
             }
 
-            // =================================================
-            // CLEAR MESSAGE
-            // =================================================
+            setPosition({
+                left,
+                top,
+            });
+        };
 
-            setMessage("");
+    // ======================================================
+    // POINTER UP
+    // ======================================================
 
-            setError("");
+    const handlePointerUp =
+        (e) => {
+            if (!isDragging) {
+                return;
+            }
 
-            // =================================================
-            // FOCUS TEXTAREA
-            // =================================================
+            setIsDragging(
+                false
+            );
+
+            buttonRef.current?.releasePointerCapture?.(
+                e.pointerId
+            );
+        };
+
+    // ======================================================
+    // BUTTON CLICK
+    // ======================================================
+
+    const handleClick =
+        () => {
+            if (
+                dragData.current
+                    .moved
+            ) {
+                dragData.current.moved =
+                    false;
+
+                return;
+            }
+
+            setOpen(
+                (previous) =>
+                    !previous
+            );
+
+            setHasNewReply(
+                false
+            );
 
             setTimeout(() => {
                 textareaRef.current?.focus();
-            }, 100);
+            }, 150);
+        };
 
-        } catch (error) {
-            console.error(
-                "[Support] Send message error:",
-                error
-            );
+    // ======================================================
+    // SEND MESSAGE
+    // ======================================================
 
-            console.error(
-                "[Support] Response:",
-                error?.response?.data
-            );
+    const handleSendMessage =
+        async () => {
+            setError("");
 
-            console.error(
-                "[Support] Status:",
-                error?.response?.status
-            );
+            const cleanName =
+                name.trim();
 
-            setError(
-                error?.response?.data?.message ||
-                "Message could not be sent. Please try again."
-            );
-        } finally {
-            setSending(false);
-        }
-    };
+            const cleanEmail =
+                email.trim();
 
-    // =========================================================
+            const cleanMessage =
+                message.trim();
+
+            // ==================================================
+            // VALIDATION
+            // ==================================================
+
+            if (!cleanName) {
+                setError(
+                    "Please enter your name."
+                );
+
+                return;
+            }
+
+            if (!cleanEmail) {
+                setError(
+                    "Please enter your email."
+                );
+
+                return;
+            }
+
+            if (
+                !cleanEmail.includes(
+                    "@"
+                )
+            ) {
+                setError(
+                    "Please enter a valid email."
+                );
+
+                return;
+            }
+
+            if (!cleanMessage) {
+                setError(
+                    "Please write your message."
+                );
+
+                return;
+            }
+
+            if (!conversationId) {
+                setError(
+                    "Conversation is not ready."
+                );
+
+                return;
+            }
+
+            if (sending) {
+                return;
+            }
+
+            // ==================================================
+            // START SENDING
+            // ==================================================
+
+            setSending(true);
+
+            try {
+                const currentUserId =
+                    getCurrentUserId();
+
+                const payload = {
+                    user:
+                        currentUserId ||
+                        null,
+
+                    name:
+                        cleanName,
+
+                    email:
+                        cleanEmail,
+
+                    conversationId:
+                        conversationId,
+
+                    sender:
+                        "user",
+
+                    message:
+                        cleanMessage,
+                };
+
+                console.log(
+                    "[Support] Sending:",
+                    payload
+                );
+
+                const response =
+                    await API.post(
+                        "/support/messages",
+                        payload
+                    );
+
+                const newMessage =
+                    response.data?.data;
+
+                // ==================================================
+                // ADD LOCALLY
+                // ==================================================
+
+                if (newMessage) {
+                    setMessages(
+                        (previous) => {
+                            const exists =
+                                previous.some(
+                                    (item) =>
+                                        item._id ===
+                                        newMessage._id
+                                );
+
+                            if (
+                                exists
+                            ) {
+                                return previous;
+                            }
+
+                            return [
+                                ...previous,
+                                newMessage,
+                            ];
+                        }
+                    );
+                }
+
+                setMessage(
+                    ""
+                );
+
+                setError("");
+
+                setTimeout(() => {
+                    textareaRef.current?.focus();
+                }, 100);
+            } catch (error) {
+                console.error(
+                    "[Support] Send error:",
+                    error
+                );
+
+                console.error(
+                    "[Support] Response:",
+                    error?.response?.data
+                );
+
+                setError(
+                    error?.response?.data
+                        ?.message ||
+                    "Message could not be sent. Please try again."
+                );
+            } finally {
+                setSending(
+                    false
+                );
+            }
+        };
+
+    // ======================================================
     // ENTER TO SEND
-    // Shift + Enter = New Line
-    // =========================================================
+    // ======================================================
 
-    const handleMessageKeyDown = (e) => {
-        if (
-            e.key === "Enter" &&
-            !e.shiftKey
-        ) {
-            e.preventDefault();
+    const handleMessageKeyDown =
+        (e) => {
+            if (
+                e.key ===
+                "Enter" &&
+                !e.shiftKey
+            ) {
+                e.preventDefault();
 
-            handleSendMessage();
-        }
-    };
+                handleSendMessage();
+            }
+        };
 
-    // =========================================================
-    // BUTTON POSITION
-    // =========================================================
+    // ======================================================
+    // BUTTON STYLE
+    // ======================================================
 
     const buttonStyle =
         position
@@ -624,15 +757,15 @@ export default function FloatingSupport() {
             }
             : {};
 
-    // =========================================================
+    // ======================================================
     // RENDER
-    // =========================================================
+    // ======================================================
 
     return (
         <>
-            {/* =================================================
-                FLOATING SUPPORT BUTTON
-            ================================================= */}
+            {/* ==================================================
+                FLOATING BUTTON
+            ================================================== */}
 
             <button
                 ref={buttonRef}
@@ -652,19 +785,18 @@ export default function FloatingSupport() {
                 onClick={
                     handleClick
                 }
+                style={
+                    buttonStyle
+                }
                 aria-label="Contact Support"
-                style={buttonStyle}
                 className={`
                     fixed
-
                     ${position
                         ? ""
                         : "bottom-5 right-5 sm:bottom-6 sm:right-6"
                     }
-
                     z-[9998]
 
-                    w-auto
                     min-w-[120px]
                     h-12
                     px-4
@@ -697,7 +829,9 @@ export default function FloatingSupport() {
                 `}
             >
                 {open ? (
-                    <HiX size={23} />
+                    <HiX
+                        size={23}
+                    />
                 ) : (
                     <>
                         <HiChatAlt2
@@ -710,10 +844,6 @@ export default function FloatingSupport() {
                     </>
                 )}
 
-                {/* =================================================
-                    NEW REPLY INDICATOR
-                ================================================= */}
-
                 {!open &&
                     hasNewReply && (
                         <span
@@ -721,38 +851,30 @@ export default function FloatingSupport() {
                                 absolute
                                 top-1
                                 right-1
-
                                 w-3
                                 h-3
-
                                 bg-red-500
-
                                 border-2
                                 border-white
-
                                 rounded-full
-
                                 animate-pulse
                             "
                         />
                     )}
             </button>
 
-            {/* =================================================
-                SUPPORT POPUP
-            ================================================= */}
+            {/* ==================================================
+                POPUP
+            ================================================== */}
 
             {open && (
                 <div
                     className="
                         fixed
-
                         bottom-20
                         right-3
-
                         sm:bottom-24
                         sm:right-6
-
                         z-[9997]
 
                         w-[calc(100%-1.5rem)]
@@ -761,9 +883,7 @@ export default function FloatingSupport() {
                         max-w-sm
 
                         bg-white
-
                         rounded-2xl
-
                         shadow-2xl
 
                         border
@@ -774,9 +894,9 @@ export default function FloatingSupport() {
                         animate-support-popup
                     "
                 >
-                    {/* =================================================
+                    {/* ==================================================
                         HEADER
-                    ================================================= */}
+                    ================================================== */}
 
                     <div
                         className="
@@ -784,10 +904,7 @@ export default function FloatingSupport() {
                             text-white
 
                             px-4
-                            sm:px-5
-
-                            py-3.5
-                            sm:py-4
+                            py-4
 
                             flex
                             items-center
@@ -808,11 +925,8 @@ export default function FloatingSupport() {
                             className="
                                 w-9
                                 h-9
-
                                 rounded-full
-
                                 bg-white/15
-
                                 flex
                                 items-center
                                 justify-center
@@ -824,17 +938,20 @@ export default function FloatingSupport() {
                         </div>
                     </div>
 
-                    {/* =================================================
-                        CONVERSATION AREA
-                    ================================================= */}
+                    {/* ==================================================
+                        MESSAGES
+                    ================================================== */}
 
                     <div
                         className="
                             max-h-[240px]
+                            min-h-[100px]
+
                             overflow-y-auto
 
                             px-4
                             pt-4
+                            pb-2
 
                             space-y-3
 
@@ -843,41 +960,28 @@ export default function FloatingSupport() {
                             scrollbar-thin
                         "
                     >
-                        {/* =================================================
-                            LOADING
-                        ================================================= */}
-
-                        {loadingMessages && (
-                            <div className="flex justify-center py-3">
-                                <div
-                                    className="
-                                        w-5
-                                        h-5
-
-                                        border-2
-                                        border-indigo-600
-                                        border-t-transparent
-
-                                        rounded-full
-
-                                        animate-spin
-                                    "
-                                />
-                            </div>
-                        )}
-
-                        {/* =================================================
-                            EMPTY STATE
-                        ================================================= */}
+                        {loadingMessages &&
+                            messages.length ===
+                            0 && (
+                                <div className="flex justify-center py-4">
+                                    <div
+                                        className="
+                                            w-5
+                                            h-5
+                                            border-2
+                                            border-indigo-600
+                                            border-t-transparent
+                                            rounded-full
+                                            animate-spin
+                                        "
+                                    />
+                                </div>
+                            )}
 
                         {!loadingMessages &&
-                            messages.length === 0 && (
-                                <div
-                                    className="
-                                        text-center
-                                        py-5
-                                    "
-                                >
+                            messages.length ===
+                            0 && (
+                                <div className="text-center py-5">
                                     <div
                                         className="
                                             w-11
@@ -907,76 +1011,53 @@ export default function FloatingSupport() {
                                 </div>
                             )}
 
-                        {/* =================================================
-                            MESSAGES
-                        ================================================= */}
-
                         {messages.map(
-                            (item, index) => {
+                            (
+                                item,
+                                index
+                            ) => {
                                 const messageId =
                                     item._id ||
-                                    item.id ||
                                     `${item.createdAt}-${index}`;
+
+                                const isUser =
+                                    item.sender ===
+                                    "user";
 
                                 return (
                                     <div
                                         key={
                                             messageId
                                         }
-                                        className={`
-                                            flex
-
-                                            ${item.sender ===
-                                                "user"
+                                        className={`flex ${isUser
                                                 ? "justify-end"
                                                 : "justify-start"
-                                            }
-                                        `}
+                                            }`}
                                     >
                                         <div
                                             className={`
                                                 max-w-[82%]
-
                                                 px-3.5
                                                 py-2.5
-
                                                 rounded-2xl
 
-                                                ${item.sender ===
-                                                    "user"
-                                                    ? `
-                                                            bg-indigo-600
-                                                            text-white
-                                                            rounded-br-md
-                                                        `
-                                                    : `
-                                                            bg-white
-                                                            text-gray-800
-                                                            border
-                                                            border-gray-200
-                                                            rounded-bl-md
-                                                        `
+                                                ${isUser
+                                                    ? "bg-indigo-600 text-white rounded-br-md"
+                                                    : "bg-white text-gray-800 border border-gray-200 rounded-bl-md"
                                                 }
                                             `}
                                         >
-                                            {/* ADMIN LABEL */}
-
-                                            {item.sender ===
-                                                "admin" && (
-                                                    <p className="text-[9px] font-bold text-indigo-600 mb-1">
-                                                        INFYNEST Support
-                                                    </p>
-                                                )}
-
-                                            {/* MESSAGE */}
+                                            {!isUser && (
+                                                <p className="text-[9px] font-bold text-indigo-600 mb-1">
+                                                    INFYNEST Support
+                                                </p>
+                                            )}
 
                                             <p className="text-xs leading-relaxed whitespace-pre-wrap break-words">
                                                 {
                                                     item.message
                                                 }
                                             </p>
-
-                                            {/* TIME */}
 
                                             <div
                                                 className={`
@@ -986,8 +1067,7 @@ export default function FloatingSupport() {
                                                     gap-1
                                                     mt-1
 
-                                                    ${item.sender ===
-                                                        "user"
+                                                    ${isUser
                                                         ? "text-indigo-100"
                                                         : "text-gray-400"
                                                     }
@@ -1007,14 +1087,13 @@ export default function FloatingSupport() {
                                                         : ""}
                                                 </span>
 
-                                                {item.sender ===
-                                                    "user" && (
-                                                        <HiCheck
-                                                            size={
-                                                                11
-                                                            }
-                                                        />
-                                                    )}
+                                                {isUser && (
+                                                    <HiCheck
+                                                        size={
+                                                            11
+                                                        }
+                                                    />
+                                                )}
                                             </div>
                                         </div>
                                     </div>
@@ -1029,14 +1108,12 @@ export default function FloatingSupport() {
                         />
                     </div>
 
-                    {/* =================================================
-                        MESSAGE FORM
-                    ================================================= */}
+                    {/* ==================================================
+                        FORM
+                    ================================================== */}
 
                     <div className="p-4 bg-white">
-                        {/* =================================================
-                            NAME
-                        ================================================= */}
+                        {/* NAME */}
 
                         <div className="mb-2.5">
                             <input
@@ -1046,8 +1123,7 @@ export default function FloatingSupport() {
                                 }
                                 onChange={(e) =>
                                     setName(
-                                        e.target
-                                            .value
+                                        e.target.value
                                     )
                                 }
                                 placeholder="Your name"
@@ -1056,35 +1132,25 @@ export default function FloatingSupport() {
                                 }
                                 className="
                                     w-full
-
                                     px-3.5
                                     py-2.5
-
                                     rounded-xl
-
                                     border
                                     border-gray-200
-
                                     bg-gray-50
-
                                     text-xs
                                     text-gray-800
-
                                     placeholder-gray-400
-
                                     focus:outline-none
                                     focus:border-indigo-500
                                     focus:ring-2
                                     focus:ring-indigo-100
-
                                     disabled:opacity-60
                                 "
                             />
                         </div>
 
-                        {/* =================================================
-                            EMAIL
-                        ================================================= */}
+                        {/* EMAIL */}
 
                         <div className="mb-2.5">
                             <input
@@ -1094,8 +1160,7 @@ export default function FloatingSupport() {
                                 }
                                 onChange={(e) =>
                                     setEmail(
-                                        e.target
-                                            .value
+                                        e.target.value
                                     )
                                 }
                                 placeholder="Email address"
@@ -1104,49 +1169,40 @@ export default function FloatingSupport() {
                                 }
                                 className="
                                     w-full
-
                                     px-3.5
                                     py-2.5
-
                                     rounded-xl
-
                                     border
                                     border-gray-200
-
                                     bg-gray-50
-
                                     text-xs
                                     text-gray-800
-
                                     placeholder-gray-400
-
                                     focus:outline-none
                                     focus:border-indigo-500
                                     focus:ring-2
                                     focus:ring-indigo-100
-
                                     disabled:opacity-60
                                 "
                             />
                         </div>
 
-                        {/* =================================================
-                            MESSAGE INPUT
-                        ================================================= */}
+                        {/* MESSAGE */}
 
                         <div className="relative">
                             <textarea
                                 ref={
                                     textareaRef
                                 }
-                                rows={3}
+                                rows={
+                                    3
+                                }
                                 value={
                                     message
                                 }
                                 onChange={(e) =>
                                     setMessage(
-                                        e.target
-                                            .value
+                                        e.target.value
                                     )
                                 }
                                 onKeyDown={
@@ -1158,37 +1214,24 @@ export default function FloatingSupport() {
                                 }
                                 className="
                                     w-full
-
                                     px-3.5
                                     py-3
                                     pr-12
-
                                     rounded-xl
-
                                     border
                                     border-gray-200
-
                                     bg-gray-50
-
                                     text-xs
                                     text-gray-800
-
                                     placeholder-gray-400
-
                                     focus:outline-none
                                     focus:border-indigo-500
                                     focus:ring-2
                                     focus:ring-indigo-100
-
                                     resize-none
-
                                     disabled:opacity-60
                                 "
                             />
-
-                            {/* =================================================
-                                SEND BUTTON
-                            ================================================= */}
 
                             <button
                                 type="button"
@@ -1201,13 +1244,10 @@ export default function FloatingSupport() {
                                 }
                                 className="
                                     absolute
-
                                     right-2
                                     bottom-2
-
                                     w-9
                                     h-9
-
                                     rounded-full
 
                                     bg-indigo-600
@@ -1224,20 +1264,16 @@ export default function FloatingSupport() {
 
                                     transition
                                 "
-                                aria-label="Send message"
                             >
                                 {sending ? (
                                     <span
                                         className="
                                             w-4
                                             h-4
-
                                             border-2
                                             border-white
                                             border-t-transparent
-
                                             rounded-full
-
                                             animate-spin
                                         "
                                     />
@@ -1249,36 +1285,19 @@ export default function FloatingSupport() {
                             </button>
                         </div>
 
-                        {/* =================================================
-                            ERROR
-                        ================================================= */}
+                        {/* ERROR */}
 
                         {error && (
-                            <p
-                                className="
-                                    text-[10px]
-                                    text-red-500
-                                    mt-2
-                                "
-                            >
-                                {error}
+                            <p className="text-[10px] text-red-500 mt-2">
+                                {
+                                    error
+                                }
                             </p>
                         )}
 
-                        {/* =================================================
-                            INFO
-                        ================================================= */}
+                        {/* INFO */}
 
-                        <div
-                            className="
-                                flex
-                                items-center
-                                justify-center
-                                gap-1
-
-                                mt-3
-                            "
-                        >
+                        <div className="flex items-center justify-center gap-1 mt-3">
                             <HiCheckCircle
                                 size={12}
                                 className="text-green-500"
@@ -1292,9 +1311,9 @@ export default function FloatingSupport() {
                 </div>
             )}
 
-            {/* =========================================================
+            {/* ==================================================
                 ANIMATION
-            ========================================================= */}
+            ================================================== */}
 
             <style>{`
                 @keyframes supportPopup {
@@ -1329,4 +1348,3 @@ export default function FloatingSupport() {
         </>
     );
 }
-

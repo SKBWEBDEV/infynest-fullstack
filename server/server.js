@@ -1,6 +1,8 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import { createServer } from "http";
+import { Server } from "socket.io";
 
 import connectDB from "./src/config/db.js";
 
@@ -30,35 +32,134 @@ dotenv.config();
 const app = express();
 
 // ======================================================
+// HTTP SERVER
+// ======================================================
+
+const httpServer = createServer(app);
+
+// ======================================================
+// ALLOWED FRONTEND URLS
+// ======================================================
+
+const allowedOrigins = [
+    "http://localhost:5173",
+
+    "https://infynest-fullstack.vercel.app",
+
+    "https://infynest-fullstack-git-main-naj-muj-shakibs-projects.vercel.app",
+];
+
+// ======================================================
 // CORS
 // ======================================================
 
 app.use(
-  cors({
-    origin: [
-      "http://localhost:5173",
-      "https://infynest-fullstack.vercel.app",
-      "https://infynest-fullstack-git-main-naj-muj-shakibs-projects.vercel.app",
-    ],
-    credentials: true,
-  })
+    cors({
+        origin: allowedOrigins,
+        credentials: true,
+    })
 );
+
+// ======================================================
+// SOCKET.IO
+// ======================================================
+
+const io = new Server(httpServer, {
+    cors: {
+        origin: allowedOrigins,
+        credentials: true,
+    },
+
+    transports: ["websocket", "polling"],
+});
+
+// ======================================================
+// MAKE IO AVAILABLE INSIDE ROUTES
+// ======================================================
+
+app.set("io", io);
+
+// ======================================================
+// SOCKET EVENTS
+// ======================================================
+
+io.on("connection", (socket) => {
+    console.log(
+        "[Socket] Connected:",
+        socket.id
+    );
+
+    // ==================================================
+    // JOIN SUPPORT CONVERSATION
+    // ==================================================
+
+    socket.on(
+        "join-support",
+        (conversationId) => {
+            if (!conversationId) {
+                return;
+            }
+
+            const room =
+                `support:${conversationId}`;
+
+            socket.join(room);
+
+            console.log(
+                `[Socket] ${socket.id} joined ${room}`
+            );
+        }
+    );
+
+    // ==================================================
+    // LEAVE SUPPORT CONVERSATION
+    // ==================================================
+
+    socket.on(
+        "leave-support",
+        (conversationId) => {
+            if (!conversationId) {
+                return;
+            }
+
+            const room =
+                `support:${conversationId}`;
+
+            socket.leave(room);
+
+            console.log(
+                `[Socket] ${socket.id} left ${room}`
+            );
+        }
+    );
+
+    // ==================================================
+    // DISCONNECT
+    // ==================================================
+
+    socket.on("disconnect", () => {
+        console.log(
+            "[Socket] Disconnected:",
+            socket.id
+        );
+    });
+});
 
 // ======================================================
 // BODY PARSER
 // ======================================================
 
 app.use(
-  express.json({
-    limit: "16kb",
-  })
+    express.json({
+        limit: "16kb",
+    })
 );
 
 app.use(
-  express.urlencoded({
-    extended: true,
-    limit: "16kb",
-  })
+    express.urlencoded({
+        extended: true,
+        limit: "16kb",
+    })
 );
 
 // ======================================================
@@ -66,119 +167,118 @@ app.use(
 // ======================================================
 
 app.get("/", (req, res) => {
-  return res.status(200).json({
-    status: "OK",
-    message: "INFYNEST API is running smoothly",
-  });
+    return res.status(200).json({
+        status: "OK",
+        message:
+            "INFYNEST API is running smoothly",
+    });
 });
 
 // ======================================================
 // API ROUTES
 // ======================================================
 
-// AUTH
 app.use(
-  "/api/v1/auth",
-  authRoutes
+    "/api/v1/auth",
+    authRoutes
 );
 
-// PRODUCTS
 app.use(
-  "/api/v1/products",
-  productRoutes
+    "/api/v1/products",
+    productRoutes
 );
 
-// ORDERS
 app.use(
-  "/api/v1/orders",
-  orderRoutes
+    "/api/v1/orders",
+    orderRoutes
 );
 
-// ADMIN
 app.use(
-  "/api/v1/admin",
-  adminRoutes
+    "/api/v1/admin",
+    adminRoutes
 );
 
-// NOTIFICATIONS
 app.use(
-  "/api/v1/notifications",
-  notificationRoutes
+    "/api/v1/notifications",
+    notificationRoutes
 );
 
-// BANNERS
 app.use(
-  "/api/v1/banners",
-  bannerRoutes
+    "/api/v1/banners",
+    bannerRoutes
 );
 
-// FINANCIAL
 app.use(
-  "/api/v1/financial",
-  financialRoutes
+    "/api/v1/financial",
+    financialRoutes
 );
 
-// SUPPORT
 app.use(
-  "/api/v1/support",
-  supportRoutes
+    "/api/v1/support",
+    supportRoutes
 );
 
 // ======================================================
-// 404 ROUTE
+// 404
 // ======================================================
 
 app.use((req, res) => {
-  return res.status(404).json({
-    success: false,
-    message: `Route not found: ${req.method} ${req.originalUrl}`,
-  });
+    return res.status(404).json({
+        success: false,
+        message:
+            `Route not found: ${req.method} ${req.originalUrl}`,
+    });
 });
 
 // ======================================================
 // GLOBAL ERROR HANDLER
 // ======================================================
 
-app.use((error, req, res, next) => {
-  console.error(
-    "Global server error:",
-    error
-  );
+app.use(
+    (error, req, res, next) => {
+        console.error(
+            "Global server error:",
+            error
+        );
 
-  return res.status(
-    error.statusCode || 500
-  ).json({
-    success: false,
-    message:
-      error.message ||
-      "Internal server error",
-  });
-});
+        return res.status(
+            error.statusCode || 500
+        ).json({
+            success: false,
+            message:
+                error.message ||
+                "Internal server error",
+        });
+    }
+);
 
 // ======================================================
 // SERVER
 // ======================================================
 
 const PORT =
-  process.env.PORT || 8000;
+    process.env.PORT || 8000;
 
 // ======================================================
 // DATABASE + SERVER START
 // ======================================================
 
 connectDB()
-  .then(() => {
-    app.listen(PORT, () => {
-      console.log(
-        `[Server] INFYNEST Server running on port ${PORT}`
-      );
-    });
-  })
-  .catch((error) => {
-    console.error(
-      "[Server] Database connection failed:",
-      error
-    );
+    .then(() => {
+        httpServer.listen(
+            PORT,
+            () => {
+                console.log(
+                    `[Server] INFYNEST Server running on port ${PORT}`
+                );
+            }
+        );
+    })
+    .catch((error) => {
+        console.error(
+            "[Server] Database connection failed:",
+            error
+        );
 
-    process.exit(1);
-  });
+        process.exit(1);
+    });
