@@ -3,6 +3,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import API from "../../services/api";
 import socket from "../../services/socket";
 import toast from "react-hot-toast";
+import { useNavigate } from "react-router-dom";
 
 import {
   HiSearch,
@@ -16,6 +17,8 @@ import {
 } from "react-icons/hi";
 
 export default function AdminContacts() {
+  const navigate = useNavigate();
+  
   // ======================================================
   // STATES
   // ======================================================
@@ -642,35 +645,97 @@ export default function AdminContacts() {
 
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
 
-        <div className="flex items-center gap-3">
+  {/* LEFT SIDE */}
+  <div>
 
-          <div className="w-11 h-11 rounded-xl bg-purple-600/20 text-purple-400 flex items-center justify-center">
-            <HiChatAlt2 size={23} />
-          </div>
+    <div className="flex items-center gap-3">
 
-          <div>
-            <h1 className="text-xl md:text-2xl font-black">
-              Support Messages
-            </h1>
+      {/* BACK BUTTON */}
+      <button
+        type="button"
+        onClick={() => navigate("/admin/dashboard")}
+        className="
+          w-10
+          h-10
+          rounded-xl
 
-            <p className="text-xs text-gray-500 mt-1">
-              Manage customer conversations
-              and replies
-            </p>
-          </div>
+          bg-[#181b22]
+          border
+          border-gray-800
 
-        </div>
+          text-gray-400
 
-        <button
-          type="button"
-          onClick={fetchMessages}
-          className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#181b22] border border-gray-800 text-gray-300 hover:bg-gray-800 transition text-xs font-semibold"
-        >
-          <HiRefresh size={15} />
-          Refresh
-        </button>
+          hover:text-white
+          hover:bg-gray-800
+          hover:border-gray-700
 
+          flex
+          items-center
+          justify-center
+
+          transition
+        "
+        title="Back to Dashboard"
+      >
+        <HiChevronLeft size={20} />
+      </button>
+
+      {/* ICON */}
+      <div className="w-11 h-11 rounded-xl bg-purple-600/20 text-purple-400 flex items-center justify-center">
+        <HiChatAlt2 size={23} />
       </div>
+
+      {/* TITLE */}
+      <div>
+        <h1 className="text-xl md:text-2xl font-black">
+          Support Messages
+        </h1>
+
+        <p className="text-xs text-gray-500 mt-1">
+          Manage customer conversations and replies
+        </p>
+      </div>
+
+    </div>
+
+  </div>
+
+  {/* RIGHT SIDE */}
+  <button
+    type="button"
+    onClick={fetchMessages}
+    className="
+      flex
+      items-center
+      justify-center
+      gap-2
+
+      px-4
+      py-2.5
+
+      rounded-xl
+
+      bg-[#181b22]
+      border
+      border-gray-800
+
+      text-gray-300
+
+      hover:bg-gray-800
+      hover:text-white
+
+      transition
+
+      text-xs
+      font-semibold
+    "
+  >
+    <HiRefresh size={15} />
+
+    Refresh
+  </button>
+
+</div>
 
       {/* ==================================================
           SEARCH
