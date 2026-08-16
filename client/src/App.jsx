@@ -187,9 +187,13 @@ function App() {
           }
         />
 
-        <Route
+<Route
   path="/admin/contacts"
-  element={<AdminContacts />}
+  element={
+    <AdminRoute>
+      <AdminContacts />
+    </AdminRoute>
+  }
 />
 
 
