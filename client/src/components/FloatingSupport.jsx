@@ -1,3 +1,6 @@
+// # Fixed `FloatingSupport.jsx`
+
+
 import React, { useEffect, useRef, useState } from "react";
 import {
     HiChatAlt2,
@@ -6,6 +9,8 @@ import {
     HiCheck,
     HiCheckCircle,
 } from "react-icons/hi";
+
+import API from "../services/api";
 
 export default function FloatingSupport() {
     // =========================================================
@@ -20,6 +25,9 @@ export default function FloatingSupport() {
 
     const [sending, setSending] = useState(false);
 
+    const [loadingMessages, setLoadingMessages] =
+        useState(false);
+
     const [name, setName] = useState("");
 
     const [email, setEmail] = useState("");
@@ -28,9 +36,13 @@ export default function FloatingSupport() {
 
     const [messages, setMessages] = useState([]);
 
-    const [hasNewReply, setHasNewReply] = useState(false);
+    const [hasNewReply, setHasNewReply] =
+        useState(false);
 
     const [error, setError] = useState("");
+
+    const [conversationId, setConversationId] =
+        useState("");
 
     // =========================================================
     // REFS
@@ -51,16 +63,62 @@ export default function FloatingSupport() {
     });
 
     // =========================================================
+    // CREATE / LOAD CONVERSATION ID
+    // =========================================================
+
+    useEffect(() => {
+        try {
+            let storedConversationId =
+                localStorage.getItem(
+                    "infynest_support_conversation_id"
+                );
+
+            if (!storedConversationId) {
+                storedConversationId =
+                    crypto.randomUUID();
+
+                localStorage.setItem(
+                    "infynest_support_conversation_id",
+                    storedConversationId
+                );
+            }
+
+            setConversationId(
+                storedConversationId
+            );
+        } catch (error) {
+            console.error(
+                "Conversation ID error:",
+                error
+            );
+
+            const fallbackId =
+                `support_${Date.now()}_${Math.random()
+                    .toString(36)
+                    .substring(2, 10)}`;
+
+            localStorage.setItem(
+                "infynest_support_conversation_id",
+                fallbackId
+            );
+
+            setConversationId(fallbackId);
+        }
+    }, []);
+
+    // =========================================================
     // LOAD LOGGED-IN USER
     // =========================================================
 
     useEffect(() => {
-        const storedUser = localStorage.getItem("userInfo");
+        const storedUser =
+            localStorage.getItem("userInfo");
 
         if (!storedUser) return;
 
         try {
-            const user = JSON.parse(storedUser);
+            const user =
+                JSON.parse(storedUser);
 
             setName(
                 user?.name ||
@@ -69,7 +127,9 @@ export default function FloatingSupport() {
                 ""
             );
 
-            setEmail(user?.email || "");
+            setEmail(
+                user?.email || ""
+            );
         } catch (error) {
             console.error(
                 "Failed to load support user:",
@@ -79,11 +139,132 @@ export default function FloatingSupport() {
     }, []);
 
     // =========================================================
+    // GET USER ID
+    // =========================================================
+
+    const getCurrentUserId = () => {
+        const storedUser =
+            localStorage.getItem("userInfo");
+
+        if (!storedUser) {
+            return null;
+        }
+
+        try {
+            const user =
+                JSON.parse(storedUser);
+
+            return (
+                user?.id ||
+                user?._id ||
+                null
+            );
+        } catch (error) {
+            console.error(
+                "Failed to parse userInfo:",
+                error
+            );
+
+            return null;
+        }
+    };
+
+    // =========================================================
+    // LOAD CONVERSATION MESSAGES
+    // =========================================================
+
+    const fetchMessages = async () => {
+        if (!conversationId) {
+            return;
+        }
+
+        try {
+            setLoadingMessages(true);
+
+            const response = await API.get(
+                `/support/messages/${conversationId}`
+            );
+
+            const serverMessages =
+                response.data?.data || [];
+
+            setMessages(serverMessages);
+
+            // -------------------------------------------------
+            // Check if latest message is admin reply
+            // -------------------------------------------------
+
+            const lastMessage =
+                serverMessages[
+                serverMessages.length - 1
+                ];
+
+            if (
+                lastMessage?.sender === "admin" &&
+                !lastMessage?.isSeen
+            ) {
+                setHasNewReply(true);
+            }
+        } catch (error) {
+            // -------------------------------------------------
+            // 404 হলে empty conversation ধরে নেব
+            // -------------------------------------------------
+
+            if (
+                error?.response?.status === 404
+            ) {
+                setMessages([]);
+                return;
+            }
+
+            console.error(
+                "Fetch support messages error:",
+                error
+            );
+        } finally {
+            setLoadingMessages(false);
+        }
+    };
+
+    // =========================================================
+    // LOAD MESSAGES WHEN CONVERSATION ID READY
+    // =========================================================
+
+    useEffect(() => {
+        if (!conversationId) {
+            return;
+        }
+
+        fetchMessages();
+    }, [conversationId]);
+
+    // =========================================================
+    // AUTO REFRESH MESSAGES
+    // =========================================================
+
+    useEffect(() => {
+        if (!conversationId) {
+            return;
+        }
+
+        const interval =
+            setInterval(() => {
+                fetchMessages();
+            }, 10000);
+
+        return () => {
+            clearInterval(interval);
+        };
+    }, [conversationId]);
+
+    // =========================================================
     // AUTO SCROLL CHAT
     // =========================================================
 
     useEffect(() => {
-        if (!open) return;
+        if (!open) {
+            return;
+        }
 
         setTimeout(() => {
             messagesEndRef.current?.scrollIntoView({
@@ -94,20 +275,27 @@ export default function FloatingSupport() {
 
     // =========================================================
     // POINTER DOWN
-    // Mouse + Touch + Pen
     // =========================================================
 
     const handlePointerDown = (e) => {
-        if (!buttonRef.current) return;
+        if (!buttonRef.current) {
+            return;
+        }
 
         const rect =
             buttonRef.current.getBoundingClientRect();
 
         dragData.current = {
-            offsetX: e.clientX - rect.left,
-            offsetY: e.clientY - rect.top,
+            offsetX:
+                e.clientX - rect.left,
+
+            offsetY:
+                e.clientY - rect.top,
+
             moved: false,
+
             startX: e.clientX,
+
             startY: e.clientY,
         };
 
@@ -158,30 +346,37 @@ export default function FloatingSupport() {
 
         newLeft = Math.max(
             margin,
-            Math.min(newLeft, maxLeft)
+            Math.min(
+                newLeft,
+                maxLeft
+            )
         );
 
         newTop = Math.max(
             margin,
-            Math.min(newTop, maxTop)
-        );
-
-        // =====================================================
-        // DETECT REAL MOVEMENT
-        // =====================================================
-
-        const distance = Math.sqrt(
-            Math.pow(
-                e.clientX -
-                dragData.current.startX,
-                2
-            ) +
-            Math.pow(
-                e.clientY -
-                dragData.current.startY,
-                2
+            Math.min(
+                newTop,
+                maxTop
             )
         );
+
+        // -----------------------------------------------------
+        // Detect real movement
+        // -----------------------------------------------------
+
+        const distance =
+            Math.sqrt(
+                Math.pow(
+                    e.clientX -
+                    dragData.current.startX,
+                    2
+                ) +
+                Math.pow(
+                    e.clientY -
+                    dragData.current.startY,
+                    2
+                )
+            );
 
         if (distance > 5) {
             dragData.current.moved = true;
@@ -198,7 +393,9 @@ export default function FloatingSupport() {
     // =========================================================
 
     const handlePointerUp = (e) => {
-        if (!isDragging) return;
+        if (!isDragging) {
+            return;
+        }
 
         setIsDragging(false);
 
@@ -218,10 +415,13 @@ export default function FloatingSupport() {
             return;
         }
 
-        setOpen((prev) => !prev);
+        setOpen((previous) => !previous);
 
-        // User opened support
         setHasNewReply(false);
+
+        setTimeout(() => {
+            textareaRef.current?.focus();
+        }, 150);
     };
 
     // =========================================================
@@ -231,37 +431,59 @@ export default function FloatingSupport() {
     const handleSendMessage = async () => {
         setError("");
 
-        const cleanName = name.trim();
+        const cleanName =
+            name.trim();
 
-        const cleanEmail = email.trim();
+        const cleanEmail =
+            email.trim();
 
-        const cleanMessage = message.trim();
+        const cleanMessage =
+            message.trim();
 
         // =====================================================
         // VALIDATION
         // =====================================================
 
         if (!cleanName) {
-            setError("Please enter your name.");
+            setError(
+                "Please enter your name."
+            );
             return;
         }
 
         if (!cleanEmail) {
-            setError("Please enter your email.");
+            setError(
+                "Please enter your email."
+            );
             return;
         }
 
-        if (!cleanEmail.includes("@")) {
-            setError("Please enter a valid email.");
+        if (
+            !cleanEmail.includes("@")
+        ) {
+            setError(
+                "Please enter a valid email."
+            );
             return;
         }
 
         if (!cleanMessage) {
-            setError("Please write your message.");
+            setError(
+                "Please write your message."
+            );
             return;
         }
 
-        if (sending) return;
+        if (!conversationId) {
+            setError(
+                "Conversation is not ready. Please try again."
+            );
+            return;
+        }
+
+        if (sending) {
+            return;
+        }
 
         // =====================================================
         // START LOADING
@@ -270,42 +492,69 @@ export default function FloatingSupport() {
         setSending(true);
 
         try {
+            const currentUserId =
+                getCurrentUserId();
+
             // =================================================
-            // TEMPORARY FRONTEND MESSAGE
-            //
-            // Later this section will call:
-            //
-            // POST /api/support/messages
-            //
+            // PAYLOAD
             // =================================================
 
-            await new Promise((resolve) =>
-                setTimeout(resolve, 1000)
-            );
+            const payload = {
+                user:
+                    currentUserId || null,
 
-            const newMessage = {
-                id: Date.now(),
+                name:
+                    cleanName,
 
-                sender: "user",
+                email:
+                    cleanEmail,
 
-                name: cleanName,
+                conversationId:
+                    conversationId,
 
-                email: cleanEmail,
+                sender:
+                    "user",
 
-                message: cleanMessage,
-
-                createdAt: new Date().toISOString(),
-
-                seen: false,
+                message:
+                    cleanMessage,
             };
 
-            setMessages((prev) => [
-                ...prev,
-                newMessage,
-            ]);
+            console.log(
+                "[Support] Sending payload:",
+                payload
+            );
 
             // =================================================
-            // CLEAR MESSAGE ONLY
+            // SEND TO BACKEND
+            //
+            // POST /api/v1/support/messages
+            // =================================================
+
+            const response =
+                await API.post(
+                    "/support/messages",
+                    payload
+                );
+
+            console.log(
+                "[Support] Server response:",
+                response.data
+            );
+
+            const newMessage =
+                response.data?.data;
+
+            if (newMessage) {
+                setMessages(
+                    (previous) => [
+                        ...previous,
+                        newMessage,
+                    ]
+                );
+            }
+
+            // =================================================
+            // CLEAR MESSAGE
             // =================================================
 
             setMessage("");
@@ -322,11 +571,22 @@ export default function FloatingSupport() {
 
         } catch (error) {
             console.error(
-                "Support message error:",
+                "[Support] Send message error:",
                 error
             );
 
+            console.error(
+                "[Support] Response:",
+                error?.response?.data
+            );
+
+            console.error(
+                "[Support] Status:",
+                error?.response?.status
+            );
+
             setError(
+                error?.response?.data?.message ||
                 "Message could not be sent. Please try again."
             );
         } finally {
@@ -354,14 +614,15 @@ export default function FloatingSupport() {
     // BUTTON POSITION
     // =========================================================
 
-    const buttonStyle = position
-        ? {
-            left: `${position.left}px`,
-            top: `${position.top}px`,
-            right: "auto",
-            bottom: "auto",
-        }
-        : {};
+    const buttonStyle =
+        position
+            ? {
+                left: `${position.left}px`,
+                top: `${position.top}px`,
+                right: "auto",
+                bottom: "auto",
+            }
+            : {};
 
     // =========================================================
     // RENDER
@@ -388,15 +649,19 @@ export default function FloatingSupport() {
                 onPointerCancel={
                     handlePointerUp
                 }
-                onClick={handleClick}
+                onClick={
+                    handleClick
+                }
                 aria-label="Contact Support"
                 style={buttonStyle}
                 className={`
                     fixed
+
                     ${position
                         ? ""
                         : "bottom-5 right-5 sm:bottom-6 sm:right-6"
                     }
+
                     z-[9998]
 
                     w-auto
@@ -435,7 +700,9 @@ export default function FloatingSupport() {
                     <HiX size={23} />
                 ) : (
                     <>
-                        <HiChatAlt2 size={20} />
+                        <HiChatAlt2
+                            size={20}
+                        />
 
                         <span className="text-xs font-bold ml-1.5">
                             Support
@@ -444,30 +711,31 @@ export default function FloatingSupport() {
                 )}
 
                 {/* =================================================
-                    ANIMATED RED NOTIFICATION
+                    NEW REPLY INDICATOR
                 ================================================= */}
 
-                {!open && (
-                    <span
-                        className="
-                            absolute
-                            top-1
-                            right-1
+                {!open &&
+                    hasNewReply && (
+                        <span
+                            className="
+                                absolute
+                                top-1
+                                right-1
 
-                            w-3
-                            h-3
+                                w-3
+                                h-3
 
-                            bg-red-500
+                                bg-red-500
 
-                            border-2
-                            border-white
+                                border-2
+                                border-white
 
-                            rounded-full
+                                rounded-full
 
-                            animate-pulse
-                        "
-                    />
-                )}
+                                animate-pulse
+                            "
+                        />
+                    )}
             </button>
 
             {/* =================================================
@@ -550,7 +818,9 @@ export default function FloatingSupport() {
                                 justify-center
                             "
                         >
-                            <HiChatAlt2 size={19} />
+                            <HiChatAlt2
+                                size={19}
+                            />
                         </div>
                     </div>
 
@@ -574,134 +844,189 @@ export default function FloatingSupport() {
                         "
                     >
                         {/* =================================================
+                            LOADING
+                        ================================================= */}
+
+                        {loadingMessages && (
+                            <div className="flex justify-center py-3">
+                                <div
+                                    className="
+                                        w-5
+                                        h-5
+
+                                        border-2
+                                        border-indigo-600
+                                        border-t-transparent
+
+                                        rounded-full
+
+                                        animate-spin
+                                    "
+                                />
+                            </div>
+                        )}
+
+                        {/* =================================================
                             EMPTY STATE
                         ================================================= */}
 
-                        {messages.length === 0 && (
-                            <div
-                                className="
-                                    text-center
-                                    py-5
-                                "
-                            >
+                        {!loadingMessages &&
+                            messages.length === 0 && (
                                 <div
                                     className="
-                                        w-11
-                                        h-11
-                                        mx-auto
-                                        rounded-full
-                                        bg-indigo-100
-                                        text-indigo-600
-                                        flex
-                                        items-center
-                                        justify-center
-                                        mb-3
+                                        text-center
+                                        py-5
                                     "
                                 >
-                                    <HiChatAlt2 size={21} />
+                                    <div
+                                        className="
+                                            w-11
+                                            h-11
+                                            mx-auto
+                                            rounded-full
+                                            bg-indigo-100
+                                            text-indigo-600
+                                            flex
+                                            items-center
+                                            justify-center
+                                            mb-3
+                                        "
+                                    >
+                                        <HiChatAlt2
+                                            size={21}
+                                        />
+                                    </div>
+
+                                    <p className="text-xs font-semibold text-gray-700">
+                                        Start a conversation
+                                    </p>
+
+                                    <p className="text-[11px] text-gray-400 mt-1">
+                                        Send us your question and our team will help you.
+                                    </p>
                                 </div>
-
-                                <p className="text-xs font-semibold text-gray-700">
-                                    Start a conversation
-                                </p>
-
-                                <p className="text-[11px] text-gray-400 mt-1">
-                                    Send us your question and our team will help you.
-                                </p>
-                            </div>
-                        )}
+                            )}
 
                         {/* =================================================
                             MESSAGES
                         ================================================= */}
 
-                        {messages.map((item) => (
-                            <div
-                                key={item.id}
-                                className={`
-                                    flex
-                                    ${item.sender ===
-                                        "user"
-                                        ? "justify-end"
-                                        : "justify-start"
-                                    }
-                                `}
-                            >
-                                <div
-                                    className={`
-                                        max-w-[82%]
+                        {messages.map(
+                            (item, index) => {
+                                const messageId =
+                                    item._id ||
+                                    item.id ||
+                                    `${item.createdAt}-${index}`;
 
-                                        px-3.5
-                                        py-2.5
-
-                                        rounded-2xl
-
-                                        ${item.sender ===
-                                            "user"
-                                            ? `
-                                                    bg-indigo-600
-                                                    text-white
-                                                    rounded-br-md
-                                                `
-                                            : `
-                                                    bg-white
-                                                    text-gray-800
-                                                    border
-                                                    border-gray-200
-                                                    rounded-bl-md
-                                                `
-                                        }
-                                    `}
-                                >
-                                    {item.sender ===
-                                        "admin" && (
-                                            <p className="text-[9px] font-bold text-indigo-600 mb-1">
-                                                INFYNEST Support
-                                            </p>
-                                        )}
-
-                                    <p className="text-xs leading-relaxed whitespace-pre-wrap break-words">
-                                        {item.message}
-                                    </p>
-
+                                return (
                                     <div
+                                        key={
+                                            messageId
+                                        }
                                         className={`
                                             flex
-                                            items-center
-                                            justify-end
-                                            gap-1
-                                            mt-1
+
                                             ${item.sender ===
                                                 "user"
-                                                ? "text-indigo-100"
-                                                : "text-gray-400"
+                                                ? "justify-end"
+                                                : "justify-start"
                                             }
                                         `}
                                     >
-                                        <span className="text-[9px]">
-                                            {new Date(
-                                                item.createdAt
-                                            ).toLocaleTimeString(
-                                                [],
-                                                {
-                                                    hour: "2-digit",
-                                                    minute: "2-digit",
+                                        <div
+                                            className={`
+                                                max-w-[82%]
+
+                                                px-3.5
+                                                py-2.5
+
+                                                rounded-2xl
+
+                                                ${item.sender ===
+                                                    "user"
+                                                    ? `
+                                                            bg-indigo-600
+                                                            text-white
+                                                            rounded-br-md
+                                                        `
+                                                    : `
+                                                            bg-white
+                                                            text-gray-800
+                                                            border
+                                                            border-gray-200
+                                                            rounded-bl-md
+                                                        `
                                                 }
-                                            )}
-                                        </span>
+                                            `}
+                                        >
+                                            {/* ADMIN LABEL */}
 
-                                        {item.sender ===
-                                            "user" && (
-                                                <HiCheck
-                                                    size={11}
-                                                />
-                                            )}
+                                            {item.sender ===
+                                                "admin" && (
+                                                    <p className="text-[9px] font-bold text-indigo-600 mb-1">
+                                                        INFYNEST Support
+                                                    </p>
+                                                )}
+
+                                            {/* MESSAGE */}
+
+                                            <p className="text-xs leading-relaxed whitespace-pre-wrap break-words">
+                                                {
+                                                    item.message
+                                                }
+                                            </p>
+
+                                            {/* TIME */}
+
+                                            <div
+                                                className={`
+                                                    flex
+                                                    items-center
+                                                    justify-end
+                                                    gap-1
+                                                    mt-1
+
+                                                    ${item.sender ===
+                                                        "user"
+                                                        ? "text-indigo-100"
+                                                        : "text-gray-400"
+                                                    }
+                                                `}
+                                            >
+                                                <span className="text-[9px]">
+                                                    {item.createdAt
+                                                        ? new Date(
+                                                            item.createdAt
+                                                        ).toLocaleTimeString(
+                                                            [],
+                                                            {
+                                                                hour: "2-digit",
+                                                                minute: "2-digit",
+                                                            }
+                                                        )
+                                                        : ""}
+                                                </span>
+
+                                                {item.sender ===
+                                                    "user" && (
+                                                        <HiCheck
+                                                            size={
+                                                                11
+                                                            }
+                                                        />
+                                                    )}
+                                            </div>
+                                        </div>
                                     </div>
-                                </div>
-                            </div>
-                        ))}
+                                );
+                            }
+                        )}
 
-                        <div ref={messagesEndRef} />
+                        <div
+                            ref={
+                                messagesEndRef
+                            }
+                        />
                     </div>
 
                     {/* =================================================
@@ -716,14 +1041,19 @@ export default function FloatingSupport() {
                         <div className="mb-2.5">
                             <input
                                 type="text"
-                                value={name}
+                                value={
+                                    name
+                                }
                                 onChange={(e) =>
                                     setName(
-                                        e.target.value
+                                        e.target
+                                            .value
                                     )
                                 }
                                 placeholder="Your name"
-                                disabled={sending}
+                                disabled={
+                                    sending
+                                }
                                 className="
                                     w-full
 
@@ -759,14 +1089,19 @@ export default function FloatingSupport() {
                         <div className="mb-2.5">
                             <input
                                 type="email"
-                                value={email}
+                                value={
+                                    email
+                                }
                                 onChange={(e) =>
                                     setEmail(
-                                        e.target.value
+                                        e.target
+                                            .value
                                     )
                                 }
                                 placeholder="Email address"
-                                disabled={sending}
+                                disabled={
+                                    sending
+                                }
                                 className="
                                     w-full
 
@@ -801,19 +1136,26 @@ export default function FloatingSupport() {
 
                         <div className="relative">
                             <textarea
-                                ref={textareaRef}
+                                ref={
+                                    textareaRef
+                                }
                                 rows={3}
-                                value={message}
+                                value={
+                                    message
+                                }
                                 onChange={(e) =>
                                     setMessage(
-                                        e.target.value
+                                        e.target
+                                            .value
                                     )
                                 }
                                 onKeyDown={
                                     handleMessageKeyDown
                                 }
                                 placeholder="Write a message..."
-                                disabled={sending}
+                                disabled={
+                                    sending
+                                }
                                 className="
                                     w-full
 
@@ -987,3 +1329,4 @@ export default function FloatingSupport() {
         </>
     );
 }
+
