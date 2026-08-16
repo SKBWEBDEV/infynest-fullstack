@@ -47,6 +47,7 @@ import AdminOrders from "./pages/admin/AdminOrders";
 import EditProduct from "./pages/EditProduct";
 import AdminBanners from "./pages/admin/AdminBanners";
 import AdminFinancial from "./pages/admin/AdminFinancial";
+import AdminContacts from "./pages/admin/AdminContacts";
 
 // =================================================================================
 // APP
@@ -185,6 +186,12 @@ function App() {
             </AdminRoute>
           }
         />
+
+        <Route
+  path="/admin/contacts"
+  element={<AdminContacts />}
+/>
+
 
         <Route
   path="/admin/finance"

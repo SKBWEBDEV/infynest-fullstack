@@ -15,6 +15,7 @@ import { adminRoutes } from "./src/routes/adminRoutes.js";
 import notificationRoutes from "./src/routes/notificationRoutes.js";
 import bannerRoutes from "./src/routes/bannerRoutes.js";
 import financialRoutes from "./src/routes/financialRoutes.js";
+import supportRoutes from "./src/routes/supportMessageRoutes.js";
 
 // ======================================================
 // ENVIRONMENT
@@ -40,7 +41,7 @@ app.use(
       "https://infynest-fullstack-git-main-naj-muj-shakibs-projects.vercel.app",
     ],
     credentials: true,
-  }),
+  })
 );
 
 // ======================================================
@@ -50,14 +51,14 @@ app.use(
 app.use(
   express.json({
     limit: "16kb",
-  }),
+  })
 );
 
 app.use(
   express.urlencoded({
     extended: true,
     limit: "16kb",
-  }),
+  })
 );
 
 // ======================================================
@@ -78,43 +79,49 @@ app.get("/", (req, res) => {
 // AUTH
 app.use(
   "/api/v1/auth",
-  authRoutes,
+  authRoutes
 );
 
 // PRODUCTS
 app.use(
   "/api/v1/products",
-  productRoutes,
+  productRoutes
 );
 
 // ORDERS
 app.use(
   "/api/v1/orders",
-  orderRoutes,
+  orderRoutes
 );
 
 // ADMIN
 app.use(
   "/api/v1/admin",
-  adminRoutes,
+  adminRoutes
 );
 
 // NOTIFICATIONS
 app.use(
   "/api/v1/notifications",
-  notificationRoutes,
+  notificationRoutes
 );
 
 // BANNERS
 app.use(
   "/api/v1/banners",
-  bannerRoutes,
+  bannerRoutes
 );
 
 // FINANCIAL
 app.use(
   "/api/v1/financial",
-  financialRoutes,
+  financialRoutes
+);
+
+// SUPPORT
+app.use(
+  "/api/v1/support",
+  supportRoutes
 );
 
 // ======================================================
@@ -135,11 +142,11 @@ app.use((req, res) => {
 app.use((error, req, res, next) => {
   console.error(
     "Global server error:",
-    error,
+    error
   );
 
   return res.status(
-    error.statusCode || 500,
+    error.statusCode || 500
   ).json({
     success: false,
     message:
@@ -163,14 +170,14 @@ connectDB()
   .then(() => {
     app.listen(PORT, () => {
       console.log(
-        `[Server] INFYNEST Server running on port ${PORT}`,
+        `[Server] INFYNEST Server running on port ${PORT}`
       );
     });
   })
   .catch((error) => {
     console.error(
       "[Server] Database connection failed:",
-      error,
+      error
     );
 
     process.exit(1);

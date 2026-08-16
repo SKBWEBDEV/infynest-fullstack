@@ -22,6 +22,7 @@ import {
   HiClipboardList,
   HiPhotograph,
   HiCash,
+  HiChatAlt2
 } from "react-icons/hi";
 
 export default function AdminDashboard() {
@@ -321,6 +322,24 @@ export default function AdminDashboard() {
   {isSidebarOpen && (
     <span className="text-xs">
       Banners
+    </span>
+  )}
+</Link>
+
+{/* SUPPORT MESSAGES */}
+
+<Link
+  to="/admin/contacts"
+  className="flex items-center gap-4 p-3 rounded-xl text-gray-400 hover:bg-gray-800/50 hover:text-white transition"
+>
+  <HiChatAlt2
+    size={21}
+    className="flex-shrink-0 text-purple-400"
+  />
+
+  {isSidebarOpen && (
+    <span className="text-xs">
+      Support Messages
     </span>
   )}
 </Link>

@@ -12,6 +12,8 @@ import {
 import { useCart } from "../context/CartContext";
 import NotificationBell from "./NotificationBell";
 
+import FloatingSupport from "../components/FloatingSupport";
+
 import logo from "../assets/inf.png";
 
 // ======================================================
@@ -852,6 +854,12 @@ const handleLogout = () => {
         </div>
 
       </footer>
+
+      {/* ==========================================
+        FLOATING CUSTOMER SUPPORT
+    ========================================== */}
+
+    <FloatingSupport />
 
     </div>
   );
