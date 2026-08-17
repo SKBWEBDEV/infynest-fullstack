@@ -15,6 +15,7 @@ import {
   HiLogout,
   HiMenuAlt2,
   HiChevronLeft,
+  HiShoppingBag,
 } from "react-icons/hi";
 
 export default function Products() {
@@ -202,7 +203,7 @@ export default function Products() {
                 </div>
 
                 <span className="text-white font-black text-lg tracking-wide">
-                  EcoBazer
+                  INFYNEST
                 </span>
               </div>
             ) : (
@@ -238,10 +239,10 @@ export default function Products() {
               to="/admin/dashboard"
               className="flex items-center gap-4 p-3 rounded-xl text-gray-400 hover:bg-gray-800/50 hover:text-white transition cursor-pointer"
             >
-              <HiViewGrid
-                size={22}
-                className="flex-shrink-0"
-              />
+              <HiShoppingBag
+  size={22}
+  className="flex-shrink-0"
+/>
 
               {isSidebarOpen && (
                 <span className="text-xs">
@@ -335,7 +336,7 @@ export default function Products() {
             </h1>
 
             <p className="text-xs text-gray-400">
-              Manage your EcoBazer product
+              Manage your InfyNest product
               catalog.
             </p>
           </div>
