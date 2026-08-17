@@ -202,13 +202,11 @@ const orderSchema = new mongoose.Schema(
 
     isPaid: {
       type: Boolean,
-
       default: false,
     },
 
     paidAt: {
       type: Date,
-
       default: null,
     },
 
@@ -218,17 +216,20 @@ const orderSchema = new mongoose.Schema(
 
     subtotal: {
       type: Number,
-
       required: true,
-
       min: 0,
+    },
+
+    shippingFee: {
+      type: Number,
+      required: true,
+      min: 0,
+      default: 0,
     },
 
     totalAmount: {
       type: Number,
-
       required: true,
-
       min: 0,
     },
 
@@ -238,9 +239,7 @@ const orderSchema = new mongoose.Schema(
 
     paymentFee: {
       type: Number,
-
       default: 0,
-
       min: 0,
     },
 
@@ -250,10 +249,13 @@ const orderSchema = new mongoose.Schema(
 
     refundedAmount: {
       type: Number,
-
       default: 0,
-
       min: 0,
+    },
+
+    refundedAt: {
+      type: Date,
+      default: null,
     },
 
     // ==================================================
@@ -283,15 +285,12 @@ const orderSchema = new mongoose.Schema(
 
     cancelledAt: {
       type: Date,
-
       default: null,
     },
 
     cancellationReason: {
       type: String,
-
       default: "",
-
       trim: true,
     },
   },
@@ -324,6 +323,9 @@ orderSchema.index({
   createdAt: -1,
 });
 
+// IMPORTANT:
+// This is NOT unique.
+// It will NOT cause duplicate transaction ID errors.
 orderSchema.index({
   transactionId: 1,
 });
@@ -336,3 +338,4 @@ export const Order = mongoose.model(
   "Order",
   orderSchema,
 );
+
