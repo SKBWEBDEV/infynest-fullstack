@@ -950,21 +950,25 @@ export default function AdminContacts() {
         ================================================== */}
 
         <div
-          className={`
-            bg-[#161920]
-            border border-gray-800/60
-            rounded-2xl
-            overflow-hidden
-            min-h-[700px]
-            flex
-            flex-col
+  className={`
+    bg-[#161920]
+    border border-gray-800/60
+    rounded-2xl
+    overflow-hidden
 
-            ${!selectedConversation
-              ? "hidden lg:flex"
-              : "flex"
-            }
-          `}
-        >
+    h-[calc(100vh-220px)]
+    min-h-[600px]
+
+    flex
+    flex-col
+
+    ${!selectedConversation
+      ? "hidden lg:flex"
+      : "flex"
+    }
+  `}
+>
+        
 
           {!selectedConversation ? (
             <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
@@ -1044,7 +1048,7 @@ export default function AdminContacts() {
                   MESSAGES
               ================================================== */}
 
-              <div className="flex-1 p-5 overflow-y-auto">
+              <div className="flex-1 min-h-0 p-5 overflow-y-auto scrollbar-thin">
 
                 {conversationLoading ? (
                   <div className="h-full flex items-center justify-center">
