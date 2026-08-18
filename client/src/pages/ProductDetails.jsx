@@ -49,9 +49,14 @@ export default function ProductDetails() {
       try {
         setLoading(true);
 
-        const { data } = await axios.get(`${API_URL}/products/${id}`);
+        const { data } = await axios.get(
+          `${API_URL}/products/${id}`,
+        );
 
-        const productData = data?.product || data?.data || data;
+        const productData =
+          data?.product ||
+          data?.data ||
+          data;
 
         if (!productData) {
           setProduct(null);
@@ -103,41 +108,62 @@ export default function ProductDetails() {
         // WISHLIST
         // ==========================================
         const savedWishlist =
-          JSON.parse(localStorage.getItem("shopbd_wishlist")) || [];
+          JSON.parse(
+            localStorage.getItem("shopbd_wishlist"),
+          ) || [];
 
-        setIsWishlisted(savedWishlist.includes(id));
+        setIsWishlisted(
+          savedWishlist.includes(id),
+        );
 
         // ==========================================
         // RELATED PRODUCTS
         // ==========================================
         try {
-          const allProductsRes = await axios.get(`${API_URL}/products`);
+          const allProductsRes =
+            await axios.get(
+              `${API_URL}/products`,
+            );
 
-          const allData = allProductsRes.data;
+          const allData =
+            allProductsRes.data;
 
-          const allList = Array.isArray(allData)
+          const allList = Array.isArray(
+            allData,
+          )
             ? allData
-            : allData?.products || allData?.data || [];
+            : allData?.products ||
+              allData?.data ||
+              [];
 
-          const currentCategory = String(
-            productData?.category || "",
-          ).trim().toLowerCase();
-
-          const filtered = allList.filter((item) => {
-            const itemCategory = String(
-              item?.category || "",
+          const currentCategory =
+            String(
+              productData?.category || "",
             )
               .trim()
               .toLowerCase();
 
-            return (
-              item?._id !== id &&
-              currentCategory &&
-              itemCategory === currentCategory
-            );
-          });
+          const filtered = allList.filter(
+            (item) => {
+              const itemCategory =
+                String(
+                  item?.category || "",
+                )
+                  .trim()
+                  .toLowerCase();
 
-          setRelatedProducts(filtered.slice(0, 5));
+              return (
+                item?._id !== id &&
+                currentCategory &&
+                itemCategory ===
+                  currentCategory
+              );
+            },
+          );
+
+          setRelatedProducts(
+            filtered.slice(0, 5),
+          );
         } catch (relatedError) {
           console.error(
             "Related products error:",
@@ -191,13 +217,15 @@ export default function ProductDetails() {
         </h1>
 
         <p className="text-sm text-gray-500 mb-6 text-center">
-          The product you are looking for does not exist or has
-          been removed.
+          The product you are looking for
+          does not exist or has been removed.
         </p>
 
         <button
           type="button"
-          onClick={() => navigate("/products")}
+          onClick={() =>
+            navigate("/products")
+          }
           className="px-5 py-3 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold transition"
         >
           Back to Shop
@@ -223,8 +251,13 @@ export default function ProductDetails() {
       return img;
     }
 
-    const cleanApiUrl = String(API_URL || "").replace(/\/$/, "");
-    const cleanImage = String(img).replace(/^\//, "");
+    const cleanApiUrl = String(
+      API_URL || "",
+    ).replace(/\/$/, "");
+
+    const cleanImage = String(
+      img,
+    ).replace(/^\//, "");
 
     return `${cleanApiUrl}/${cleanImage}`;
   };
@@ -232,23 +265,54 @@ export default function ProductDetails() {
   // ==========================================
   // PRODUCT ARRAYS
   // ==========================================
-  const productImages = Array.isArray(product.images)
+  const productImages = Array.isArray(
+    product.images,
+  )
     ? product.images
     : product.image
       ? [product.image]
       : [];
 
-  const productSizes = Array.isArray(product.sizes)
+  const productSizes = Array.isArray(
+    product.sizes,
+  )
     ? product.sizes
     : [];
 
-  const productColors = Array.isArray(product.colors)
+  const productColors = Array.isArray(
+    product.colors,
+  )
     ? product.colors
     : [];
 
-  const productTags = Array.isArray(product.tags)
+  const productTags = Array.isArray(
+    product.tags,
+  )
     ? product.tags
     : [];
+
+  // ==========================================
+  // PRODUCT DETAILS
+  // ==========================================
+  const productDetails =
+    product?.details &&
+    typeof product.details === "object" &&
+    !Array.isArray(product.details)
+      ? product.details
+      : {};
+
+  const hasProductSpecifications = [
+    productDetails.collection,
+    productDetails.material,
+    productDetails.sleeve,
+    productDetails.fit,
+    productDetails.fabric,
+    productDetails.composition,
+    productDetails.styleCode,
+  ].some(
+    (value) =>
+      String(value || "").trim() !== "",
+  );
 
   // ==========================================
   // CATEGORY LABEL
@@ -276,7 +340,8 @@ export default function ProductDetails() {
       .split("-")
       .map(
         (word) =>
-          word.charAt(0).toUpperCase() + word.slice(1),
+          word.charAt(0).toUpperCase() +
+          word.slice(1),
       )
       .join(" ");
   };
@@ -285,27 +350,29 @@ export default function ProductDetails() {
   // PRICE CALCULATION
   // ==========================================
   const retailPrice = Number(
-    product?.retailPrice ?? product?.price ?? 0,
+    product?.retailPrice ??
+      product?.price ??
+      0,
   );
 
   const discountPrice =
     product?.discountPrice !== null &&
-      product?.discountPrice !== undefined &&
-      product?.discountPrice !== ""
+    product?.discountPrice !== undefined &&
+    product?.discountPrice !== ""
       ? Number(product.discountPrice)
       : null;
 
   const wholesalePrice =
     product?.wholesalePrice !== null &&
-      product?.wholesalePrice !== undefined &&
-      product?.wholesalePrice !== ""
+    product?.wholesalePrice !== undefined &&
+    product?.wholesalePrice !== ""
       ? Number(product.wholesalePrice)
       : null;
 
   const minWholesaleQty =
     product?.minWholesaleQty !== null &&
-      product?.minWholesaleQty !== undefined &&
-      product?.minWholesaleQty !== ""
+    product?.minWholesaleQty !== undefined &&
+    product?.minWholesaleQty !== ""
       ? Number(product.minWholesaleQty)
       : 1;
 
@@ -322,8 +389,11 @@ export default function ProductDetails() {
 
   const discountPercentage = hasDiscount
     ? Math.round(
-      ((retailPrice - discountPrice) / retailPrice) * 100,
-    )
+        ((retailPrice -
+          discountPrice) /
+          retailPrice) *
+          100,
+      )
     : 0;
 
   const savedAmount = hasDiscount
@@ -333,27 +403,29 @@ export default function ProductDetails() {
   // ==========================================
   // STOCK
   // ==========================================
-  const stock = Number(product?.stock || 0);
+  const stock = Number(
+    product?.stock || 0,
+  );
 
   const isInStock = stock > 0;
 
   // ==========================================
   // COLOR SELECT
   // ==========================================
-  const handleColorSelect = (color, index) => {
+  const handleColorSelect = (
+    color,
+    index,
+  ) => {
     setSelectedColor(color);
 
     /*
-      Your current Product schema stores colors and images
-      separately. Therefore we use the same index when
-      possible.
-
-      Example:
-      colors[0] -> images[0]
-      colors[1] -> images[1]
+      colors[index] -> images[index]
     */
+
     if (productImages[index]) {
-      setSelectedImage(productImages[index]);
+      setSelectedImage(
+        productImages[index],
+      );
     }
   };
 
@@ -362,18 +434,26 @@ export default function ProductDetails() {
   // ==========================================
   const toggleWishlist = () => {
     const savedWishlist =
-      JSON.parse(localStorage.getItem("shopbd_wishlist")) || [];
+      JSON.parse(
+        localStorage.getItem(
+          "shopbd_wishlist",
+        ),
+      ) || [];
 
     let updatedWishlist;
 
     if (isWishlisted) {
-      updatedWishlist = savedWishlist.filter(
-        (item) => item !== id,
-      );
+      updatedWishlist =
+        savedWishlist.filter(
+          (item) => item !== id,
+        );
 
       setIsWishlisted(false);
     } else {
-      updatedWishlist = [...savedWishlist, id];
+      updatedWishlist = [
+        ...savedWishlist,
+        id,
+      ];
 
       setIsWishlisted(true);
     }
@@ -388,12 +468,17 @@ export default function ProductDetails() {
   // QUANTITY
   // ==========================================
   const decreaseQuantity = () => {
-    setQuantity((prev) => Math.max(1, prev - 1));
+    setQuantity((prev) =>
+      Math.max(1, prev - 1),
+    );
   };
 
   const increaseQuantity = () => {
     setQuantity((prev) =>
-      Math.min(stock || 1, prev + 1),
+      Math.min(
+        stock || 1,
+        prev + 1,
+      ),
     );
   };
 
@@ -405,7 +490,9 @@ export default function ProductDetails() {
       productSizes.length > 0 &&
       !selectedSize
     ) {
-      alert("Please select a size before continuing.");
+      alert(
+        "Please select a size before continuing.",
+      );
       return false;
     }
 
@@ -413,12 +500,16 @@ export default function ProductDetails() {
       productColors.length > 0 &&
       !selectedColor
     ) {
-      alert("Please select a color before continuing.");
+      alert(
+        "Please select a color before continuing.",
+      );
       return false;
     }
 
     if (!isInStock) {
-      alert("This product is currently out of stock.");
+      alert(
+        "This product is currently out of stock.",
+      );
       return false;
     }
 
@@ -430,8 +521,9 @@ export default function ProductDetails() {
   // ==========================================
   const createCartItem = () => {
     return {
-      cartId: `${product._id}-${selectedSize || "nosize"
-        }-${selectedColor || "nocolor"}`,
+      cartId: `${product._id}-${
+        selectedSize || "nosize"
+      }-${selectedColor || "nocolor"}`,
 
       productId: product._id,
 
@@ -465,7 +557,8 @@ export default function ProductDetails() {
       return;
     }
 
-    const cartItem = createCartItem();
+    const cartItem =
+      createCartItem();
 
     addToCart(cartItem);
 
@@ -486,7 +579,8 @@ export default function ProductDetails() {
       return;
     }
 
-    const cartItem = createCartItem();
+    const cartItem =
+      createCartItem();
 
     addToCart(cartItem);
 
@@ -496,41 +590,53 @@ export default function ProductDetails() {
   // ==========================================
   // RELATED PRODUCT CARD
   // ==========================================
-  const renderRelatedProduct = (item) => {
+  const renderRelatedProduct = (
+    item,
+  ) => {
     const itemImg =
-      item?.images?.[0] || item?.image;
+      item?.images?.[0] ||
+      item?.image;
 
-    const formattedImg = getImageUrl(itemImg);
+    const formattedImg =
+      getImageUrl(itemImg);
 
     const itemRetailPrice = Number(
-      item?.retailPrice ?? item?.price ?? 0,
+      item?.retailPrice ??
+        item?.price ??
+        0,
     );
 
     const itemDiscountPrice =
       item?.discountPrice !== null &&
-        item?.discountPrice !== undefined &&
-        item?.discountPrice !== ""
+      item?.discountPrice !== undefined &&
+      item?.discountPrice !== ""
         ? Number(item.discountPrice)
         : null;
 
     const itemHasDiscount =
       itemDiscountPrice !== null &&
-      !Number.isNaN(itemDiscountPrice) &&
+      !Number.isNaN(
+        itemDiscountPrice,
+      ) &&
       itemDiscountPrice >= 0 &&
       itemRetailPrice > 0 &&
-      itemDiscountPrice < itemRetailPrice;
+      itemDiscountPrice <
+        itemRetailPrice;
 
-    const itemFinalPrice = itemHasDiscount
-      ? itemDiscountPrice
-      : itemRetailPrice;
+    const itemFinalPrice =
+      itemHasDiscount
+        ? itemDiscountPrice
+        : itemRetailPrice;
 
-    const itemDiscountPercentage = itemHasDiscount
-      ? Math.round(
-        ((itemRetailPrice - itemDiscountPrice) /
-          itemRetailPrice) *
-        100,
-      )
-      : 0;
+    const itemDiscountPercentage =
+      itemHasDiscount
+        ? Math.round(
+            ((itemRetailPrice -
+              itemDiscountPrice) /
+              itemRetailPrice) *
+              100,
+          )
+        : 0;
 
     return (
       <Link
@@ -548,13 +654,16 @@ export default function ProductDetails() {
 
           {item.category && (
             <span className="absolute top-2 left-2 bg-black/70 backdrop-blur-sm text-purple-400 text-[8px] md:text-[9px] font-bold px-2 py-1 rounded-md uppercase tracking-wide">
-              {formatCategory(item.category)}
+              {formatCategory(
+                item.category,
+              )}
             </span>
           )}
 
           {itemHasDiscount && (
             <span className="absolute top-2 right-2 bg-red-500 text-white text-[8px] font-black px-2 py-1 rounded-md">
-              {itemDiscountPercentage}% OFF
+              {itemDiscountPercentage}%
+              OFF
             </span>
           )}
         </div>
@@ -654,7 +763,9 @@ export default function ProductDetails() {
             <div className="relative h-80 md:h-[420px] rounded-2xl overflow-hidden bg-gray-900 border border-gray-800">
 
               <img
-                src={getImageUrl(selectedImage)}
+                src={getImageUrl(
+                  selectedImage,
+                )}
                 alt={product.name}
                 className="w-full h-full object-cover transition duration-300"
               />
@@ -662,11 +773,14 @@ export default function ProductDetails() {
               {/* WISHLIST */}
               <button
                 type="button"
-                onClick={toggleWishlist}
-                className={`absolute top-4 right-4 p-2.5 rounded-xl backdrop-blur-md transition cursor-pointer ${isWishlisted
+                onClick={
+                  toggleWishlist
+                }
+                className={`absolute top-4 right-4 p-2.5 rounded-xl backdrop-blur-md transition cursor-pointer ${
+                  isWishlisted
                     ? "bg-purple-600 text-white shadow-lg shadow-purple-600/30"
                     : "bg-black/50 text-gray-300 hover:text-white"
-                  }`}
+                }`}
               >
                 <HiHeart size={18} />
               </button>
@@ -674,7 +788,9 @@ export default function ProductDetails() {
               {/* CATEGORY */}
               {product.category && (
                 <span className="absolute top-4 left-4 bg-black/60 backdrop-blur-md text-purple-400 text-[10px] font-bold px-3 py-1 rounded-lg uppercase tracking-wider">
-                  {formatCategory(product.category)}
+                  {formatCategory(
+                    product.category,
+                  )}
                 </span>
               )}
 
@@ -688,31 +804,45 @@ export default function ProductDetails() {
               {/* DISCOUNT */}
               {hasDiscount && (
                 <span className="absolute bottom-4 left-4 bg-red-500 text-white text-[11px] font-black px-3 py-1.5 rounded-lg shadow-lg">
-                  {discountPercentage}% OFF
+                  {discountPercentage}%
+                  OFF
                 </span>
               )}
             </div>
 
             {/* THUMBNAILS */}
-            {productImages.length > 1 && (
+            {productImages.length >
+              1 && (
               <div className="flex items-center gap-3 overflow-x-auto pb-2">
-                {productImages.map((img, index) => (
-                  <button
-                    type="button"
-                    key={`${img}-${index}`}
-                    onClick={() => setSelectedImage(img)}
-                    className={`relative w-16 h-16 rounded-xl overflow-hidden border-2 transition cursor-pointer shrink-0 ${selectedImage === img
-                        ? "border-purple-500 scale-105"
-                        : "border-gray-800 opacity-60 hover:opacity-100"
+                {productImages.map(
+                  (img, index) => (
+                    <button
+                      type="button"
+                      key={`${img}-${index}`}
+                      onClick={() =>
+                        setSelectedImage(
+                          img,
+                        )
+                      }
+                      className={`relative w-16 h-16 rounded-xl overflow-hidden border-2 transition cursor-pointer shrink-0 ${
+                        selectedImage ===
+                        img
+                          ? "border-purple-500 scale-105"
+                          : "border-gray-800 opacity-60 hover:opacity-100"
                       }`}
-                  >
-                    <img
-                      src={getImageUrl(img)}
-                      alt={`${product.name} ${index + 1}`}
-                      className="w-full h-full object-cover"
-                    />
-                  </button>
-                ))}
+                    >
+                      <img
+                        src={getImageUrl(
+                          img,
+                        )}
+                        alt={`${product.name} ${
+                          index + 1
+                        }`}
+                        className="w-full h-full object-cover"
+                      />
+                    </button>
+                  ),
+                )}
               </div>
             )}
           </div>
@@ -748,7 +878,8 @@ export default function ProductDetails() {
 
                   {hasDiscount && (
                     <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-green-500/10 border border-green-500/20 text-green-400 text-[10px] font-black">
-                      {discountPercentage}% OFF
+                      {discountPercentage}%
+                      OFF
                     </span>
                   )}
                 </div>
@@ -756,7 +887,8 @@ export default function ProductDetails() {
                 {hasDiscount && (
                   <div className="flex items-center gap-2">
                     <span className="text-[11px] text-green-400 font-bold">
-                      You save ৳{savedAmount}
+                      You save ৳
+                      {savedAmount}
                     </span>
 
                     <span className="text-[10px] text-gray-600">
@@ -786,7 +918,8 @@ export default function ProductDetails() {
                   type="button"
                   onClick={() =>
                     setShowProductDetails(
-                      showProductDetails === "description"
+                      showProductDetails ===
+                        "description"
                         ? false
                         : "description",
                     )
@@ -795,10 +928,15 @@ export default function ProductDetails() {
                 >
                   <div className="flex items-center gap-2.5">
                     <div className="w-7 h-7 rounded-lg bg-purple-600/10 border border-purple-500/20 flex items-center justify-center text-purple-400 group-hover:bg-purple-600 group-hover:text-white transition">
-                      {showProductDetails === "description" ? (
-                        <HiMinus size={14} />
+                      {showProductDetails ===
+                      "description" ? (
+                        <HiMinus
+                          size={14}
+                        />
                       ) : (
-                        <HiPlus size={14} />
+                        <HiPlus
+                          size={14}
+                        />
                       )}
                     </div>
 
@@ -808,13 +946,15 @@ export default function ProductDetails() {
                   </div>
 
                   <span className="text-[10px] text-gray-500">
-                    {showProductDetails === "description"
+                    {showProductDetails ===
+                    "description"
                       ? "Hide description"
                       : "View description"}
                   </span>
                 </button>
 
-                {showProductDetails === "description" && (
+                {showProductDetails ===
+                  "description" && (
                   <div className="pb-4">
                     <div className="bg-[#0f1115] border border-gray-800 rounded-2xl p-4">
                       <p className="text-xs text-gray-400 leading-relaxed whitespace-pre-line">
@@ -830,7 +970,8 @@ export default function ProductDetails() {
                   type="button"
                   onClick={() =>
                     setShowProductDetails(
-                      showProductDetails === "details"
+                      showProductDetails ===
+                        "details"
                         ? false
                         : "details",
                     )
@@ -839,10 +980,15 @@ export default function ProductDetails() {
                 >
                   <div className="flex items-center gap-2.5">
                     <div className="w-7 h-7 rounded-lg bg-purple-600/10 border border-purple-500/20 flex items-center justify-center text-purple-400 group-hover:bg-purple-600 group-hover:text-white transition">
-                      {showProductDetails === "details" ? (
-                        <HiMinus size={14} />
+                      {showProductDetails ===
+                      "details" ? (
+                        <HiMinus
+                          size={14}
+                        />
                       ) : (
-                        <HiPlus size={14} />
+                        <HiPlus
+                          size={14}
+                        />
                       )}
                     </div>
 
@@ -852,17 +998,141 @@ export default function ProductDetails() {
                   </div>
 
                   <span className="text-[10px] text-gray-500">
-                    {showProductDetails === "details"
+                    {showProductDetails ===
+                    "details"
                       ? "Hide details"
                       : "View details"}
                   </span>
                 </button>
 
-                {showProductDetails === "details" && (
+                {/* =================================
+                    PRODUCT DETAILS CONTENT
+                ================================= */}
+                {showProductDetails ===
+                  "details" && (
                   <div className="pb-4">
                     <div className="bg-[#0f1115] border border-gray-800 rounded-2xl p-4 space-y-3">
 
-                      {/* CATEGORY */}
+                      {/* ==============================
+                          PRODUCT SPECIFICATIONS
+                      ============================== */}
+                      {hasProductSpecifications && (
+                        <div className="space-y-3 pb-3 border-b border-gray-800/60">
+
+                          <p className="text-[10px] font-bold text-purple-400 uppercase tracking-wider">
+                            Product Specifications
+                          </p>
+
+                          {/* COLLECTION */}
+                          {productDetails.collection && (
+                            <div className="flex items-center justify-between gap-4">
+                              <span className="text-[10px] text-gray-500">
+                                Collection
+                              </span>
+
+                              <span className="text-[10px] font-semibold text-gray-200 text-right">
+                                {
+                                  productDetails.collection
+                                }
+                              </span>
+                            </div>
+                          )}
+
+                          {/* MATERIAL */}
+                          {productDetails.material && (
+                            <div className="flex items-center justify-between gap-4">
+                              <span className="text-[10px] text-gray-500">
+                                Material
+                              </span>
+
+                              <span className="text-[10px] font-semibold text-gray-200 text-right">
+                                {
+                                  productDetails.material
+                                }
+                              </span>
+                            </div>
+                          )}
+
+                          {/* SLEEVE */}
+                          {productDetails.sleeve && (
+                            <div className="flex items-center justify-between gap-4">
+                              <span className="text-[10px] text-gray-500">
+                                Sleeve
+                              </span>
+
+                              <span className="text-[10px] font-semibold text-gray-200 text-right">
+                                {
+                                  productDetails.sleeve
+                                }
+                              </span>
+                            </div>
+                          )}
+
+                          {/* FIT */}
+                          {productDetails.fit && (
+                            <div className="flex items-center justify-between gap-4">
+                              <span className="text-[10px] text-gray-500">
+                                Fit
+                              </span>
+
+                              <span className="text-[10px] font-semibold text-gray-200 text-right">
+                                {
+                                  productDetails.fit
+                                }
+                              </span>
+                            </div>
+                          )}
+
+                          {/* FABRIC */}
+                          {productDetails.fabric && (
+                            <div className="flex items-center justify-between gap-4">
+                              <span className="text-[10px] text-gray-500">
+                                Fabric
+                              </span>
+
+                              <span className="text-[10px] font-semibold text-gray-200 text-right">
+                                {
+                                  productDetails.fabric
+                                }
+                              </span>
+                            </div>
+                          )}
+
+                          {/* COMPOSITION */}
+                          {productDetails.composition && (
+                            <div className="flex items-center justify-between gap-4">
+                              <span className="text-[10px] text-gray-500">
+                                Composition
+                              </span>
+
+                              <span className="text-[10px] font-semibold text-gray-200 text-right">
+                                {
+                                  productDetails.composition
+                                }
+                              </span>
+                            </div>
+                          )}
+
+                          {/* STYLE CODE */}
+                          {productDetails.styleCode && (
+                            <div className="flex items-center justify-between gap-4">
+                              <span className="text-[10px] text-gray-500">
+                                Style Code
+                              </span>
+
+                              <span className="text-[10px] font-semibold text-gray-200 text-right">
+                                {
+                                  productDetails.styleCode
+                                }
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* ==============================
+                          CATEGORY
+                      ============================== */}
                       {product.category && (
                         <div className="flex items-center justify-between gap-4">
                           <span className="text-[10px] text-gray-500">
@@ -870,14 +1140,21 @@ export default function ProductDetails() {
                           </span>
 
                           <span className="text-[10px] font-semibold text-gray-200 text-right">
-                            {formatCategory(product.category)}
+                            {formatCategory(
+                              product.category,
+                            )}
                           </span>
                         </div>
                       )}
 
-                      {/* WHOLESALE */}
-                      {wholesalePrice !== null &&
-                        !Number.isNaN(wholesalePrice) &&
+                      {/* ==============================
+                          WHOLESALE
+                      ============================== */}
+                      {wholesalePrice !==
+                        null &&
+                        !Number.isNaN(
+                          wholesalePrice,
+                        ) &&
                         wholesalePrice > 0 && (
                           <>
                             <div className="flex items-center justify-between gap-4">
@@ -886,7 +1163,10 @@ export default function ProductDetails() {
                               </span>
 
                               <span className="text-[10px] font-bold text-blue-400 text-right">
-                                ৳{wholesalePrice}
+                                ৳
+                                {
+                                  wholesalePrice
+                                }
                               </span>
                             </div>
 
@@ -896,33 +1176,45 @@ export default function ProductDetails() {
                               </span>
 
                               <span className="text-[10px] font-semibold text-gray-200 text-right">
-                                {minWholesaleQty}
+                                {
+                                  minWholesaleQty
+                                }
                               </span>
                             </div>
                           </>
                         )}
 
-                      {/* TAGS */}
-                      {productTags.length > 0 && (
+                      {/* ==============================
+                          TAGS
+                      ============================== */}
+                      {productTags.length >
+                        0 && (
                         <div className="flex items-start justify-between gap-4">
                           <span className="text-[10px] text-gray-500">
                             Tags
                           </span>
 
                           <div className="flex flex-wrap justify-end gap-1.5">
-                            {productTags.map((tag, index) => (
-                              <span
-                                key={`${tag}-${index}`}
-                                className="px-2 py-1 rounded-md bg-purple-500/10 border border-purple-500/20 text-purple-400 text-[9px] font-semibold"
-                              >
-                                #{tag}
-                              </span>
-                            ))}
+                            {productTags.map(
+                              (
+                                tag,
+                                index,
+                              ) => (
+                                <span
+                                  key={`${tag}-${index}`}
+                                  className="px-2 py-1 rounded-md bg-purple-500/10 border border-purple-500/20 text-purple-400 text-[9px] font-semibold"
+                                >
+                                  #{tag}
+                                </span>
+                              ),
+                            )}
                           </div>
                         </div>
                       )}
 
-                      {/* FEATURED */}
+                      {/* ==============================
+                          FEATURED
+                      ============================== */}
                       {product.isFeatured && (
                         <div className="flex items-center justify-between gap-4">
                           <span className="text-[10px] text-gray-500">
@@ -935,7 +1227,9 @@ export default function ProductDetails() {
                         </div>
                       )}
 
-                      {/* NEW ARRIVAL */}
+                      {/* ==============================
+                          NEW ARRIVAL
+                      ============================== */}
                       {product.isNewArrival && (
                         <div className="flex items-center justify-between gap-4">
                           <span className="text-[10px] text-gray-500">
@@ -948,14 +1242,20 @@ export default function ProductDetails() {
                         </div>
                       )}
 
-                      {/* NO EXTRA DETAILS */}
-                      {!product.category &&
-                        wholesalePrice === null &&
-                        productTags.length === 0 &&
+                      {/* ==============================
+                          NO EXTRA DETAILS
+                      ============================== */}
+                      {!hasProductSpecifications &&
+                        !product.category &&
+                        wholesalePrice ===
+                          null &&
+                        productTags.length ===
+                          0 &&
                         !product.isFeatured &&
                         !product.isNewArrival && (
                           <p className="text-[10px] text-gray-500 text-center py-2">
-                            No additional product details available.
+                            No additional product
+                            details available.
                           </p>
                         )}
                     </div>
@@ -966,28 +1266,38 @@ export default function ProductDetails() {
               {/* =================================
                   SIZES
               ================================= */}
-              {productSizes.length > 0 && (
+              {productSizes.length >
+                0 && (
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-gray-300">
                     Select Size:
                   </label>
 
                   <div className="flex flex-wrap gap-2">
-                    {productSizes.map((size, index) => (
-                      <button
-                        type="button"
-                        key={`${size}-${index}`}
-                        onClick={() =>
-                          setSelectedSize(size)
-                        }
-                        className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${selectedSize === size
-                            ? "bg-purple-600 text-white shadow-md shadow-purple-600/30 border border-purple-500"
-                            : "bg-[#0f1115] text-gray-400 border border-gray-800 hover:border-gray-700"
+                    {productSizes.map(
+                      (
+                        size,
+                        index,
+                      ) => (
+                        <button
+                          type="button"
+                          key={`${size}-${index}`}
+                          onClick={() =>
+                            setSelectedSize(
+                              size,
+                            )
+                          }
+                          className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
+                            selectedSize ===
+                            size
+                              ? "bg-purple-600 text-white shadow-md shadow-purple-600/30 border border-purple-500"
+                              : "bg-[#0f1115] text-gray-400 border border-gray-800 hover:border-gray-700"
                           }`}
-                      >
-                        {size}
-                      </button>
-                    ))}
+                        >
+                          {size}
+                        </button>
+                      ),
+                    )}
                   </div>
                 </div>
               )}
@@ -995,31 +1305,39 @@ export default function ProductDetails() {
               {/* =================================
                   COLORS
               ================================= */}
-              {productColors.length > 0 && (
+              {productColors.length >
+                0 && (
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-gray-300">
                     Color/Pattern:
                   </label>
 
                   <div className="flex flex-wrap gap-2">
-                    {productColors.map((color, index) => (
-                      <button
-                        type="button"
-                        key={`${color}-${index}`}
-                        onClick={() =>
-                          handleColorSelect(
-                            color,
-                            index,
-                          )
-                        }
-                        className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${selectedColor === color
-                            ? "bg-purple-600 text-white shadow-md shadow-purple-600/30 border border-purple-500"
-                            : "bg-[#0f1115] text-gray-400 border border-gray-800 hover:border-gray-700"
+                    {productColors.map(
+                      (
+                        color,
+                        index,
+                      ) => (
+                        <button
+                          type="button"
+                          key={`${color}-${index}`}
+                          onClick={() =>
+                            handleColorSelect(
+                              color,
+                              index,
+                            )
+                          }
+                          className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
+                            selectedColor ===
+                            color
+                              ? "bg-purple-600 text-white shadow-md shadow-purple-600/30 border border-purple-500"
+                              : "bg-[#0f1115] text-gray-400 border border-gray-800 hover:border-gray-700"
                           }`}
-                      >
-                        {color}
-                      </button>
-                    ))}
+                        >
+                          {color}
+                        </button>
+                      ),
+                    )}
                   </div>
                 </div>
               )}
@@ -1028,12 +1346,12 @@ export default function ProductDetails() {
                   STOCK
               ================================= */}
               <div className="flex items-center gap-2 text-xs font-medium pt-1">
-
                 <span
-                  className={`w-2 h-2 rounded-full ${isInStock
+                  className={`w-2 h-2 rounded-full ${
+                    isInStock
                       ? "bg-green-500"
                       : "bg-red-500"
-                    }`}
+                  }`}
                 />
 
                 <span
@@ -1044,10 +1362,11 @@ export default function ProductDetails() {
                   }
                 >
                   {isInStock
-                    ? `In Stock${stock > 0
-                      ? ` (${stock})`
-                      : ""
-                    }`
+                    ? `In Stock${
+                        stock > 0
+                          ? ` (${stock})`
+                          : ""
+                      }`
                     : "Out of Stock"}
                 </span>
               </div>
@@ -1069,8 +1388,12 @@ export default function ProductDetails() {
 
                   <button
                     type="button"
-                    onClick={decreaseQuantity}
-                    disabled={quantity <= 1}
+                    onClick={
+                      decreaseQuantity
+                    }
+                    disabled={
+                      quantity <= 1
+                    }
                     className="w-9 h-9 text-gray-400 hover:text-white hover:bg-gray-800 disabled:opacity-40"
                   >
                     -
@@ -1082,9 +1405,12 @@ export default function ProductDetails() {
 
                   <button
                     type="button"
-                    onClick={increaseQuantity}
+                    onClick={
+                      increaseQuantity
+                    }
                     disabled={
-                      quantity >= (stock || 1)
+                      quantity >=
+                      (stock || 1)
                     }
                     className="w-9 h-9 text-gray-400 hover:text-white hover:bg-gray-800 disabled:opacity-40"
                   >
@@ -1099,7 +1425,9 @@ export default function ProductDetails() {
                   </p>
 
                   <p className="text-sm font-black text-white">
-                    ৳{finalPrice * quantity}
+                    ৳
+                    {finalPrice *
+                      quantity}
                   </p>
                 </div>
               </div>
@@ -1110,28 +1438,38 @@ export default function ProductDetails() {
                 {/* ADD TO CART */}
                 <button
                   type="button"
-                  onClick={handleAddToCart}
+                  onClick={
+                    handleAddToCart
+                  }
                   disabled={!isInStock}
-                  className={`w-full py-3.5 rounded-2xl text-xs font-bold flex items-center justify-center gap-2 shadow-lg transition cursor-pointer ${isInStock
+                  className={`w-full py-3.5 rounded-2xl text-xs font-bold flex items-center justify-center gap-2 shadow-lg transition cursor-pointer ${
+                    isInStock
                       ? "bg-gray-800 hover:bg-gray-700 text-white border border-gray-700"
                       : "bg-gray-800 text-gray-500 cursor-not-allowed"
-                    }`}
+                  }`}
                 >
-                  <HiShoppingBag size={18} />
+                  <HiShoppingBag
+                    size={18}
+                  />
                   Add to Cart
                 </button>
 
                 {/* BUY NOW */}
                 <button
                   type="button"
-                  onClick={handleBuyNow}
+                  onClick={
+                    handleBuyNow
+                  }
                   disabled={!isInStock}
-                  className={`w-full py-3.5 rounded-2xl text-xs font-bold flex items-center justify-center gap-2 shadow-lg transition cursor-pointer ${isInStock
+                  className={`w-full py-3.5 rounded-2xl text-xs font-bold flex items-center justify-center gap-2 shadow-lg transition cursor-pointer ${
+                    isInStock
                       ? "bg-purple-600 hover:bg-purple-700 text-white shadow-purple-600/20"
                       : "bg-gray-800 text-gray-500 cursor-not-allowed"
-                    }`}
+                  }`}
                 >
-                  <HiLightningBolt size={18} />
+                  <HiLightningBolt
+                    size={18}
+                  />
                   Buy Now
                 </button>
               </div>
@@ -1142,7 +1480,8 @@ export default function ProductDetails() {
         {/* ======================================
             RELATED PRODUCTS
         ====================================== */}
-        {relatedProducts.length > 0 && (
+        {relatedProducts.length >
+          0 && (
           <section className="space-y-4">
 
             <div>
@@ -1151,7 +1490,8 @@ export default function ProductDetails() {
               </h2>
 
               <p className="text-[10px] text-gray-500 mt-1">
-                You may also like these products.
+                You may also like these
+                products.
               </p>
             </div>
 
