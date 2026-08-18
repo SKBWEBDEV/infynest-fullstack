@@ -10,6 +10,8 @@ import {
   HiHeart,
   HiEye,
   HiLightningBolt,
+  HiPlus,
+  HiMinus,
 } from "react-icons/hi";
 
 import { useCart } from "../context/CartContext";
@@ -32,6 +34,8 @@ export default function ProductDetails() {
 
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
+
+  const [showProductDetails, setShowProductDetails] = useState(false);
 
   // ==========================================
   // FETCH PRODUCT
@@ -496,10 +500,134 @@ export default function ProductDetails() {
                 )}
               </div>
 
-              {/* Description */}
-              <p className="text-xs text-gray-400 leading-relaxed border-y border-gray-800/60 py-4">
-                {product.description}
-              </p>
+             {/* Description + Product Details */}
+<div className="border-y border-gray-800/60">
+
+  {/* DESCRIPTION */}
+  <p className="text-xs text-gray-400 leading-relaxed py-4">
+    {product.description}
+  </p>
+
+  {/* PRODUCT DETAILS TOGGLE */}
+  <button
+    type="button"
+    onClick={() =>
+      setShowProductDetails(!showProductDetails)
+    }
+    className="w-full flex items-center justify-between py-4 text-left group"
+  >
+    <div className="flex items-center gap-2.5">
+      <div className="w-7 h-7 rounded-lg bg-purple-600/10 border border-purple-500/20 flex items-center justify-center text-purple-400 group-hover:bg-purple-600 group-hover:text-white transition">
+        {showProductDetails ? (
+          <HiMinus size={14} />
+        ) : (
+          <HiPlus size={14} />
+        )}
+      </div>
+
+      <span className="text-xs font-bold text-gray-200 group-hover:text-purple-400 transition">
+        Product Details
+      </span>
+    </div>
+
+    <span className="text-[10px] text-gray-500">
+      {showProductDetails ? "Hide details" : "View details"}
+    </span>
+  </button>
+
+  {/* EXPANDED DETAILS */}
+  {showProductDetails && (
+    <div className="pb-4 animate-in fade-in slide-in-from-top-2 duration-200">
+      <div className="bg-[#0f1115] border border-gray-800 rounded-2xl p-4 space-y-3">
+
+        {product.collection && (
+          <div className="flex items-center justify-between gap-4">
+            <span className="text-[10px] text-gray-500">
+              Collection
+            </span>
+
+            <span className="text-[10px] font-semibold text-gray-200 text-right">
+              {product.collection}
+            </span>
+          </div>
+        )}
+
+        {product.material && (
+          <div className="flex items-center justify-between gap-4">
+            <span className="text-[10px] text-gray-500">
+              Material
+            </span>
+
+            <span className="text-[10px] font-semibold text-gray-200 text-right">
+              {product.material}
+            </span>
+          </div>
+        )}
+
+        {product.sleeve && (
+          <div className="flex items-center justify-between gap-4">
+            <span className="text-[10px] text-gray-500">
+              Sleeve
+            </span>
+
+            <span className="text-[10px] font-semibold text-gray-200 text-right">
+              {product.sleeve}
+            </span>
+          </div>
+        )}
+
+        {product.fit && (
+          <div className="flex items-center justify-between gap-4">
+            <span className="text-[10px] text-gray-500">
+              Fit
+            </span>
+
+            <span className="text-[10px] font-semibold text-gray-200 text-right">
+              {product.fit}
+            </span>
+          </div>
+        )}
+
+        {product.fabric && (
+          <div className="flex items-center justify-between gap-4">
+            <span className="text-[10px] text-gray-500">
+              Fabric
+            </span>
+
+            <span className="text-[10px] font-semibold text-gray-200 text-right">
+              {product.fabric}
+            </span>
+          </div>
+        )}
+
+        {product.composition && (
+          <div className="flex items-center justify-between gap-4">
+            <span className="text-[10px] text-gray-500">
+              Composition
+            </span>
+
+            <span className="text-[10px] font-semibold text-gray-200 text-right">
+              {product.composition}
+            </span>
+          </div>
+        )}
+
+        {product.styleCode && (
+          <div className="flex items-center justify-between gap-4">
+            <span className="text-[10px] text-gray-500">
+              Style Code
+            </span>
+
+            <span className="text-[10px] font-semibold text-purple-400 text-right">
+              {product.styleCode}
+            </span>
+          </div>
+        )}
+
+      </div>
+    </div>
+  )}
+</div>
 
               {/* =================================
                   SIZES
