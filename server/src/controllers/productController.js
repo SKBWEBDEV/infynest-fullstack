@@ -9,7 +9,11 @@ import cloudinary from "../config/cloudinary.js";
 // ======================================================
 
 const parseArrayField = (value, fieldName) => {
-  if (value === undefined || value === null || value === "") {
+  if (
+    value === undefined ||
+    value === null ||
+    value === ""
+  ) {
     return [];
   }
 
@@ -21,12 +25,113 @@ const parseArrayField = (value, fieldName) => {
     const parsed = JSON.parse(value);
 
     if (!Array.isArray(parsed)) {
-      throw new Error(`${fieldName} must be an array`);
+      throw new Error(
+        `${fieldName} must be an array`,
+      );
     }
 
     return parsed;
   } catch (error) {
-    throw new Error(`Invalid ${fieldName} data`);
+    throw new Error(
+      `Invalid ${fieldName} data`,
+    );
+  }
+};
+
+// ======================================================
+// HELPER - PARSE PRODUCT DETAILS
+// ======================================================
+
+const parseDetailsField = (value) => {
+  if (
+    value === undefined ||
+    value === null ||
+    value === ""
+  ) {
+    return {
+      collection: "",
+      material: "",
+      sleeve: "",
+      fit: "",
+      fabric: "",
+      composition: "",
+      styleCode: "",
+    };
+  }
+
+  if (
+    typeof value === "object" &&
+    !Array.isArray(value)
+  ) {
+    return {
+      collection: value.collection?.trim?.() || "",
+      material: value.material?.trim?.() || "",
+      sleeve: value.sleeve?.trim?.() || "",
+      fit: value.fit?.trim?.() || "",
+      fabric: value.fabric?.trim?.() || "",
+      composition:
+        value.composition?.trim?.() || "",
+      styleCode:
+        value.styleCode?.trim?.() || "",
+    };
+  }
+
+  try {
+    const parsed =
+      typeof value === "string"
+        ? JSON.parse(value)
+        : value;
+
+    if (
+      !parsed ||
+      typeof parsed !== "object" ||
+      Array.isArray(parsed)
+    ) {
+      throw new Error(
+        "Invalid details format",
+      );
+    }
+
+    return {
+      collection:
+        typeof parsed.collection === "string"
+          ? parsed.collection.trim()
+          : "",
+
+      material:
+        typeof parsed.material === "string"
+          ? parsed.material.trim()
+          : "",
+
+      sleeve:
+        typeof parsed.sleeve === "string"
+          ? parsed.sleeve.trim()
+          : "",
+
+      fit:
+        typeof parsed.fit === "string"
+          ? parsed.fit.trim()
+          : "",
+
+      fabric:
+        typeof parsed.fabric === "string"
+          ? parsed.fabric.trim()
+          : "",
+
+      composition:
+        typeof parsed.composition === "string"
+          ? parsed.composition.trim()
+          : "",
+
+      styleCode:
+        typeof parsed.styleCode === "string"
+          ? parsed.styleCode.trim()
+          : "",
+    };
+  } catch (error) {
+    throw new Error(
+      "Invalid product details data",
+    );
   }
 };
 
@@ -49,11 +154,13 @@ export const getProducts = async (req, res) => {
     }
 
     if (isFeatured !== undefined) {
-      query.isFeatured = isFeatured === "true";
+      query.isFeatured =
+        isFeatured === "true";
     }
 
     if (isNewArrival !== undefined) {
-      query.isNewArrival = isNewArrival === "true";
+      query.isNewArrival =
+        isNewArrival === "true";
     }
 
     const products = await Product.find(query).sort({
@@ -66,7 +173,10 @@ export const getProducts = async (req, res) => {
       data: products,
     });
   } catch (error) {
-    console.error("Get products error:", error);
+    console.error(
+      "Get products error:",
+      error,
+    );
 
     return res.status(500).json({
       success: false,
@@ -83,11 +193,13 @@ export const getProducts = async (req, res) => {
 // GET SINGLE PRODUCT
 // ======================================================
 
-export const getProductById = async (req, res) => {
+export const getProductById = async (
+  req,
+  res,
+) => {
   try {
-    const product = await Product.findById(
-      req.params.id,
-    );
+    const product =
+      await Product.findById(req.params.id);
 
     if (!product) {
       return res.status(404).json({
@@ -101,7 +213,10 @@ export const getProductById = async (req, res) => {
       data: product,
     });
   } catch (error) {
-    console.error("Get product error:", error);
+    console.error(
+      "Get product error:",
+      error,
+    );
 
     return res.status(500).json({
       success: false,
@@ -118,7 +233,10 @@ export const getProductById = async (req, res) => {
 // CREATE PRODUCT
 // ======================================================
 
-export const createProduct = async (req, res) => {
+export const createProduct = async (
+  req,
+  res,
+) => {
   try {
     const {
       name,
@@ -136,6 +254,17 @@ export const createProduct = async (req, res) => {
       isFeatured,
       isNewArrival,
       imageUrls,
+
+      // Product details
+      collection,
+      material,
+      sleeve,
+      fit,
+      fabric,
+      composition,
+      styleCode,
+
+      details,
     } = req.body;
 
     // ==================================================
@@ -167,7 +296,8 @@ export const createProduct = async (req, res) => {
     // RETAIL PRICE
     // ==================================================
 
-    const parsedRetailPrice = Number(retailPrice);
+    const parsedRetailPrice =
+      Number(retailPrice);
 
     if (
       retailPrice === undefined ||
@@ -185,7 +315,8 @@ export const createProduct = async (req, res) => {
     // COST PRICE
     // ==================================================
 
-    const parsedCostPrice = Number(costPrice);
+    const parsedCostPrice =
+      Number(costPrice);
 
     if (
       costPrice === undefined ||
@@ -200,7 +331,10 @@ export const createProduct = async (req, res) => {
       });
     }
 
-    if (parsedCostPrice > parsedRetailPrice) {
+    if (
+      parsedCostPrice >
+      parsedRetailPrice
+    ) {
       return res.status(400).json({
         success: false,
         message:
@@ -214,17 +348,20 @@ export const createProduct = async (req, res) => {
 
     const parsedDiscountPrice =
       discountPrice !== undefined &&
-        discountPrice !== null &&
-        discountPrice !== ""
+      discountPrice !== null &&
+      discountPrice !== ""
         ? Number(discountPrice)
         : null;
 
     if (
       parsedDiscountPrice !== null &&
       (
-        !Number.isFinite(parsedDiscountPrice) ||
+        !Number.isFinite(
+          parsedDiscountPrice,
+        ) ||
         parsedDiscountPrice < 0 ||
-        parsedDiscountPrice >= parsedRetailPrice
+        parsedDiscountPrice >=
+          parsedRetailPrice
       )
     ) {
       return res.status(400).json({
@@ -240,15 +377,17 @@ export const createProduct = async (req, res) => {
 
     const parsedWholesalePrice =
       wholesalePrice !== undefined &&
-        wholesalePrice !== null &&
-        wholesalePrice !== ""
+      wholesalePrice !== null &&
+      wholesalePrice !== ""
         ? Number(wholesalePrice)
         : null;
 
     if (
       parsedWholesalePrice !== null &&
       (
-        !Number.isFinite(parsedWholesalePrice) ||
+        !Number.isFinite(
+          parsedWholesalePrice,
+        ) ||
         parsedWholesalePrice < 0
       )
     ) {
@@ -260,7 +399,8 @@ export const createProduct = async (req, res) => {
 
     if (
       parsedWholesalePrice !== null &&
-      parsedWholesalePrice >= parsedRetailPrice
+      parsedWholesalePrice >=
+        parsedRetailPrice
     ) {
       return res.status(400).json({
         success: false,
@@ -275,13 +415,15 @@ export const createProduct = async (req, res) => {
 
     const parsedMinWholesaleQty =
       minWholesaleQty !== undefined &&
-        minWholesaleQty !== null &&
-        minWholesaleQty !== ""
+      minWholesaleQty !== null &&
+      minWholesaleQty !== ""
         ? Number(minWholesaleQty)
         : 1;
 
     if (
-      !Number.isInteger(parsedMinWholesaleQty) ||
+      !Number.isInteger(
+        parsedMinWholesaleQty,
+      ) ||
       parsedMinWholesaleQty < 1
     ) {
       return res.status(400).json({
@@ -315,39 +457,56 @@ export const createProduct = async (req, res) => {
 
     let images = [];
 
-    if (req.files && req.files.length > 0) {
-      const uploadedImages = await Promise.all(
-        req.files.map(
-          (file) =>
-            new Promise((resolve, reject) => {
-              const uploadStream =
-                cloudinary.uploader.upload_stream(
-                  {
-                    folder: "infynest/products",
-                    resource_type: "image",
-                    transformation: [
+    if (
+      req.files &&
+      req.files.length > 0
+    ) {
+      const uploadedImages =
+        await Promise.all(
+          req.files.map(
+            (file) =>
+              new Promise(
+                (resolve, reject) => {
+                  const uploadStream =
+                    cloudinary.uploader.upload_stream(
                       {
-                        quality: "auto",
-                        fetch_format: "auto",
+                        folder:
+                          "infynest/products",
+                        resource_type:
+                          "image",
+                        transformation: [
+                          {
+                            quality: "auto",
+                            fetch_format:
+                              "auto",
+                          },
+                        ],
                       },
-                    ],
-                  },
-                  (error, result) => {
-                    if (error) {
-                      reject(error);
-                    } else {
-                      resolve(result);
-                    }
-                  },
-                );
+                      (
+                        error,
+                        result,
+                      ) => {
+                        if (error) {
+                          reject(error);
+                        } else {
+                          resolve(
+                            result,
+                          );
+                        }
+                      },
+                    );
 
-              uploadStream.end(file.buffer);
-            }),
-        ),
-      );
+                  uploadStream.end(
+                    file.buffer,
+                  );
+                },
+              ),
+          ),
+        );
 
       images = uploadedImages.map(
-        (result) => result.secure_url,
+        (result) =>
+          result.secure_url,
       );
     }
 
@@ -362,19 +521,31 @@ export const createProduct = async (req, res) => {
             ? JSON.parse(imageUrls)
             : imageUrls;
 
-        if (Array.isArray(parsedUrls)) {
-          images = [...images, ...parsedUrls];
+        if (
+          !Array.isArray(parsedUrls)
+        ) {
+          return res.status(400).json({
+            success: false,
+            message:
+              "imageUrls must be an array",
+          });
         }
+
+        images = [
+          ...images,
+          ...parsedUrls,
+        ];
       } catch (error) {
         return res.status(400).json({
           success: false,
-          message: "Invalid imageUrls data",
+          message:
+            "Invalid imageUrls data",
         });
       }
     }
 
     // ==================================================
-    // ARRAYS
+    // ARRAY FIELDS
     // ==================================================
 
     let parsedSizes;
@@ -382,20 +553,56 @@ export const createProduct = async (req, res) => {
     let parsedTags;
 
     try {
-      parsedSizes = parseArrayField(
-        sizes,
-        "sizes",
-      );
+      parsedSizes =
+        parseArrayField(
+          sizes,
+          "sizes",
+        );
 
-      parsedColors = parseArrayField(
-        colors,
-        "colors",
-      );
+      parsedColors =
+        parseArrayField(
+          colors,
+          "colors",
+        );
 
-      parsedTags = parseArrayField(
-        tags,
-        "tags",
-      );
+      parsedTags =
+        parseArrayField(
+          tags,
+          "tags",
+        );
+    } catch (error) {
+      return res.status(400).json({
+        success: false,
+        message: error.message,
+      });
+    }
+
+    // ==================================================
+    // PRODUCT DETAILS
+    // ==================================================
+
+    let parsedDetails;
+
+    try {
+      if (
+        details !== undefined
+      ) {
+        parsedDetails =
+          parseDetailsField(
+            details,
+          );
+      } else {
+        parsedDetails =
+          parseDetailsField({
+            collection,
+            material,
+            sleeve,
+            fit,
+            fabric,
+            composition,
+            styleCode,
+          });
+      }
     } catch (error) {
       return res.status(400).json({
         success: false,
@@ -406,65 +613,74 @@ export const createProduct = async (req, res) => {
     // ==================================================
     // CREATE PRODUCT
     // ==================================================
-    //
-    // IMPORTANT:
-    //
-    // initialStock = stock at product creation
-    // soldQuantity = 0
-    // stock = current stock
-    //
 
-    const product = await Product.create({
-      name: name.trim(),
+    const product =
+      await Product.create({
+        name: name.trim(),
 
-      description: description.trim(),
+        description:
+          description.trim(),
 
-      retailPrice: parsedRetailPrice,
+        details: parsedDetails,
 
-      costPrice: parsedCostPrice,
+        retailPrice:
+          parsedRetailPrice,
 
-      discountPrice: parsedDiscountPrice,
+        costPrice:
+          parsedCostPrice,
 
-      wholesalePrice: parsedWholesalePrice,
+        discountPrice:
+          parsedDiscountPrice,
 
-      minWholesaleQty: parsedMinWholesaleQty,
+        wholesalePrice:
+          parsedWholesalePrice,
 
-      category: category.trim(),
+        minWholesaleQty:
+          parsedMinWholesaleQty,
 
-      sizes: parsedSizes,
+        category:
+          category.trim(),
 
-      colors: parsedColors,
+        sizes: parsedSizes,
 
-      tags: parsedTags,
+        colors: parsedColors,
 
-      images,
+        tags: parsedTags,
 
-      stock: parsedStock,
+        images,
 
-      initialStock: parsedStock,
+        stock: parsedStock,
 
-      soldQuantity: 0,
+        initialStock:
+          parsedStock,
 
-      isFeatured:
-        isFeatured === true ||
-        isFeatured === "true",
+        soldQuantity: 0,
 
-      isNewArrival:
-        isNewArrival === true ||
-        isNewArrival === "true",
-    });
+        isFeatured:
+          isFeatured === true ||
+          isFeatured === "true",
+
+        isNewArrival:
+          isNewArrival === true ||
+          isNewArrival === "true",
+      });
 
     return res.status(201).json({
       success: true,
-      message: "Product created successfully",
+      message:
+        "Product created successfully",
       data: product,
     });
   } catch (error) {
-    console.error("Create product error:", error);
+    console.error(
+      "Create product error:",
+      error,
+    );
 
     return res.status(500).json({
       success: false,
-      message: "Failed to create product",
+      message:
+        "Failed to create product",
       error:
         process.env.NODE_ENV === "development"
           ? error.message
@@ -477,7 +693,10 @@ export const createProduct = async (req, res) => {
 // UPDATE PRODUCT
 // ======================================================
 
-export const updateProduct = async (req, res) => {
+export const updateProduct = async (
+  req,
+  res,
+) => {
   try {
     const {
       name,
@@ -495,15 +714,27 @@ export const updateProduct = async (req, res) => {
       isFeatured,
       isNewArrival,
       imageUrls,
+
+      // Product details
+      collection,
+      material,
+      sleeve,
+      fit,
+      fabric,
+      composition,
+      styleCode,
+
+      details,
     } = req.body;
 
     // ==================================================
     // FIND PRODUCT
     // ==================================================
 
-    const product = await Product.findById(
-      req.params.id,
-    );
+    const product =
+      await Product.findById(
+        req.params.id,
+      );
 
     if (!product) {
       return res.status(404).json({
@@ -513,29 +744,65 @@ export const updateProduct = async (req, res) => {
     }
 
     // ==================================================
-    // PRICE VALIDATION
+    // BASIC VALIDATION
     // ==================================================
 
-    const parsedRetailPrice = Number(retailPrice);
+    if (!name?.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: "Product name is required",
+      });
+    }
+
+    if (!description?.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: "Description is required",
+      });
+    }
+
+    if (!category?.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: "Category is required",
+      });
+    }
+
+    // ==================================================
+    // RETAIL PRICE
+    // ==================================================
+
+    const parsedRetailPrice =
+      Number(retailPrice);
 
     if (
       retailPrice === undefined ||
       retailPrice === "" ||
-      !Number.isFinite(parsedRetailPrice) ||
+      !Number.isFinite(
+        parsedRetailPrice,
+      ) ||
       parsedRetailPrice < 0
     ) {
       return res.status(400).json({
         success: false,
-        message: "Invalid retail price",
+        message:
+          "Invalid retail price",
       });
     }
 
-    const parsedCostPrice = Number(costPrice);
+    // ==================================================
+    // COST PRICE
+    // ==================================================
+
+    const parsedCostPrice =
+      Number(costPrice);
 
     if (
       costPrice === undefined ||
       costPrice === "" ||
-      !Number.isFinite(parsedCostPrice) ||
+      !Number.isFinite(
+        parsedCostPrice,
+      ) ||
       parsedCostPrice < 0
     ) {
       return res.status(400).json({
@@ -545,7 +812,10 @@ export const updateProduct = async (req, res) => {
       });
     }
 
-    if (parsedCostPrice > parsedRetailPrice) {
+    if (
+      parsedCostPrice >
+      parsedRetailPrice
+    ) {
       return res.status(400).json({
         success: false,
         message:
@@ -557,22 +827,27 @@ export const updateProduct = async (req, res) => {
     // DISCOUNT PRICE
     // ==================================================
 
-    let parsedDiscountPrice = null;
+    let parsedDiscountPrice =
+      null;
 
     if (
       discountPrice !== undefined &&
       discountPrice !== null &&
       discountPrice !== ""
     ) {
-      parsedDiscountPrice = Number(discountPrice);
+      parsedDiscountPrice =
+        Number(discountPrice);
     }
 
     if (
       parsedDiscountPrice !== null &&
       (
-        !Number.isFinite(parsedDiscountPrice) ||
+        !Number.isFinite(
+          parsedDiscountPrice,
+        ) ||
         parsedDiscountPrice < 0 ||
-        parsedDiscountPrice >= parsedRetailPrice
+        parsedDiscountPrice >=
+          parsedRetailPrice
       )
     ) {
       return res.status(400).json({
@@ -588,39 +863,44 @@ export const updateProduct = async (req, res) => {
 
     const parsedWholesalePrice =
       wholesalePrice !== undefined &&
-        wholesalePrice !== null &&
-        wholesalePrice !== ""
+      wholesalePrice !== null &&
+      wholesalePrice !== ""
         ? Number(wholesalePrice)
         : null;
 
     if (
       parsedWholesalePrice !== null &&
       (
-        !Number.isFinite(parsedWholesalePrice) ||
+        !Number.isFinite(
+          parsedWholesalePrice,
+        ) ||
         parsedWholesalePrice < 0 ||
-        parsedWholesalePrice >= parsedRetailPrice
+        parsedWholesalePrice >=
+          parsedRetailPrice
       )
     ) {
       return res.status(400).json({
         success: false,
         message:
-          "Invalid wholesale price",
+          "Wholesale price must be less than retail price",
       });
     }
 
     // ==================================================
-    // MIN WHOLESALE QTY
+    // MIN WHOLESALE QUANTITY
     // ==================================================
 
     const parsedMinWholesaleQty =
       minWholesaleQty !== undefined &&
-        minWholesaleQty !== null &&
-        minWholesaleQty !== ""
+      minWholesaleQty !== null &&
+      minWholesaleQty !== ""
         ? Number(minWholesaleQty)
         : 1;
 
     if (
-      !Number.isInteger(parsedMinWholesaleQty) ||
+      !Number.isInteger(
+        parsedMinWholesaleQty,
+      ) ||
       parsedMinWholesaleQty < 1
     ) {
       return res.status(400).json({
@@ -639,12 +919,15 @@ export const updateProduct = async (req, res) => {
     if (
       stock === undefined ||
       stock === "" ||
-      !Number.isInteger(parsedStock) ||
+      !Number.isInteger(
+        parsedStock,
+      ) ||
       parsedStock < 0
     ) {
       return res.status(400).json({
         success: false,
-        message: "Invalid stock quantity",
+        message:
+          "Invalid stock quantity",
       });
     }
 
@@ -652,47 +935,78 @@ export const updateProduct = async (req, res) => {
     // IMAGE HANDLING
     // ==================================================
 
-    let images = Array.isArray(product.images)
+    let images = Array.isArray(
+      product.images,
+    )
       ? [...product.images]
       : [];
 
-    if (req.files && req.files.length > 0) {
-      const uploadedImages = await Promise.all(
-        req.files.map(
-          (file) =>
-            new Promise((resolve, reject) => {
-              const uploadStream =
-                cloudinary.uploader.upload_stream(
-                  {
-                    folder: "infynest/products",
-                    resource_type: "image",
-                    transformation: [
+    // --------------------------------------------------
+    // UPLOAD NEW FILES
+    // --------------------------------------------------
+
+    if (
+      req.files &&
+      req.files.length > 0
+    ) {
+      const uploadedImages =
+        await Promise.all(
+          req.files.map(
+            (file) =>
+              new Promise(
+                (resolve, reject) => {
+                  const uploadStream =
+                    cloudinary.uploader.upload_stream(
                       {
-                        quality: "auto",
-                        fetch_format: "auto",
+                        folder:
+                          "infynest/products",
+                        resource_type:
+                          "image",
+                        transformation: [
+                          {
+                            quality: "auto",
+                            fetch_format:
+                              "auto",
+                          },
+                        ],
                       },
-                    ],
-                  },
-                  (error, result) => {
-                    if (error) {
-                      reject(error);
-                    } else {
-                      resolve(result);
-                    }
-                  },
-                );
+                      (
+                        error,
+                        result,
+                      ) => {
+                        if (error) {
+                          reject(error);
+                        } else {
+                          resolve(
+                            result,
+                          );
+                        }
+                      },
+                    );
 
-              uploadStream.end(file.buffer);
-            }),
-        ),
-      );
+                  uploadStream.end(
+                    file.buffer,
+                  );
+                },
+              ),
+          ),
+        );
 
-      const newImages = uploadedImages.map(
-        (result) => result.secure_url,
-      );
+      const newImages =
+        uploadedImages.map(
+          (result) =>
+            result.secure_url,
+        );
 
-      images = [...images, ...newImages];
+      images = [
+        ...images,
+        ...newImages,
+      ];
     }
+
+    // --------------------------------------------------
+    // IMAGE URLS
+    // --------------------------------------------------
 
     if (imageUrls) {
       try {
@@ -701,28 +1015,121 @@ export const updateProduct = async (req, res) => {
             ? JSON.parse(imageUrls)
             : imageUrls;
 
-        if (Array.isArray(parsedUrls)) {
-          images = parsedUrls;
+        if (
+          !Array.isArray(parsedUrls)
+        ) {
+          return res.status(400).json({
+            success: false,
+            message:
+              "imageUrls must be an array",
+          });
         }
+
+        images = parsedUrls;
       } catch (error) {
         return res.status(400).json({
           success: false,
-          message: "Invalid imageUrls data",
+          message:
+            "Invalid imageUrls data",
         });
       }
+    }
+
+    // ==================================================
+    // ARRAY FIELDS
+    // ==================================================
+
+    if (sizes !== undefined) {
+      try {
+        product.sizes =
+          parseArrayField(
+            sizes,
+            "sizes",
+          );
+      } catch (error) {
+        return res.status(400).json({
+          success: false,
+          message: error.message,
+        });
+      }
+    }
+
+    if (colors !== undefined) {
+      try {
+        product.colors =
+          parseArrayField(
+            colors,
+            "colors",
+          );
+      } catch (error) {
+        return res.status(400).json({
+          success: false,
+          message: error.message,
+        });
+      }
+    }
+
+    if (tags !== undefined) {
+      try {
+        product.tags =
+          parseArrayField(
+            tags,
+            "tags",
+          );
+      } catch (error) {
+        return res.status(400).json({
+          success: false,
+          message: error.message,
+        });
+      }
+    }
+
+    // ==================================================
+    // PRODUCT DETAILS
+    // ==================================================
+
+    try {
+      if (
+        details !== undefined
+      ) {
+        product.details =
+          parseDetailsField(
+            details,
+          );
+      } else {
+        product.details =
+          parseDetailsField({
+            collection,
+            material,
+            sleeve,
+            fit,
+            fabric,
+            composition,
+            styleCode,
+          });
+      }
+    } catch (error) {
+      return res.status(400).json({
+        success: false,
+        message: error.message,
+      });
     }
 
     // ==================================================
     // UPDATE BASIC DATA
     // ==================================================
 
-    product.name = name?.trim();
+    product.name =
+      name.trim();
 
-    product.description = description?.trim();
+    product.description =
+      description.trim();
 
-    product.retailPrice = parsedRetailPrice;
+    product.retailPrice =
+      parsedRetailPrice;
 
-    product.costPrice = parsedCostPrice;
+    product.costPrice =
+      parsedCostPrice;
 
     product.discountPrice =
       parsedDiscountPrice;
@@ -733,116 +1140,38 @@ export const updateProduct = async (req, res) => {
     product.minWholesaleQty =
       parsedMinWholesaleQty;
 
-    product.category = category?.trim();
+    product.category =
+      category.trim();
 
-    product.images = images;
-
-    // ==================================================
-    // SIZES
-    // ==================================================
-
-    if (sizes !== undefined) {
-      try {
-        product.sizes = parseArrayField(
-          sizes,
-          "sizes",
-        );
-      } catch (error) {
-        return res.status(400).json({
-          success: false,
-          message: error.message,
-        });
-      }
-    }
-
-    // ==================================================
-    // COLORS
-    // ==================================================
-
-    if (colors !== undefined) {
-      try {
-        product.colors = parseArrayField(
-          colors,
-          "colors",
-        );
-      } catch (error) {
-        return res.status(400).json({
-          success: false,
-          message: error.message,
-        });
-      }
-    }
-
-    // ==================================================
-    // TAGS
-    // ==================================================
-
-    if (tags !== undefined) {
-      try {
-        product.tags = parseArrayField(
-          tags,
-          "tags",
-        );
-      } catch (error) {
-        return res.status(400).json({
-          success: false,
-          message: error.message,
-        });
-      }
-    }
+    product.images =
+      images;
 
     // ==================================================
     // CURRENT STOCK
     // ==================================================
-    //
-    // IMPORTANT:
-    //
-    // Admin manually changes current stock here.
-    //
-    // initialStock DOES NOT change.
-    //
-    // soldQuantity DOES NOT change.
-    //
-    // Example:
-    //
-    // initialStock = 20
-    // soldQuantity = 5
-    // stock = 15
-    //
-    // Admin adds 10 stock:
-    //
-    // initialStock = 20
-    // soldQuantity = 5
-    // stock = 25
-    //
-    // This preserves the original stock history.
-    //
 
-    product.stock = parsedStock;
+    product.stock =
+      parsedStock;
 
     // ==================================================
     // BACKWARD COMPATIBILITY
     // ==================================================
-    //
-    // Existing products may not have initialStock.
-    //
-    // In that case initialize it once.
-    //
 
     if (
-      product.initialStock === undefined ||
+      product.initialStock ===
+        undefined ||
       product.initialStock === null
     ) {
       product.initialStock =
         parsedStock +
-        Number(product.soldQuantity || 0);
+        Number(
+          product.soldQuantity || 0,
+        );
     }
 
-    // Existing products may not have soldQuantity.
-    //
-
     if (
-      product.soldQuantity === undefined ||
+      product.soldQuantity ===
+        undefined ||
       product.soldQuantity === null
     ) {
       product.soldQuantity = 0;
@@ -877,15 +1206,20 @@ export const updateProduct = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      message: "Product updated successfully",
+      message:
+        "Product updated successfully",
       data: updatedProduct,
     });
   } catch (error) {
-    console.error("Update product error:", error);
+    console.error(
+      "Update product error:",
+      error,
+    );
 
     return res.status(500).json({
       success: false,
-      message: "Failed to update product",
+      message:
+        "Failed to update product",
       error:
         process.env.NODE_ENV === "development"
           ? error.message
@@ -898,7 +1232,10 @@ export const updateProduct = async (req, res) => {
 // DELETE PRODUCT
 // ======================================================
 
-export const deleteProduct = async (req, res) => {
+export const deleteProduct = async (
+  req,
+  res,
+) => {
   try {
     const product =
       await Product.findByIdAndDelete(
@@ -914,14 +1251,19 @@ export const deleteProduct = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      message: "Product deleted successfully",
+      message:
+        "Product deleted successfully",
     });
   } catch (error) {
-    console.error("Delete product error:", error);
+    console.error(
+      "Delete product error:",
+      error,
+    );
 
     return res.status(500).json({
       success: false,
-      message: "Failed to delete product",
+      message:
+        "Failed to delete product",
       error:
         process.env.NODE_ENV === "development"
           ? error.message

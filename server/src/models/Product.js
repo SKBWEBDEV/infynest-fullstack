@@ -4,6 +4,10 @@ import mongoose from "mongoose";
 
 const productSchema = new mongoose.Schema(
   {
+    // ==================================================
+    // BASIC PRODUCT INFO
+    // ==================================================
+
     name: {
       type: String,
       required: true,
@@ -11,22 +15,68 @@ const productSchema = new mongoose.Schema(
     },
 
     description: {
-  type: String,
-  required: true,
-  trim: true,
-},
+      type: String,
+      required: true,
+      trim: true,
+    },
 
-details: {
-  type: String,
-  default: "",
-  trim: true,
-},
+    // ==================================================
+    // PRODUCT DETAILS
+    // ==================================================
 
-retailPrice: {
-  type: Number,
-  required: true,
-  min: 0,
-},
+    details: {
+      collection: {
+        type: String,
+        default: "",
+        trim: true,
+      },
+
+      material: {
+        type: String,
+        default: "",
+        trim: true,
+      },
+
+      sleeve: {
+        type: String,
+        default: "",
+        trim: true,
+      },
+
+      fit: {
+        type: String,
+        default: "",
+        trim: true,
+      },
+
+      fabric: {
+        type: String,
+        default: "",
+        trim: true,
+      },
+
+      composition: {
+        type: String,
+        default: "",
+        trim: true,
+      },
+
+      styleCode: {
+        type: String,
+        default: "",
+        trim: true,
+      },
+    },
+
+    // ==================================================
+    // PRICES
+    // ==================================================
+
+    retailPrice: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
 
     costPrice: {
       type: Number,
@@ -52,11 +102,19 @@ retailPrice: {
       min: 1,
     },
 
+    // ==================================================
+    // CATEGORY
+    // ==================================================
+
     category: {
       type: String,
       required: true,
       trim: true,
     },
+
+    // ==================================================
+    // PRODUCT OPTIONS
+    // ==================================================
 
     sizes: {
       type: [String],
@@ -72,6 +130,10 @@ retailPrice: {
       type: [String],
       default: [],
     },
+
+    // ==================================================
+    // IMAGES
+    // ==================================================
 
     images: {
       type: [mongoose.Schema.Types.Mixed],
@@ -92,10 +154,6 @@ retailPrice: {
     // ==================================================
     // INITIAL STOCK
     // ==================================================
-    //
-    // Product create করার সময় যত stock ছিল।
-    // Admin update করলে এটা automatically change হবে না।
-    //
 
     initialStock: {
       type: Number,
@@ -107,16 +165,16 @@ retailPrice: {
     // ==================================================
     // SOLD QUANTITY
     // ==================================================
-    //
-    // Confirmed order হলে বাড়বে।
-    // Cancel করলে আবার কমবে।
-    //
 
     soldQuantity: {
       type: Number,
       min: 0,
       default: 0,
     },
+
+    // ==================================================
+    // FLAGS
+    // ==================================================
 
     isFeatured: {
       type: Boolean,
